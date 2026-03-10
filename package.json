@@ -1,0 +1,21 @@
+{
+  "name": "ledge",
+  "private": true,
+  "packageManager": "pnpm@10.31.0",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "test": "turbo test",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "clean": "turbo clean",
+    "db:migrate": "turbo db:migrate --filter=@ledge/core"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild", "sharp", "better-sqlite3"]
+  },
+  "devDependencies": {
+    "turbo": "^2.4.0",
+    "typescript": "^5.7.0"
+  }
+}

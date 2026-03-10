@@ -1,0 +1,14 @@
+node_modules
+.git
+.next
+dist
+*.md
+!README.md
+docs
+.turbo
+.env
+.env.*
+*.log
+packages/dashboard
+packages/mcp
+packages/sdk

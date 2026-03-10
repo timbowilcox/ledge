@@ -1,0 +1,23 @@
+{
+  "name": "@ledge/example-expense-tracker",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3500",
+    "build": "next build",
+    "start": "next start -p 3500",
+    "seed": "npx tsx src/lib/seed.ts"
+  },
+  "dependencies": {
+    "@ledge/sdk": "workspace:*",
+    "next": "^15.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}

@@ -1,0 +1,36 @@
+node_modules/
+dist/
+.turbo/
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Next.js
+.next/
+out/
+
+# Test
+coverage/
+
+# Build artifacts
+*.tgz
+
+# Spec extraction artifacts
+unpacked/
+spec-text.txt
+
+# Claude Code local settings
+.claude/settings.local.json

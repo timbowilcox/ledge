@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dashboard",
+      "runtimeExecutable": "cmd.exe",
+      "runtimeArgs": [
+        "/c",
+        "npx",
+        "next",
+        "dev",
+        "--port",
+        "3400"
+      ],
+      "port": 3400,
+      "cwd": "packages/dashboard"
+    }
+  ]
+}

@@ -4,7 +4,7 @@ async function seed() {
   const baseUrl = process.env.LEDGE_BASE_URL ?? "http://localhost:3100";
   const adminSecret = process.env.LEDGE_ADMIN_SECRET ?? "dev-admin-secret";
 
-  const admin = new Ledge({ baseUrl, adminSecret });
+  const admin = new Ledge({ apiKey: "admin-bootstrap", adminSecret, baseUrl });
 
   // 1. Create ledger
   const ledger = await admin.ledgers.create({
@@ -24,10 +24,10 @@ async function seed() {
     ledgerId: ledger.id,
     name: "invoice-manager-dev",
   });
-  console.log("API Key:", key.raw);
+  console.log("API Key:", key.rawKey);
 
   // 4. Post sample transactions
-  const sdk = new Ledge({ baseUrl, apiKey: key.raw });
+  const sdk = new Ledge({ baseUrl, apiKey: key.rawKey });
 
   // Invoice #1 — Website redesign
   await sdk.transactions.post(ledger.id, {
@@ -112,7 +112,7 @@ async function seed() {
   console.log("\nSample transactions posted!");
   console.log("\nAdd these to your .env:");
   console.log("LEDGE_LEDGER_ID=" + ledger.id);
-  console.log("LEDGE_API_KEY=" + key.raw);
+  console.log("LEDGE_API_KEY=" + key.rawKey);
 }
 
 seed().catch((err) => {

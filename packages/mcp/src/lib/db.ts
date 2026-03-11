@@ -41,14 +41,14 @@ export async function initDatabase(): Promise<InitResult> {
     .split("\n")
     .filter((line) => !line.trim().startsWith("PRAGMA"))
     .join("\n");
-  db.exec(schemaWithoutPragmas);
+  await db.exec(schemaWithoutPragmas);
 
   // Apply migration 002 — add 'updated' to audit_entries action CHECK
   const migration002 = loadMigrationSql("002_audit_action_updated.sqlite.sql");
-  db.exec(migration002);
+  await db.exec(migration002);
 
   // Seed system user
-  db.run(
+  await db.run(
     `INSERT INTO users (id, email, name, auth_provider, auth_provider_id)
      VALUES (?, ?, ?, ?, ?)`,
     [SYSTEM_USER_ID, "system@ledge.local", "System", "system", "system"],

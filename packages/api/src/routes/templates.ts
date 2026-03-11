@@ -78,7 +78,7 @@ templateRoutes.post("/apply", adminAuth, async (c) => {
     );
   }
 
-  const result = engine.applyTemplate(body.ledgerId, body.templateSlug);
+  const result = await engine.applyTemplate(body.ledgerId, body.templateSlug);
   if (!result.ok) {
     return errorResponse(c, result.error);
   }

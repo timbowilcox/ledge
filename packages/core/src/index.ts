@@ -11,3 +11,4 @@ export * from "./statements/index.js";
 export * from "./import/index.js";
 export type { Database, Row, RunResult } from "./db/database.js";
 export { SqliteDatabase } from "./db/sqlite.js";
+export { PostgresDatabase } from "./db/postgres.js";

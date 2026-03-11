@@ -26,7 +26,7 @@ export function registerImportTools(
       filename: z.string().optional().describe("Original filename for reference"),
     },
     async ({ ledgerId, format, content, filename }) => {
-      const result = engine.createImport({
+      const result = await engine.createImport({
         ledgerId,
         fileContent: content,
         fileType: format,
@@ -61,7 +61,7 @@ export function registerImportTools(
         .describe("Match decisions for import rows"),
     },
     async ({ batchId, actions }) => {
-      const result = engine.confirmMatches({ batchId, actions });
+      const result = await engine.confirmMatches({ batchId, actions });
       return handleResult(result);
     },
   );
@@ -76,7 +76,7 @@ export function registerImportTools(
       batchId: z.string().describe("Import batch ID"),
     },
     async ({ batchId }) => {
-      const result = engine.getImportBatch(batchId);
+      const result = await engine.getImportBatch(batchId);
       return handleResult(result);
     },
   );

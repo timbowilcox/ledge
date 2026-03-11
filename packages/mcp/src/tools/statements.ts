@@ -32,7 +32,7 @@ export function registerStatementTools(
               message: "startDate and endDate are required for income statement",
             });
           }
-          const result = engine.generateIncomeStatement(ledgerId, startDate, endDate);
+          const result = await engine.generateIncomeStatement(ledgerId, startDate, endDate);
           return handleResult(result);
         }
 
@@ -43,7 +43,7 @@ export function registerStatementTools(
               message: "asOfDate is required for balance sheet",
             });
           }
-          const result = engine.generateBalanceSheet(ledgerId, asOfDate);
+          const result = await engine.generateBalanceSheet(ledgerId, asOfDate);
           return handleResult(result);
         }
 
@@ -54,7 +54,7 @@ export function registerStatementTools(
               message: "startDate and endDate are required for cash flow statement",
             });
           }
-          const result = engine.generateCashFlow(ledgerId, startDate, endDate);
+          const result = await engine.generateCashFlow(ledgerId, startDate, endDate);
           return handleResult(result);
         }
       }

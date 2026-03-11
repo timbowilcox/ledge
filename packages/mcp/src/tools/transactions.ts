@@ -37,7 +37,7 @@ export function registerTransactionTools(
       metadata: z.record(z.unknown()).optional().describe("Additional metadata (JSON)"),
     },
     async ({ ledgerId, date, memo, lines, effectiveDate, idempotencyKey, metadata }) => {
-      const result = engine.postTransaction({
+      const result = await engine.postTransaction({
         ledgerId,
         date,
         effectiveDate,
@@ -62,7 +62,7 @@ export function registerTransactionTools(
       reason: z.string().describe("Reason for reversal"),
     },
     async ({ transactionId, reason }) => {
-      const result = engine.reverseTransaction(transactionId, reason);
+      const result = await engine.reverseTransaction(transactionId, reason);
       return handleResult(result);
     },
   );
@@ -79,7 +79,7 @@ export function registerTransactionTools(
       limit: z.number().int().min(1).max(200).optional().describe("Results per page (default 50, max 200)"),
     },
     async ({ ledgerId, cursor, limit }) => {
-      const result = engine.listTransactions(ledgerId, { cursor, limit });
+      const result = await engine.listTransactions(ledgerId, { cursor, limit });
       return handleResult(result);
     },
   );

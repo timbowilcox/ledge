@@ -46,7 +46,7 @@ export function registerSetupTools(
         const template = top.template;
 
         // Create ledger
-        const ledgerResult = engine.createLedger({
+        const ledgerResult = await engine.createLedger({
           name: `${template.name} Ledger`,
           currency: template.defaultCurrency,
           accountingBasis: template.defaultBasis,
@@ -57,7 +57,7 @@ export function registerSetupTools(
         if (!ledgerResult.ok) return handleResult(ledgerResult);
 
         // Apply template
-        const accountsResult = engine.applyTemplate(
+        const accountsResult = await engine.applyTemplate(
           ledgerResult.value.id,
           template.slug,
         );
@@ -138,7 +138,7 @@ export function registerSetupTools(
         });
       }
 
-      const ledgerResult = engine.createLedger({
+      const ledgerResult = await engine.createLedger({
         name: name ?? `${template.name} Ledger`,
         currency: currency ?? template.defaultCurrency,
         accountingBasis: template.defaultBasis,
@@ -148,7 +148,7 @@ export function registerSetupTools(
 
       if (!ledgerResult.ok) return handleResult(ledgerResult);
 
-      const accountsResult = engine.applyTemplate(
+      const accountsResult = await engine.applyTemplate(
         ledgerResult.value.id,
         template.slug,
       );

@@ -21,7 +21,7 @@ importRoutes.post("/", async (c) => {
   const ledgerId = c.req.param("ledgerId");
   const body = await c.req.json();
 
-  const result = engine.createImport({
+  const result = await engine.createImport({
     ledgerId: ledgerId!,
     fileContent: body.fileContent,
     fileType: body.fileType,
@@ -43,7 +43,7 @@ importRoutes.get("/", async (c) => {
   const limitStr = c.req.query("limit");
   const limit = limitStr ? parseInt(limitStr, 10) : undefined;
 
-  const result = engine.listImportBatches(ledgerId!, { cursor, limit });
+  const result = await engine.listImportBatches(ledgerId!, { cursor, limit });
   if (!result.ok) {
     return errorResponse(c, result.error);
   }
@@ -64,7 +64,7 @@ importBatchRoutes.get("/", async (c) => {
   const engine = c.get("engine");
   const batchId = c.req.param("batchId");
 
-  const result = engine.getImportBatch(batchId!);
+  const result = await engine.getImportBatch(batchId!);
   if (!result.ok) {
     return errorResponse(c, result.error);
   }
@@ -78,7 +78,7 @@ importBatchRoutes.post("/confirm", async (c) => {
   const batchId = c.req.param("batchId");
   const body = await c.req.json();
 
-  const result = engine.confirmMatches({
+  const result = await engine.confirmMatches({
     batchId: batchId!,
     actions: body.actions,
   });

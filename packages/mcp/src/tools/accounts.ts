@@ -21,7 +21,7 @@ export function registerAccountTools(
       ledgerId: z.string().describe("Ledger ID"),
     },
     async ({ ledgerId }) => {
-      const result = engine.listAccounts(ledgerId);
+      const result = await engine.listAccounts(ledgerId);
       return handleResult(result);
     },
   );
@@ -43,7 +43,7 @@ export function registerAccountTools(
       metadata: z.record(z.unknown()).optional().describe("Additional metadata (JSON)"),
     },
     async ({ ledgerId, code, name, type, parentCode, metadata }) => {
-      const result = engine.createAccount({
+      const result = await engine.createAccount({
         ledgerId,
         code,
         name,

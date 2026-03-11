@@ -19,7 +19,7 @@ export function registerUsageTool(
     },
     async ({ ledgerId }) => {
       // Verify ledger exists
-      const ledger = db.get<{ id: string }>(
+      const ledger = await db.get<{ id: string }>(
         "SELECT id FROM ledgers WHERE id = ?",
         [ledgerId],
       );
@@ -31,17 +31,17 @@ export function registerUsageTool(
         });
       }
 
-      const accountCount = db.get<{ count: number }>(
+      const accountCount = await db.get<{ count: number }>(
         "SELECT COUNT(*) as count FROM accounts WHERE ledger_id = ?",
         [ledgerId],
       );
 
-      const transactionCount = db.get<{ count: number }>(
+      const transactionCount = await db.get<{ count: number }>(
         "SELECT COUNT(*) as count FROM transactions WHERE ledger_id = ?",
         [ledgerId],
       );
 
-      const lineItemCount = db.get<{ count: number }>(
+      const lineItemCount = await db.get<{ count: number }>(
         `SELECT COUNT(*) as count FROM line_items li
          JOIN transactions t ON li.transaction_id = t.id
          WHERE t.ledger_id = ?`,

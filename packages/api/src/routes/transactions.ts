@@ -22,7 +22,7 @@ transactionRoutes.post("/", async (c) => {
   const headerKey = c.req.header("Idempotency-Key");
   const idempotencyKey = body.idempotencyKey ?? headerKey;
 
-  const result = engine.postTransaction({
+  const result = await engine.postTransaction({
     ledgerId: ledgerId!,
     date: body.date,
     effectiveDate: body.effectiveDate,
@@ -50,7 +50,7 @@ transactionRoutes.get("/", async (c) => {
   const limitStr = c.req.query("limit");
   const limit = limitStr ? parseInt(limitStr, 10) : undefined;
 
-  const result = engine.listTransactions(ledgerId!, { cursor, limit });
+  const result = await engine.listTransactions(ledgerId!, { cursor, limit });
   if (!result.ok) {
     return errorResponse(c, result.error);
   }
@@ -63,7 +63,7 @@ transactionRoutes.get("/:transactionId", async (c) => {
   const engine = c.get("engine");
   const transactionId = c.req.param("transactionId");
 
-  const result = engine.getTransaction(transactionId);
+  const result = await engine.getTransaction(transactionId);
   if (!result.ok) {
     return errorResponse(c, result.error);
   }
@@ -121,7 +121,7 @@ transactionRoutes.post("/:transactionId/reverse", async (c) => {
   }
 
   // Verify the transaction belongs to the scoped ledger
-  const getResult = engine.getTransaction(transactionId);
+  const getResult = await engine.getTransaction(transactionId);
   if (!getResult.ok) {
     return errorResponse(c, getResult.error);
   }
@@ -148,7 +148,7 @@ transactionRoutes.post("/:transactionId/reverse", async (c) => {
     );
   }
 
-  const result = engine.reverseTransaction(transactionId, body.reason);
+  const result = await engine.reverseTransaction(transactionId, body.reason);
   if (!result.ok) {
     return errorResponse(c, result.error);
   }

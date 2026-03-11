@@ -37,7 +37,7 @@ apiKeyRoutes.post("/", async (c) => {
     );
   }
 
-  const result = engine.createApiKey({
+  const result = await engine.createApiKey({
     userId: body.userId,
     ledgerId: body.ledgerId,
     name: body.name,
@@ -79,7 +79,7 @@ apiKeyRoutes.get("/", async (c) => {
     );
   }
 
-  const result = engine.listApiKeys(ledgerId);
+  const result = await engine.listApiKeys(ledgerId);
   if (!result.ok) {
     return errorResponse(c, result.error);
   }
@@ -94,7 +94,7 @@ apiKeyRoutes.delete("/:keyId", async (c) => {
   const engine = c.get("engine");
   const keyId = c.req.param("keyId");
 
-  const result = engine.revokeApiKey(keyId);
+  const result = await engine.revokeApiKey(keyId);
   if (!result.ok) {
     return errorResponse(c, result.error);
   }

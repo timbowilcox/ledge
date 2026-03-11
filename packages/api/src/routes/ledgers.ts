@@ -39,7 +39,7 @@ ledgerRoutes.post("/", adminAuth, async (c) => {
     );
   }
 
-  const result = engine.createLedger({
+  const result = await engine.createLedger({
     name: body.name,
     currency: body.currency,
     fiscalYearStart: body.fiscalYearStart,
@@ -60,7 +60,7 @@ ledgerRoutes.get("/:ledgerId", apiKeyAuth, async (c) => {
   const engine = c.get("engine");
   const ledgerId = c.req.param("ledgerId");
 
-  const result = engine.getLedger(ledgerId);
+  const result = await engine.getLedger(ledgerId);
   if (!result.ok) {
     return errorResponse(c, result.error);
   }

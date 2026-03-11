@@ -21,7 +21,7 @@ export function registerResources(
     new ResourceTemplate("ledger://{id}/chart-of-accounts", { list: undefined }),
     async (uri, { id }) => {
       const ledgerId = String(id);
-      const result = engine.listAccounts(ledgerId);
+      const result = await engine.listAccounts(ledgerId);
       if (!result.ok) {
         throw new Error(result.error.message);
       }
@@ -44,7 +44,7 @@ export function registerResources(
         throw new Error("start and end query parameters are required for P&L");
       }
 
-      const result = engine.generateIncomeStatement(ledgerId, startDate, endDate);
+      const result = await engine.generateIncomeStatement(ledgerId, startDate, endDate);
       if (!result.ok) {
         throw new Error(result.error.message);
       }
@@ -66,7 +66,7 @@ export function registerResources(
         throw new Error("as_of query parameter is required for balance sheet");
       }
 
-      const result = engine.generateBalanceSheet(ledgerId, asOfDate);
+      const result = await engine.generateBalanceSheet(ledgerId, asOfDate);
       if (!result.ok) {
         throw new Error(result.error.message);
       }
@@ -86,7 +86,7 @@ export function registerResources(
       const ledgerId = String(id);
       const pageLimit = limit ? Number(limit) : 20;
 
-      const result = engine.listTransactions(ledgerId, { limit: pageLimit });
+      const result = await engine.listTransactions(ledgerId, { limit: pageLimit });
       if (!result.ok) {
         throw new Error(result.error.message);
       }

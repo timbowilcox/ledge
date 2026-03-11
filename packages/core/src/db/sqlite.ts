@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// SQLite adapter — wraps sql.js to implement the Database interface.
+// SQLite adapter - wraps sql.js to implement the Database interface.
 // sql.js is a WASM-compiled SQLite; no native build dependencies.
 // ---------------------------------------------------------------------------
 
@@ -18,18 +18,18 @@ export class SqliteDatabase implements Database {
     const db = data ? new SQL.Database(data) : new SQL.Database();
     const instance = new SqliteDatabase(db);
     // Enable WAL and foreign keys
-    instance.exec("PRAGMA journal_mode = WAL;");
-    instance.exec("PRAGMA foreign_keys = ON;");
+    await instance.exec("PRAGMA journal_mode = WAL;");
+    await instance.exec("PRAGMA foreign_keys = ON;");
     return instance;
   }
 
-  run(sql: string, params?: unknown[]): RunResult {
+  async run(sql: string, params?: unknown[]): Promise<RunResult> {
     this.db.run(sql, params);
     const changes = this.db.getRowsModified();
     return { changes };
   }
 
-  get<T = Record<string, unknown>>(sql: string, params?: unknown[]): T | undefined {
+  async get<T = Record<string, unknown>>(sql: string, params?: unknown[]): Promise<T | undefined> {
     const stmt = this.db.prepare(sql);
     if (params) {
       stmt.bind(params);
@@ -43,7 +43,7 @@ export class SqliteDatabase implements Database {
     return undefined;
   }
 
-  all<T = Record<string, unknown>>(sql: string, params?: unknown[]): T[] {
+  async all<T = Record<string, unknown>>(sql: string, params?: unknown[]): Promise<T[]> {
     const stmt = this.db.prepare(sql);
     if (params) {
       stmt.bind(params);
@@ -56,46 +56,46 @@ export class SqliteDatabase implements Database {
     return rows;
   }
 
-  exec(sql: string): void {
+  async exec(sql: string): Promise<void> {
     this.db.exec(sql);
   }
 
   private transactionDepth = 0;
 
-  transaction<T>(fn: () => T): T {
+  async transaction<T>(fn: () => Promise<T>): Promise<T> {
     if (this.transactionDepth > 0) {
-      // Nested transaction — use SAVEPOINT
+      // Nested transaction - use SAVEPOINT
       const savepoint = `sp_${this.transactionDepth}`;
-      this.run(`SAVEPOINT ${savepoint}`);
+      await this.run(`SAVEPOINT ${savepoint}`);
       this.transactionDepth++;
       try {
-        const result = fn();
-        this.run(`RELEASE SAVEPOINT ${savepoint}`);
+        const result = await fn();
+        await this.run(`RELEASE SAVEPOINT ${savepoint}`);
         this.transactionDepth--;
         return result;
       } catch (e) {
-        this.run(`ROLLBACK TO SAVEPOINT ${savepoint}`);
+        await this.run(`ROLLBACK TO SAVEPOINT ${savepoint}`);
         this.transactionDepth--;
         throw e;
       }
     }
 
     // Top-level transaction
-    this.run("BEGIN IMMEDIATE");
+    await this.run("BEGIN IMMEDIATE");
     this.transactionDepth++;
     try {
-      const result = fn();
-      this.run("COMMIT");
+      const result = await fn();
+      await this.run("COMMIT");
       this.transactionDepth--;
       return result;
     } catch (e) {
-      this.run("ROLLBACK");
+      await this.run("ROLLBACK");
       this.transactionDepth--;
       throw e;
     }
   }
 
-  close(): void {
+  async close(): Promise<void> {
     this.db.close();
   }
 

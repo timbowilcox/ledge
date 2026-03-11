@@ -13,7 +13,7 @@ export const reportRoutes = new Hono<Env>();
 reportRoutes.use("/*", apiKeyAuth);
 
 /** GET /v1/ledgers/:ledgerId/reports/income-statement?startDate=...&endDate=... */
-reportRoutes.get("/income-statement", (c) => {
+reportRoutes.get("/income-statement", async (c) => {
   const engine = c.get("engine");
   const ledgerId = c.req.param("ledgerId")!;
   const startDate = c.req.query("startDate");
@@ -39,7 +39,7 @@ reportRoutes.get("/income-statement", (c) => {
     );
   }
 
-  const result = engine.generateIncomeStatement(ledgerId, startDate, endDate);
+  const result = await engine.generateIncomeStatement(ledgerId, startDate, endDate);
   if (!result.ok) {
     return errorResponse(c, result.error);
   }
@@ -48,7 +48,7 @@ reportRoutes.get("/income-statement", (c) => {
 });
 
 /** GET /v1/ledgers/:ledgerId/reports/balance-sheet?asOfDate=... */
-reportRoutes.get("/balance-sheet", (c) => {
+reportRoutes.get("/balance-sheet", async (c) => {
   const engine = c.get("engine");
   const ledgerId = c.req.param("ledgerId")!;
   const asOfDate = c.req.query("asOfDate");
@@ -73,7 +73,7 @@ reportRoutes.get("/balance-sheet", (c) => {
     );
   }
 
-  const result = engine.generateBalanceSheet(ledgerId, asOfDate);
+  const result = await engine.generateBalanceSheet(ledgerId, asOfDate);
   if (!result.ok) {
     return errorResponse(c, result.error);
   }
@@ -82,7 +82,7 @@ reportRoutes.get("/balance-sheet", (c) => {
 });
 
 /** GET /v1/ledgers/:ledgerId/reports/cash-flow?startDate=...&endDate=... */
-reportRoutes.get("/cash-flow", (c) => {
+reportRoutes.get("/cash-flow", async (c) => {
   const engine = c.get("engine");
   const ledgerId = c.req.param("ledgerId")!;
   const startDate = c.req.query("startDate");
@@ -108,7 +108,7 @@ reportRoutes.get("/cash-flow", (c) => {
     );
   }
 
-  const result = engine.generateCashFlow(ledgerId, startDate, endDate);
+  const result = await engine.generateCashFlow(ledgerId, startDate, endDate);
   if (!result.ok) {
     return errorResponse(c, result.error);
   }

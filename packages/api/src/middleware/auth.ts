@@ -43,7 +43,7 @@ export const apiKeyAuth = createMiddleware<Env>(async (c, next) => {
     );
   }
 
-  const result = engine.validateApiKey(rawKey);
+  const result = await engine.validateApiKey(rawKey);
   if (!result.ok) {
     return c.json(
       {
@@ -136,7 +136,7 @@ export const adminAuth = createMiddleware<Env>(async (c, next) => {
 
   // Otherwise try API key auth for admin routes
   const engine = c.get("engine");
-  const result = engine.validateApiKey(token);
+  const result = await engine.validateApiKey(token);
   if (!result.ok) {
     return c.json(
       {

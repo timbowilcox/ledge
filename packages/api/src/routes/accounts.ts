@@ -18,7 +18,7 @@ accountRoutes.post("/", async (c) => {
   const ledgerId = c.req.param("ledgerId");
   const body = await c.req.json();
 
-  const result = engine.createAccount({
+  const result = await engine.createAccount({
     ledgerId: ledgerId!,
     code: body.code,
     name: body.name,
@@ -40,7 +40,7 @@ accountRoutes.get("/", async (c) => {
   const engine = c.get("engine");
   const ledgerId = c.req.param("ledgerId");
 
-  const result = engine.listAccounts(ledgerId!);
+  const result = await engine.listAccounts(ledgerId!);
   if (!result.ok) {
     return errorResponse(c, result.error);
   }
@@ -53,7 +53,7 @@ accountRoutes.get("/:accountId", async (c) => {
   const engine = c.get("engine");
   const accountId = c.req.param("accountId");
 
-  const result = engine.getAccount(accountId);
+  const result = await engine.getAccount(accountId);
   if (!result.ok) {
     return errorResponse(c, result.error);
   }

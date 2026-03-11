@@ -354,7 +354,7 @@ export class LedgerEngine {
   // Ledger operations
   // -------------------------------------------------------------------------
 
-  createLedger(params: CreateLedgerParams): Result<Ledger> {
+  async createLedger(params: CreateLedgerParams): Promise<Result<Ledger>> {
     const parsed = createLedgerSchema.safeParse(params);
     if (!parsed.success) {
       return err(createError(ErrorCode.VALIDATION_ERROR, parsed.error.message));
@@ -367,21 +367,21 @@ export class LedgerEngine {
     const accountingBasis = params.accountingBasis ?? "accrual";
     const businessContext = params.businessContext ? JSON.stringify(params.businessContext) : null;
 
-    this.db.run(
+    await this.db.run(
       `INSERT INTO ledgers (id, name, currency, fiscal_year_start, accounting_basis, status, owner_id, business_context, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)`,
       [id, params.name, currency, fiscalYearStart, accountingBasis, params.ownerId, businessContext, now, now]
     );
 
-    const row = this.db.get<LedgerRow>("SELECT * FROM ledgers WHERE id = ?", [id]);
+    const row = await this.db.get<LedgerRow>("SELECT * FROM ledgers WHERE id = ?", [id]);
     if (!row) {
       return err(createError(ErrorCode.INTERNAL_ERROR, "Failed to create ledger"));
     }
     return ok(toLedger(row));
   }
 
-  getLedger(id: string): Result<Ledger> {
-    const row = this.db.get<LedgerRow>("SELECT * FROM ledgers WHERE id = ?", [id]);
+  async getLedger(id: string): Promise<Result<Ledger>> {
+    const row = await this.db.get<LedgerRow>("SELECT * FROM ledgers WHERE id = ?", [id]);
     if (!row) {
       return err(ledgerNotFoundError(id));
     }
@@ -392,20 +392,20 @@ export class LedgerEngine {
   // Account operations
   // -------------------------------------------------------------------------
 
-  createAccount(params: CreateAccountParams): Result<Account> {
+  async createAccount(params: CreateAccountParams): Promise<Result<Account>> {
     const parsed = createAccountSchema.safeParse(params);
     if (!parsed.success) {
       return err(createError(ErrorCode.VALIDATION_ERROR, parsed.error.message));
     }
 
     // Verify ledger exists
-    const ledger = this.db.get<LedgerRow>("SELECT * FROM ledgers WHERE id = ?", [params.ledgerId]);
+    const ledger = await this.db.get<LedgerRow>("SELECT * FROM ledgers WHERE id = ?", [params.ledgerId]);
     if (!ledger) {
       return err(ledgerNotFoundError(params.ledgerId));
     }
 
     // Check for duplicate code within ledger
-    const existing = this.db.get<AccountRow>(
+    const existing = await this.db.get<AccountRow>(
       "SELECT * FROM accounts WHERE ledger_id = ? AND code = ?",
       [params.ledgerId, params.code]
     );
@@ -416,7 +416,7 @@ export class LedgerEngine {
     // Resolve parent account if parentCode is provided
     let parentId: string | null = null;
     if (params.parentCode) {
-      const parent = this.db.get<AccountRow>(
+      const parent = await this.db.get<AccountRow>(
         "SELECT * FROM accounts WHERE ledger_id = ? AND code = ?",
         [params.ledgerId, params.parentCode]
       );
@@ -432,45 +432,46 @@ export class LedgerEngine {
     const now = nowUtc();
     const metadata = params.metadata ? JSON.stringify(params.metadata) : null;
 
-    this.db.run(
+    await this.db.run(
       `INSERT INTO accounts (id, ledger_id, parent_id, code, name, type, normal_balance, is_system, metadata, status, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, 'active', ?, ?)`,
       [id, params.ledgerId, parentId, params.code, params.name, params.type, normalBalance, metadata, now, now]
     );
 
-    const row = this.db.get<AccountRow>("SELECT * FROM accounts WHERE id = ?", [id]);
+    const row = await this.db.get<AccountRow>("SELECT * FROM accounts WHERE id = ?", [id]);
     if (!row) {
       return err(createError(ErrorCode.INTERNAL_ERROR, "Failed to create account"));
     }
     return ok(toAccount(row));
   }
 
-  getAccount(id: string): Result<AccountWithBalance> {
-    const row = this.db.get<AccountRow>("SELECT * FROM accounts WHERE id = ?", [id]);
+  async getAccount(id: string): Promise<Result<AccountWithBalance>> {
+    const row = await this.db.get<AccountRow>("SELECT * FROM accounts WHERE id = ?", [id]);
     if (!row) {
       return err(accountNotFoundError(id));
     }
     const account = toAccount(row);
-    const balance = this.computeBalance(id, account.normalBalance);
+    const balance = await this.computeBalance(id, account.normalBalance);
     return ok({ ...account, balance });
   }
 
-  listAccounts(ledgerId: string): Result<AccountWithBalance[]> {
-    const ledger = this.db.get<LedgerRow>("SELECT * FROM ledgers WHERE id = ?", [ledgerId]);
+  async listAccounts(ledgerId: string): Promise<Result<AccountWithBalance[]>> {
+    const ledger = await this.db.get<LedgerRow>("SELECT * FROM ledgers WHERE id = ?", [ledgerId]);
     if (!ledger) {
       return err(ledgerNotFoundError(ledgerId));
     }
 
-    const rows = this.db.all<AccountRow>(
+    const rows = await this.db.all<AccountRow>(
       "SELECT * FROM accounts WHERE ledger_id = ? ORDER BY code",
       [ledgerId]
     );
 
-    const accounts = rows.map((row) => {
+    const accounts: AccountWithBalance[] = [];
+    for (const row of rows) {
       const account = toAccount(row);
-      const balance = this.computeBalance(row.id, account.normalBalance);
-      return { ...account, balance };
-    });
+      const balance = await this.computeBalance(row.id, account.normalBalance);
+      accounts.push({ ...account, balance });
+    }
 
     return ok(accounts);
   }
@@ -479,7 +480,7 @@ export class LedgerEngine {
   // Transaction posting
   // -------------------------------------------------------------------------
 
-  postTransaction(input: PostTransactionInput): Result<TransactionWithLines> {
+  async postTransaction(input: PostTransactionInput): Promise<Result<TransactionWithLines>> {
     // Validate input with Zod
     const parsed = postTransactionSchema.safeParse(input);
     if (!parsed.success) {
@@ -487,7 +488,7 @@ export class LedgerEngine {
     }
 
     // Verify ledger exists
-    const ledger = this.db.get<LedgerRow>("SELECT * FROM ledgers WHERE id = ?", [input.ledgerId]);
+    const ledger = await this.db.get<LedgerRow>("SELECT * FROM ledgers WHERE id = ?", [input.ledgerId]);
     if (!ledger) {
       return err(ledgerNotFoundError(input.ledgerId));
     }
@@ -512,7 +513,7 @@ export class LedgerEngine {
     // Resolve account codes to IDs and validate all accounts belong to this ledger
     const resolvedLines: Array<{ accountId: string; line: PostLineInput }> = [];
     for (const line of input.lines) {
-      const account = this.db.get<AccountRow>(
+      const account = await this.db.get<AccountRow>(
         "SELECT * FROM accounts WHERE ledger_id = ? AND code = ?",
         [input.ledgerId, line.accountCode]
       );
@@ -529,7 +530,7 @@ export class LedgerEngine {
     const idempotencyKey = input.idempotencyKey ?? generateId();
 
     // Idempotency check — if this key already exists, return the original transaction
-    const existingTxn = this.db.get<TransactionRow>(
+    const existingTxn = await this.db.get<TransactionRow>(
       "SELECT * FROM transactions WHERE ledger_id = ? AND idempotency_key = ?",
       [input.ledgerId, idempotencyKey]
     );
@@ -537,7 +538,7 @@ export class LedgerEngine {
     if (existingTxn) {
       // If the key exists, verify the parameters match (simplified: just return existing)
       // A full implementation would compare all input fields for true idempotency conflict detection.
-      const existingLines = this.db.all<LineItemRow>(
+      const existingLines = await this.db.all<LineItemRow>(
         "SELECT * FROM line_items WHERE transaction_id = ? ORDER BY created_at",
         [existingTxn.id]
       );
@@ -548,13 +549,13 @@ export class LedgerEngine {
     }
 
     // All validations passed — insert within a DB transaction
-    const result = this.db.transaction(() => {
+    const result = await this.db.transaction(async () => {
       const txnId = generateId();
       const now = nowUtc();
       const sourceType = input.sourceType ?? "api";
       const metadata = input.metadata ? JSON.stringify(input.metadata) : null;
 
-      this.db.run(
+      await this.db.run(
         `INSERT INTO transactions (id, ledger_id, idempotency_key, date, effective_date, memo, status, source_type, source_ref, agent_id, metadata, posted_at, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, 'posted', ?, ?, ?, ?, ?, ?, ?)`,
         [
@@ -581,7 +582,7 @@ export class LedgerEngine {
         lineIds.push(lineId);
         const lineMeta = line.metadata ? JSON.stringify(line.metadata) : null;
 
-        this.db.run(
+        await this.db.run(
           `INSERT INTO line_items (id, transaction_id, account_id, amount, direction, memo, metadata, created_at, updated_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [lineId, txnId, accountId, line.amount, line.direction, line.memo ?? null, lineMeta, now, now]
@@ -589,7 +590,7 @@ export class LedgerEngine {
       }
 
       // Verify balance at the DB level (application-layer enforcement for SQLite)
-      const balanceCheck = this.db.get<{ debit_total: number; credit_total: number; line_count: number }>(
+      const balanceCheck = await this.db.get<{ debit_total: number; credit_total: number; line_count: number }>(
         `SELECT
            COALESCE(SUM(CASE WHEN direction = 'debit' THEN amount ELSE 0 END), 0) AS debit_total,
            COALESCE(SUM(CASE WHEN direction = 'credit' THEN amount ELSE 0 END), 0) AS credit_total,
@@ -607,15 +608,15 @@ export class LedgerEngine {
 
       // Write audit entry
       const auditId = generateId();
-      this.db.run(
+      await this.db.run(
         `INSERT INTO audit_entries (id, ledger_id, entity_type, entity_id, action, actor_type, actor_id, snapshot, created_at)
          VALUES (?, ?, 'transaction', ?, 'created', 'system', 'engine', ?, ?)`,
         [auditId, input.ledgerId, txnId, JSON.stringify({ memo: input.memo, lines: input.lines }), now]
       );
 
       // Read back the complete transaction with lines
-      const txnRow = this.db.get<TransactionRow>("SELECT * FROM transactions WHERE id = ?", [txnId])!;
-      const lineRows = this.db.all<LineItemRow>(
+      const txnRow = (await this.db.get<TransactionRow>("SELECT * FROM transactions WHERE id = ?", [txnId]))!;
+      const lineRows = await this.db.all<LineItemRow>(
         "SELECT * FROM line_items WHERE transaction_id = ? ORDER BY created_at",
         [txnId]
       );
@@ -633,12 +634,12 @@ export class LedgerEngine {
   // Transaction retrieval
   // -------------------------------------------------------------------------
 
-  getTransaction(id: string): Result<TransactionWithLines> {
-    const row = this.db.get<TransactionRow>("SELECT * FROM transactions WHERE id = ?", [id]);
+  async getTransaction(id: string): Promise<Result<TransactionWithLines>> {
+    const row = await this.db.get<TransactionRow>("SELECT * FROM transactions WHERE id = ?", [id]);
     if (!row) {
       return err(transactionNotFoundError(id));
     }
-    const lines = this.db.all<LineItemRow>(
+    const lines = await this.db.all<LineItemRow>(
       "SELECT * FROM line_items WHERE transaction_id = ? ORDER BY created_at",
       [row.id]
     );
@@ -648,11 +649,11 @@ export class LedgerEngine {
     } as TransactionWithLines);
   }
 
-  listTransactions(
+  async listTransactions(
     ledgerId: string,
     params?: { cursor?: string; limit?: number }
-  ): Result<{ data: TransactionWithLines[]; nextCursor: string | null }> {
-    const ledger = this.db.get<LedgerRow>("SELECT * FROM ledgers WHERE id = ?", [ledgerId]);
+  ): Promise<Result<{ data: TransactionWithLines[]; nextCursor: string | null }>> {
+    const ledger = await this.db.get<LedgerRow>("SELECT * FROM ledgers WHERE id = ?", [ledgerId]);
     if (!ledger) {
       return err(ledgerNotFoundError(ledgerId));
     }
@@ -661,12 +662,12 @@ export class LedgerEngine {
     let rows: TransactionRow[];
 
     if (params?.cursor) {
-      rows = this.db.all<TransactionRow>(
+      rows = await this.db.all<TransactionRow>(
         "SELECT * FROM transactions WHERE ledger_id = ? AND id > ? ORDER BY id LIMIT ?",
         [ledgerId, params.cursor, limit + 1]
       );
     } else {
-      rows = this.db.all<TransactionRow>(
+      rows = await this.db.all<TransactionRow>(
         "SELECT * FROM transactions WHERE ledger_id = ? ORDER BY id LIMIT ?",
         [ledgerId, limit + 1]
       );
@@ -676,16 +677,17 @@ export class LedgerEngine {
     const pageRows = hasMore ? rows.slice(0, limit) : rows;
     const nextCursor = hasMore ? pageRows[pageRows.length - 1]!.id : null;
 
-    const transactions = pageRows.map((row) => {
-      const lines = this.db.all<LineItemRow>(
+    const transactions: TransactionWithLines[] = [];
+    for (const row of pageRows) {
+      const lines = await this.db.all<LineItemRow>(
         "SELECT * FROM line_items WHERE transaction_id = ? ORDER BY created_at",
         [row.id]
       );
-      return {
+      transactions.push({
         ...toTransaction(row),
         lines: lines.map(toLineItem),
-      } as TransactionWithLines;
-    });
+      } as TransactionWithLines);
+    }
 
     return ok({ data: transactions, nextCursor });
   }
@@ -694,8 +696,8 @@ export class LedgerEngine {
   // Reversal
   // -------------------------------------------------------------------------
 
-  reverseTransaction(transactionId: string, reason: string): Result<TransactionWithLines> {
-    const originalRow = this.db.get<TransactionRow>("SELECT * FROM transactions WHERE id = ?", [transactionId]);
+  async reverseTransaction(transactionId: string, reason: string): Promise<Result<TransactionWithLines>> {
+    const originalRow = await this.db.get<TransactionRow>("SELECT * FROM transactions WHERE id = ?", [transactionId]);
     if (!originalRow) {
       return err(transactionNotFoundError(transactionId));
     }
@@ -705,7 +707,7 @@ export class LedgerEngine {
     }
 
     // Check if already reversed via reversals table
-    const existingReversal = this.db.get<{ id: string }>(
+    const existingReversal = await this.db.get<{ id: string }>(
       "SELECT id FROM reversals WHERE original_transaction_id = ?",
       [transactionId]
     );
@@ -713,10 +715,21 @@ export class LedgerEngine {
       return err(transactionAlreadyReversedError(transactionId));
     }
 
-    const originalLines = this.db.all<LineItemRow>(
+    const originalLines = await this.db.all<LineItemRow>(
       "SELECT * FROM line_items WHERE transaction_id = ?",
       [transactionId]
     );
+
+    // Pre-resolve account codes before entering the transaction block
+    const reversalLines: PostLineInput[] = [];
+    for (const line of originalLines) {
+      const accountCode = await this.getAccountCodeById(line.account_id);
+      reversalLines.push({
+        accountCode,
+        amount: line.amount,
+        direction: line.direction === "debit" ? "credit" as const : "debit" as const,
+      });
+    }
 
     // Create the reversal as a new transaction with flipped directions
     const reversalInput: PostTransactionInput = {
@@ -724,16 +737,12 @@ export class LedgerEngine {
       date: new Date().toISOString().slice(0, 10),
       memo: `Reversal of ${transactionId}: ${reason}`,
       sourceType: originalRow.source_type as PostTransactionInput["sourceType"],
-      lines: originalLines.map((line) => ({
-        accountCode: this.getAccountCodeById(line.account_id),
-        amount: line.amount,
-        direction: line.direction === "debit" ? "credit" as const : "debit" as const,
-      })),
+      lines: reversalLines,
     };
 
-    const result = this.db.transaction(() => {
+    const result = await this.db.transaction(async () => {
       // Post the reversal transaction
-      const postResult = this.postTransaction(reversalInput);
+      const postResult = await this.postTransaction(reversalInput);
       if (!postResult.ok) {
         throw new Error(postResult.error.message);
       }
@@ -741,7 +750,7 @@ export class LedgerEngine {
       const reversalTxn = postResult.value;
 
       // Mark original as reversed
-      this.db.run(
+      await this.db.run(
         "UPDATE transactions SET status = 'reversed' WHERE id = ?",
         [transactionId]
       );
@@ -749,7 +758,7 @@ export class LedgerEngine {
       // Create reversals record
       const reversalId = generateId();
       const now = nowUtc();
-      this.db.run(
+      await this.db.run(
         `INSERT INTO reversals (id, original_transaction_id, reversal_transaction_id, reason, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?)`,
         [reversalId, transactionId, reversalTxn.id, reason, now, now]
@@ -757,7 +766,7 @@ export class LedgerEngine {
 
       // Audit entry
       const auditId = generateId();
-      this.db.run(
+      await this.db.run(
         `INSERT INTO audit_entries (id, ledger_id, entity_type, entity_id, action, actor_type, actor_id, snapshot, created_at)
          VALUES (?, ?, 'transaction', ?, 'reversed', 'system', 'engine', ?, ?)`,
         [auditId, originalRow.ledger_id, transactionId, JSON.stringify({ reason, reversalTransactionId: reversalTxn.id }), now]
@@ -773,13 +782,13 @@ export class LedgerEngine {
   // Balance calculation
   // -------------------------------------------------------------------------
 
-  getBalance(accountId: string, asOfDate?: string): Result<number> {
-    const accountRow = this.db.get<AccountRow>("SELECT * FROM accounts WHERE id = ?", [accountId]);
+  async getBalance(accountId: string, asOfDate?: string): Promise<Result<number>> {
+    const accountRow = await this.db.get<AccountRow>("SELECT * FROM accounts WHERE id = ?", [accountId]);
     if (!accountRow) {
       return err(accountNotFoundError(accountId));
     }
 
-    const balance = this.computeBalance(accountId, accountRow.normal_balance as NormalBalance, asOfDate);
+    const balance = await this.computeBalance(accountId, accountRow.normal_balance as NormalBalance, asOfDate);
     return ok(balance);
   }
 
@@ -787,7 +796,7 @@ export class LedgerEngine {
   // Internal helpers
   // -------------------------------------------------------------------------
 
-  private computeBalance(accountId: string, normalBalance: NormalBalance, asOfDate?: string): number {
+  private async computeBalance(accountId: string, normalBalance: NormalBalance, asOfDate?: string): Promise<number> {
     // Include ALL transactions (posted and reversed) in balance calculation.
     // In double-entry accounting, the "reversed" status is informational.
     // The reversal creates a separate offsetting transaction, so both the
@@ -812,7 +821,7 @@ export class LedgerEngine {
       params = [accountId];
     }
 
-    const row = this.db.get<BalanceRow>(sql, params);
+    const row = await this.db.get<BalanceRow>(sql, params);
     const rawBalance = row?.balance ?? 0;
 
     // For credit-normal accounts, invert the sign
@@ -821,12 +830,12 @@ export class LedgerEngine {
     return normalBalance === "credit" ? -rawBalance : rawBalance;
   }
 
-  private computeBalanceInPeriod(
+  private async computeBalanceInPeriod(
     accountId: string,
     normalBalance: NormalBalance,
     startDate: string,
     endDate: string,
-  ): number {
+  ): Promise<number> {
     const sql = `SELECT
                    COALESCE(SUM(CASE WHEN li.direction = 'debit' THEN li.amount ELSE 0 END), 0) -
                    COALESCE(SUM(CASE WHEN li.direction = 'credit' THEN li.amount ELSE 0 END), 0) AS balance
@@ -834,13 +843,13 @@ export class LedgerEngine {
                  JOIN transactions t ON t.id = li.transaction_id
                  WHERE li.account_id = ? AND t.date >= ? AND t.date <= ?`;
 
-    const row = this.db.get<BalanceRow>(sql, [accountId, startDate, endDate]);
+    const row = await this.db.get<BalanceRow>(sql, [accountId, startDate, endDate]);
     const rawBalance = row?.balance ?? 0;
     return normalBalance === "credit" ? -rawBalance : rawBalance;
   }
 
-  private getAccountCodeById(accountId: string): string {
-    const row = this.db.get<AccountRow>("SELECT code FROM accounts WHERE id = ?", [accountId]);
+  private async getAccountCodeById(accountId: string): Promise<string> {
+    const row = await this.db.get<AccountRow>("SELECT code FROM accounts WHERE id = ?", [accountId]);
     if (!row) {
       throw new Error(`Account not found: ${accountId}`);
     }
@@ -851,13 +860,13 @@ export class LedgerEngine {
   // API Key management
   // -------------------------------------------------------------------------
 
-  createApiKey(params: CreateApiKeyParams): Result<{ apiKey: ApiKey; rawKey: string }> {
+  async createApiKey(params: CreateApiKeyParams): Promise<Result<{ apiKey: ApiKey; rawKey: string }>> {
     if (!params.name || params.name.length === 0) {
       return err(createError(ErrorCode.VALIDATION_ERROR, "API key name is required"));
     }
 
     // Verify ledger exists
-    const ledger = this.db.get<LedgerRow>("SELECT * FROM ledgers WHERE id = ?", [params.ledgerId]);
+    const ledger = await this.db.get<LedgerRow>("SELECT * FROM ledgers WHERE id = ?", [params.ledgerId]);
     if (!ledger) {
       return err(ledgerNotFoundError(params.ledgerId));
     }
@@ -871,13 +880,13 @@ export class LedgerEngine {
     const id = generateId();
     const now = nowUtc();
 
-    this.db.run(
+    await this.db.run(
       `INSERT INTO api_keys (id, user_id, ledger_id, key_hash, prefix, name, status, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
       [id, params.userId, params.ledgerId, keyHash, prefix, params.name, now, now]
     );
 
-    const row = this.db.get<ApiKeyRow>("SELECT * FROM api_keys WHERE id = ?", [id]);
+    const row = await this.db.get<ApiKeyRow>("SELECT * FROM api_keys WHERE id = ?", [id]);
     if (!row) {
       return err(createError(ErrorCode.INTERNAL_ERROR, "Failed to create API key"));
     }
@@ -885,13 +894,13 @@ export class LedgerEngine {
     return ok({ apiKey: toApiKey(row), rawKey });
   }
 
-  validateApiKey(rawKey: string): Result<ApiKey> {
+  async validateApiKey(rawKey: string): Promise<Result<ApiKey>> {
     if (!rawKey.startsWith("ledge_live_") && !rawKey.startsWith("ledge_test_")) {
       return err(createError(ErrorCode.UNAUTHORIZED, "Invalid API key format"));
     }
 
     const keyHash = hashApiKey(rawKey);
-    const row = this.db.get<ApiKeyRow>(
+    const row = await this.db.get<ApiKeyRow>(
       "SELECT * FROM api_keys WHERE key_hash = ? AND status = 'active'",
       [keyHash]
     );
@@ -901,18 +910,18 @@ export class LedgerEngine {
     }
 
     // Update last_used_at
-    this.db.run("UPDATE api_keys SET last_used_at = ? WHERE id = ?", [nowUtc(), row.id]);
+    await this.db.run("UPDATE api_keys SET last_used_at = ? WHERE id = ?", [nowUtc(), row.id]);
 
     return ok(toApiKey(row));
   }
 
-  listApiKeys(ledgerId: string): Result<ApiKey[]> {
-    const ledger = this.db.get<LedgerRow>("SELECT * FROM ledgers WHERE id = ?", [ledgerId]);
+  async listApiKeys(ledgerId: string): Promise<Result<ApiKey[]>> {
+    const ledger = await this.db.get<LedgerRow>("SELECT * FROM ledgers WHERE id = ?", [ledgerId]);
     if (!ledger) {
       return err(ledgerNotFoundError(ledgerId));
     }
 
-    const rows = this.db.all<ApiKeyRow>(
+    const rows = await this.db.all<ApiKeyRow>(
       "SELECT * FROM api_keys WHERE ledger_id = ? ORDER BY created_at DESC",
       [ledgerId]
     );
@@ -920,15 +929,15 @@ export class LedgerEngine {
     return ok(rows.map(toApiKey));
   }
 
-  revokeApiKey(keyId: string): Result<ApiKey> {
-    const row = this.db.get<ApiKeyRow>("SELECT * FROM api_keys WHERE id = ?", [keyId]);
+  async revokeApiKey(keyId: string): Promise<Result<ApiKey>> {
+    const row = await this.db.get<ApiKeyRow>("SELECT * FROM api_keys WHERE id = ?", [keyId]);
     if (!row) {
       return err(apiKeyNotFoundError(keyId));
     }
 
-    this.db.run("UPDATE api_keys SET status = 'revoked' WHERE id = ?", [keyId]);
+    await this.db.run("UPDATE api_keys SET status = 'revoked' WHERE id = ?", [keyId]);
 
-    const updated = this.db.get<ApiKeyRow>("SELECT * FROM api_keys WHERE id = ?", [keyId]);
+    const updated = await this.db.get<ApiKeyRow>("SELECT * FROM api_keys WHERE id = ?", [keyId]);
     return ok(toApiKey(updated!));
   }
 
@@ -936,11 +945,11 @@ export class LedgerEngine {
   // Audit log
   // -------------------------------------------------------------------------
 
-  listAuditEntries(
+  async listAuditEntries(
     ledgerId: string,
     params?: { cursor?: string; limit?: number }
-  ): Result<{ data: AuditEntry[]; nextCursor: string | null }> {
-    const ledger = this.db.get<LedgerRow>("SELECT * FROM ledgers WHERE id = ?", [ledgerId]);
+  ): Promise<Result<{ data: AuditEntry[]; nextCursor: string | null }>> {
+    const ledger = await this.db.get<LedgerRow>("SELECT * FROM ledgers WHERE id = ?", [ledgerId]);
     if (!ledger) {
       return err(ledgerNotFoundError(ledgerId));
     }
@@ -949,12 +958,12 @@ export class LedgerEngine {
     let rows: AuditEntryRow[];
 
     if (params?.cursor) {
-      rows = this.db.all<AuditEntryRow>(
+      rows = await this.db.all<AuditEntryRow>(
         "SELECT * FROM audit_entries WHERE ledger_id = ? AND id > ? ORDER BY id LIMIT ?",
         [ledgerId, params.cursor, limit + 1]
       );
     } else {
-      rows = this.db.all<AuditEntryRow>(
+      rows = await this.db.all<AuditEntryRow>(
         "SELECT * FROM audit_entries WHERE ledger_id = ? ORDER BY id LIMIT ?",
         [ledgerId, limit + 1]
       );
@@ -971,26 +980,26 @@ export class LedgerEngine {
   // Template application
   // -------------------------------------------------------------------------
 
-  applyTemplate(ledgerId: string, templateSlug: string): Result<Account[]> {
+  async applyTemplate(ledgerId: string, templateSlug: string): Promise<Result<Account[]>> {
     const template = getTemplate(templateSlug);
     if (!template) {
       return err(createError(ErrorCode.TEMPLATE_NOT_FOUND, `Template not found: ${templateSlug}`));
     }
 
-    const ledger = this.db.get<LedgerRow>("SELECT * FROM ledgers WHERE id = ?", [ledgerId]);
+    const ledger = await this.db.get<LedgerRow>("SELECT * FROM ledgers WHERE id = ?", [ledgerId]);
     if (!ledger) {
       return err(ledgerNotFoundError(ledgerId));
     }
 
-    const accounts = this.db.transaction(() => {
+    const accounts = await this.db.transaction(async () => {
       // Ensure the template row exists in the templates table (FK target)
-      const existingTpl = this.db.get<{ id: string }>(
+      const existingTpl = await this.db.get<{ id: string }>(
         "SELECT id FROM templates WHERE id = ?",
         [template.id],
       );
       if (!existingTpl) {
         const now = nowUtc();
-        this.db.run(
+        await this.db.run(
           `INSERT INTO templates (id, slug, name, description, business_type, chart_of_accounts, default_currency, default_basis, metadata, created_at, updated_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
@@ -1019,25 +1028,25 @@ export class LedgerEngine {
         // Resolve parent if specified
         let parentId: string | null = null;
         if (ta.parentCode) {
-          const parent = this.db.get<AccountRow>(
+          const parent = await this.db.get<AccountRow>(
             "SELECT id FROM accounts WHERE ledger_id = ? AND code = ?",
             [ledgerId, ta.parentCode],
           );
           if (parent) parentId = parent.id;
         }
 
-        this.db.run(
+        await this.db.run(
           `INSERT INTO accounts (id, ledger_id, parent_id, code, name, type, normal_balance, is_system, metadata, status, created_at, updated_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
           [id, ledgerId, parentId, ta.code, ta.name, ta.type, ta.normalBalance, ta.isSystem ? 1 : 0, metadata, now, now],
         );
 
-        const row = this.db.get<AccountRow>("SELECT * FROM accounts WHERE id = ?", [id]);
+        const row = await this.db.get<AccountRow>("SELECT * FROM accounts WHERE id = ?", [id]);
         if (row) created.push(toAccount(row));
       }
 
       // Link template to ledger
-      this.db.run(
+      await this.db.run(
         "UPDATE ledgers SET template_id = ?, updated_at = ? WHERE id = ?",
         [template.id, nowUtc(), ledgerId],
       );
@@ -1052,74 +1061,80 @@ export class LedgerEngine {
   // Financial statements
   // -------------------------------------------------------------------------
 
-  generateIncomeStatement(
+  async generateIncomeStatement(
     ledgerId: string,
     startDate: string,
     endDate: string,
-  ): Result<StatementResponse> {
-    const ledger = this.db.get<LedgerRow>("SELECT * FROM ledgers WHERE id = ?", [ledgerId]);
+  ): Promise<Result<StatementResponse>> {
+    const ledger = await this.db.get<LedgerRow>("SELECT * FROM ledgers WHERE id = ?", [ledgerId]);
     if (!ledger) return err(ledgerNotFoundError(ledgerId));
 
-    const rows = this.db.all<AccountRow>(
+    const rows = await this.db.all<AccountRow>(
       "SELECT * FROM accounts WHERE ledger_id = ? AND type IN ('revenue', 'expense') AND status = 'active' ORDER BY code",
       [ledgerId],
     );
 
-    const accounts: AccountBalanceData[] = rows.map((row) => ({
-      code: row.code,
-      name: row.name,
-      type: row.type as AccountType,
-      normalBalance: row.normal_balance as NormalBalance,
-      balance: this.computeBalanceInPeriod(row.id, row.normal_balance as NormalBalance, startDate, endDate),
-      priorBalance: null,
-      metadata: row.metadata ? (JSON.parse(row.metadata) as Record<string, unknown>) : null,
-    }));
+    const accounts: AccountBalanceData[] = [];
+    for (const row of rows) {
+      accounts.push({
+        code: row.code,
+        name: row.name,
+        type: row.type as AccountType,
+        normalBalance: row.normal_balance as NormalBalance,
+        balance: await this.computeBalanceInPeriod(row.id, row.normal_balance as NormalBalance, startDate, endDate),
+        priorBalance: null,
+        metadata: row.metadata ? (JSON.parse(row.metadata) as Record<string, unknown>) : null,
+      });
+    }
 
     return ok(
       buildIncomeStatement(accounts, { start: startDate, end: endDate }, ledger.currency, ledgerId),
     );
   }
 
-  generateBalanceSheet(
+  async generateBalanceSheet(
     ledgerId: string,
     asOfDate: string,
-  ): Result<StatementResponse> {
-    const ledger = this.db.get<LedgerRow>("SELECT * FROM ledgers WHERE id = ?", [ledgerId]);
+  ): Promise<Result<StatementResponse>> {
+    const ledger = await this.db.get<LedgerRow>("SELECT * FROM ledgers WHERE id = ?", [ledgerId]);
     if (!ledger) return err(ledgerNotFoundError(ledgerId));
 
     // Balance sheet accounts
-    const bsRows = this.db.all<AccountRow>(
+    const bsRows = await this.db.all<AccountRow>(
       "SELECT * FROM accounts WHERE ledger_id = ? AND type IN ('asset', 'liability', 'equity') AND status = 'active' ORDER BY code",
       [ledgerId],
     );
 
-    const accounts: AccountBalanceData[] = bsRows.map((row) => ({
-      code: row.code,
-      name: row.name,
-      type: row.type as AccountType,
-      normalBalance: row.normal_balance as NormalBalance,
-      balance: this.computeBalance(row.id, row.normal_balance as NormalBalance, asOfDate),
-      priorBalance: null,
-      metadata: row.metadata ? (JSON.parse(row.metadata) as Record<string, unknown>) : null,
-    }));
+    const accounts: AccountBalanceData[] = [];
+    for (const row of bsRows) {
+      accounts.push({
+        code: row.code,
+        name: row.name,
+        type: row.type as AccountType,
+        normalBalance: row.normal_balance as NormalBalance,
+        balance: await this.computeBalance(row.id, row.normal_balance as NormalBalance, asOfDate),
+        priorBalance: null,
+        metadata: row.metadata ? (JSON.parse(row.metadata) as Record<string, unknown>) : null,
+      });
+    }
 
     // Compute net income (cumulative revenue − expenses through asOfDate)
-    const revenueRows = this.db.all<AccountRow>(
+    const revenueRows = await this.db.all<AccountRow>(
       "SELECT * FROM accounts WHERE ledger_id = ? AND type = 'revenue' AND status = 'active'",
       [ledgerId],
     );
-    const expenseRows = this.db.all<AccountRow>(
+    const expenseRows = await this.db.all<AccountRow>(
       "SELECT * FROM accounts WHERE ledger_id = ? AND type = 'expense' AND status = 'active'",
       [ledgerId],
     );
-    const totalRevenue = revenueRows.reduce(
-      (s, r) => s + this.computeBalance(r.id, r.normal_balance as NormalBalance, asOfDate),
-      0,
-    );
-    const totalExpenses = expenseRows.reduce(
-      (s, r) => s + this.computeBalance(r.id, r.normal_balance as NormalBalance, asOfDate),
-      0,
-    );
+    let totalRevenue = 0;
+    for (const r of revenueRows) {
+      totalRevenue += await this.computeBalance(r.id, r.normal_balance as NormalBalance, asOfDate);
+    }
+    let totalExpenses = 0;
+    for (const r of expenseRows) {
+      totalExpenses += await this.computeBalance(r.id, r.normal_balance as NormalBalance, asOfDate);
+    }
     const netIncome = totalRevenue - totalExpenses;
 
     return ok(
@@ -1127,46 +1142,47 @@ export class LedgerEngine {
     );
   }
 
-  generateCashFlow(
+  async generateCashFlow(
     ledgerId: string,
     startDate: string,
     endDate: string,
-  ): Result<StatementResponse> {
-    const ledger = this.db.get<LedgerRow>("SELECT * FROM ledgers WHERE id = ?", [ledgerId]);
+  ): Promise<Result<StatementResponse>> {
+    const ledger = await this.db.get<LedgerRow>("SELECT * FROM ledgers WHERE id = ?", [ledgerId]);
     if (!ledger) return err(ledgerNotFoundError(ledgerId));
 
     // Compute net income for the period
-    const revenueRows = this.db.all<AccountRow>(
+    const revenueRows = await this.db.all<AccountRow>(
       "SELECT * FROM accounts WHERE ledger_id = ? AND type = 'revenue' AND status = 'active'",
       [ledgerId],
     );
-    const expenseRows = this.db.all<AccountRow>(
+    const expenseRows = await this.db.all<AccountRow>(
       "SELECT * FROM accounts WHERE ledger_id = ? AND type = 'expense' AND status = 'active'",
       [ledgerId],
     );
-    const periodRevenue = revenueRows.reduce(
-      (s, r) => s + this.computeBalanceInPeriod(r.id, r.normal_balance as NormalBalance, startDate, endDate),
-      0,
-    );
-    const periodExpenses = expenseRows.reduce(
-      (s, r) => s + this.computeBalanceInPeriod(r.id, r.normal_balance as NormalBalance, startDate, endDate),
-      0,
-    );
+    let periodRevenue = 0;
+    for (const r of revenueRows) {
+      periodRevenue += await this.computeBalanceInPeriod(r.id, r.normal_balance as NormalBalance, startDate, endDate);
+    }
+    let periodExpenses = 0;
+    for (const r of expenseRows) {
+      periodExpenses += await this.computeBalanceInPeriod(r.id, r.normal_balance as NormalBalance, startDate, endDate);
+    }
     const netIncome = periodRevenue - periodExpenses;
 
     // Balance sheet accounts with period deltas
-    const bsRows = this.db.all<AccountRow>(
+    const bsRows = await this.db.all<AccountRow>(
       "SELECT * FROM accounts WHERE ledger_id = ? AND type IN ('asset', 'liability', 'equity') AND status = 'active' ORDER BY code",
       [ledgerId],
     );
 
     const dayBeforeStart = dayBefore(startDate);
 
-    const accounts: CashFlowAccountData[] = bsRows.map((row) => {
+    const accounts: CashFlowAccountData[] = [];
+    for (const row of bsRows) {
       const nb = row.normal_balance as NormalBalance;
-      const endBalance = this.computeBalance(row.id, nb, endDate);
-      const startBalance = this.computeBalance(row.id, nb, dayBeforeStart);
-      return {
+      const endBalance = await this.computeBalance(row.id, nb, endDate);
+      const startBalance = await this.computeBalance(row.id, nb, dayBeforeStart);
+      accounts.push({
         code: row.code,
         name: row.name,
         type: row.type as AccountType,
@@ -1175,8 +1191,8 @@ export class LedgerEngine {
         priorBalance: null,
         metadata: row.metadata ? (JSON.parse(row.metadata) as Record<string, unknown>) : null,
         delta: endBalance - startBalance,
-      };
-    });
+      });
+    }
 
     return ok(
       buildCashFlowStatement(accounts, netIncome, { start: startDate, end: endDate }, ledger.currency, ledgerId),
@@ -1187,19 +1203,19 @@ export class LedgerEngine {
   // Import operations
   // -------------------------------------------------------------------------
 
-  createImport(params: {
+  async createImport(params: {
     ledgerId: string;
     fileContent: string;
     fileType: "csv" | "ofx";
     filename?: string;
-  }): Result<{ batch: ImportBatch; rows: ImportRow[] }> {
+  }): Promise<Result<{ batch: ImportBatch; rows: ImportRow[] }>> {
     const parsed = createImportSchema.safeParse(params);
     if (!parsed.success) {
       return err(createError(ErrorCode.VALIDATION_ERROR, parsed.error.message));
     }
 
     // Verify ledger exists
-    const ledger = this.db.get<LedgerRow>("SELECT * FROM ledgers WHERE id = ?", [params.ledgerId]);
+    const ledger = await this.db.get<LedgerRow>("SELECT * FROM ledgers WHERE id = ?", [params.ledgerId]);
     if (!ledger) {
       return err(ledgerNotFoundError(params.ledgerId));
     }
@@ -1226,26 +1242,27 @@ export class LedgerEngine {
     };
 
     // Fetch existing posted transactions for matching
-    const txnRows = this.db.all<TransactionRow>(
+    const txnRows = await this.db.all<TransactionRow>(
       "SELECT * FROM transactions WHERE ledger_id = ? AND status = 'posted' ORDER BY date DESC",
       [params.ledgerId],
     );
-    const existingTransactions: TransactionWithLines[] = txnRows.map((txnRow) => {
-      const lineRows = this.db.all<LineItemRow>(
+    const existingTransactions: TransactionWithLines[] = [];
+    for (const txnRow of txnRows) {
+      const lineRows = await this.db.all<LineItemRow>(
         "SELECT * FROM line_items WHERE transaction_id = ? ORDER BY created_at",
         [txnRow.id],
       );
-      return {
+      existingTransactions.push({
         ...toTransaction(txnRow),
         lines: lineRows.map(toLineItem),
-      } as TransactionWithLines;
-    });
+      } as TransactionWithLines);
+    }
 
     // Run matching
     const matchResults = matchRows(parsedRows, existingTransactions, config);
 
     // Persist everything in a DB transaction
-    const result = this.db.transaction(() => {
+    const result = await this.db.transaction(async () => {
       const batchId = generateId();
       const now = nowUtc();
       const filename = params.filename ?? `import_${now.replace(/[^0-9]/g, "")}.${params.fileType}`;
@@ -1259,7 +1276,7 @@ export class LedgerEngine {
       }
       const suggestedCount = matchResults.length - matchedCount - unmatchedCount;
 
-      this.db.run(
+      await this.db.run(
         `INSERT INTO import_batches (id, ledger_id, source_type, filename, row_count, matched_count, unmatched_count, status, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, 'complete', ?, ?)`,
         [batchId, params.ledgerId, params.fileType, filename, parsedRows.length, matchedCount, unmatchedCount + suggestedCount, now, now],
@@ -1272,7 +1289,7 @@ export class LedgerEngine {
         const mr = matchResults[i]!;
         const rowId = generateId();
 
-        this.db.run(
+        await this.db.run(
           `INSERT INTO import_rows (id, batch_id, date, amount, payee, memo, raw_data, match_status, matched_transaction_id, confidence, created_at, updated_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
@@ -1282,32 +1299,32 @@ export class LedgerEngine {
           ],
         );
 
-        const importRowRow = this.db.get<ImportRowRow>("SELECT * FROM import_rows WHERE id = ?", [rowId])!;
+        const importRowRow = (await this.db.get<ImportRowRow>("SELECT * FROM import_rows WHERE id = ?", [rowId]))!;
         importRows.push(toImportRow(importRowRow));
       }
 
       // Audit entry
       const auditId = generateId();
-      this.db.run(
+      await this.db.run(
         `INSERT INTO audit_entries (id, ledger_id, entity_type, entity_id, action, actor_type, actor_id, snapshot, created_at)
          VALUES (?, ?, 'import_batch', ?, 'created', 'system', 'engine', ?, ?)`,
         [auditId, params.ledgerId, batchId, JSON.stringify({ fileType: params.fileType, rowCount: parsedRows.length, matchedCount }), now],
       );
 
-      const batchRow = this.db.get<ImportBatchRow>("SELECT * FROM import_batches WHERE id = ?", [batchId])!;
+      const batchRow = (await this.db.get<ImportBatchRow>("SELECT * FROM import_batches WHERE id = ?", [batchId]))!;
       return { batch: toImportBatch(batchRow), rows: importRows };
     });
 
     return ok(result);
   }
 
-  getImportBatch(batchId: string): Result<{ batch: ImportBatch; rows: ImportRow[] }> {
-    const batchRow = this.db.get<ImportBatchRow>("SELECT * FROM import_batches WHERE id = ?", [batchId]);
+  async getImportBatch(batchId: string): Promise<Result<{ batch: ImportBatch; rows: ImportRow[] }>> {
+    const batchRow = await this.db.get<ImportBatchRow>("SELECT * FROM import_batches WHERE id = ?", [batchId]);
     if (!batchRow) {
       return err(importNotFoundError(batchId));
     }
 
-    const rowRows = this.db.all<ImportRowRow>(
+    const rowRows = await this.db.all<ImportRowRow>(
       "SELECT * FROM import_rows WHERE batch_id = ? ORDER BY date, created_at",
       [batchId],
     );
@@ -1318,11 +1335,11 @@ export class LedgerEngine {
     });
   }
 
-  listImportBatches(
+  async listImportBatches(
     ledgerId: string,
     params?: { cursor?: string; limit?: number },
-  ): Result<{ data: ImportBatch[]; nextCursor: string | null }> {
-    const ledger = this.db.get<LedgerRow>("SELECT * FROM ledgers WHERE id = ?", [ledgerId]);
+  ): Promise<Result<{ data: ImportBatch[]; nextCursor: string | null }>> {
+    const ledger = await this.db.get<LedgerRow>("SELECT * FROM ledgers WHERE id = ?", [ledgerId]);
     if (!ledger) {
       return err(ledgerNotFoundError(ledgerId));
     }
@@ -1331,12 +1348,12 @@ export class LedgerEngine {
     let rows: ImportBatchRow[];
 
     if (params?.cursor) {
-      rows = this.db.all<ImportBatchRow>(
+      rows = await this.db.all<ImportBatchRow>(
         "SELECT * FROM import_batches WHERE ledger_id = ? AND id > ? ORDER BY id LIMIT ?",
         [ledgerId, params.cursor, limit + 1],
       );
     } else {
-      rows = this.db.all<ImportBatchRow>(
+      rows = await this.db.all<ImportBatchRow>(
         "SELECT * FROM import_batches WHERE ledger_id = ? ORDER BY id LIMIT ?",
         [ledgerId, limit + 1],
       );
@@ -1349,32 +1366,32 @@ export class LedgerEngine {
     return ok({ data: pageRows.map(toImportBatch), nextCursor });
   }
 
-  confirmMatches(params: {
+  async confirmMatches(params: {
     batchId: string;
     actions: ConfirmAction[];
-  }): Result<{ batch: ImportBatch; rows: ImportRow[] }> {
+  }): Promise<Result<{ batch: ImportBatch; rows: ImportRow[] }>> {
     const validated = confirmMatchesSchema.safeParse(params);
     if (!validated.success) {
       return err(createError(ErrorCode.VALIDATION_ERROR, validated.error.message));
     }
 
-    const batchRow = this.db.get<ImportBatchRow>("SELECT * FROM import_batches WHERE id = ?", [params.batchId]);
+    const batchRow = await this.db.get<ImportBatchRow>("SELECT * FROM import_batches WHERE id = ?", [params.batchId]);
     if (!batchRow) {
       return err(importNotFoundError(params.batchId));
     }
 
-    const result = this.db.transaction(() => {
+    const result = await this.db.transaction(async () => {
       const now = nowUtc();
 
       for (const action of params.actions) {
-        const rowRow = this.db.get<ImportRowRow>("SELECT * FROM import_rows WHERE id = ? AND batch_id = ?", [action.rowId, params.batchId]);
+        const rowRow = await this.db.get<ImportRowRow>("SELECT * FROM import_rows WHERE id = ? AND batch_id = ?", [action.rowId, params.batchId]);
         if (!rowRow) continue; // Skip unknown rows
 
         switch (action.action) {
           case "confirm":
             // Only allow confirming suggested matches
             if (rowRow.match_status === "suggested") {
-              this.db.run(
+              await this.db.run(
                 "UPDATE import_rows SET match_status = 'matched', updated_at = ? WHERE id = ?",
                 [now, action.rowId],
               );
@@ -1382,7 +1399,7 @@ export class LedgerEngine {
             break;
 
           case "reject":
-            this.db.run(
+            await this.db.run(
               "UPDATE import_rows SET match_status = 'unmatched', matched_transaction_id = NULL, confidence = NULL, updated_at = ? WHERE id = ?",
               [now, action.rowId],
             );
@@ -1390,7 +1407,7 @@ export class LedgerEngine {
 
           case "override":
             if (action.overrideTransactionId) {
-              this.db.run(
+              await this.db.run(
                 "UPDATE import_rows SET match_status = 'matched', matched_transaction_id = ?, confidence = 1.0, updated_at = ? WHERE id = ?",
                 [action.overrideTransactionId, now, action.rowId],
               );
@@ -1400,31 +1417,31 @@ export class LedgerEngine {
       }
 
       // Recompute batch counts
-      const matchedCount = this.db.get<{ count: number }>(
+      const matchedCount = (await this.db.get<{ count: number }>(
         "SELECT COUNT(*) as count FROM import_rows WHERE batch_id = ? AND match_status = 'matched'",
         [params.batchId],
-      )!.count;
-      const unmatchedCount = this.db.get<{ count: number }>(
+      ))!.count;
+      const unmatchedCount = (await this.db.get<{ count: number }>(
         "SELECT COUNT(*) as count FROM import_rows WHERE batch_id = ? AND match_status IN ('unmatched', 'suggested')",
         [params.batchId],
-      )!.count;
+      ))!.count;
 
-      this.db.run(
+      await this.db.run(
         "UPDATE import_batches SET matched_count = ?, unmatched_count = ?, updated_at = ? WHERE id = ?",
         [matchedCount, unmatchedCount, now, params.batchId],
       );
 
       // Audit
       const auditId = generateId();
-      this.db.run(
+      await this.db.run(
         `INSERT INTO audit_entries (id, ledger_id, entity_type, entity_id, action, actor_type, actor_id, snapshot, created_at)
          VALUES (?, ?, 'import_batch', ?, 'updated', 'system', 'engine', ?, ?)`,
         [auditId, batchRow.ledger_id, params.batchId, JSON.stringify({ actions: params.actions }), now],
       );
 
       // Read back
-      const updatedBatch = this.db.get<ImportBatchRow>("SELECT * FROM import_batches WHERE id = ?", [params.batchId])!;
-      const updatedRows = this.db.all<ImportRowRow>(
+      const updatedBatch = (await this.db.get<ImportBatchRow>("SELECT * FROM import_batches WHERE id = ?", [params.batchId]))!;
+      const updatedRows = await this.db.all<ImportRowRow>(
         "SELECT * FROM import_rows WHERE batch_id = ? ORDER BY date, created_at",
         [params.batchId],
       );

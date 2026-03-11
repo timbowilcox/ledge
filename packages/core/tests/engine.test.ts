@@ -37,14 +37,14 @@ const createTestDb = async (): Promise<Database> => {
     .split("\n")
     .filter((line) => !line.trim().startsWith("PRAGMA"))
     .join("\n");
-  db.exec(schemaWithoutPragmas);
+  await db.exec(schemaWithoutPragmas);
   return db;
 };
 
 /** Create a system user (ledgers require an owner_id foreign key) */
-const createSystemUser = (db: Database): string => {
+const createSystemUser = async (db: Database): Promise<string> => {
   const userId = "00000000-0000-7000-8000-000000000001";
-  db.run(
+  await db.run(
     `INSERT INTO users (id, email, name, auth_provider, auth_provider_id)
      VALUES (?, ?, ?, ?, ?)`,
     [userId, "system@test.com", "System", "test", "test-001"]
@@ -64,7 +64,7 @@ describe("LedgerEngine", () => {
   beforeEach(async () => {
     db = await createTestDb();
     engine = new LedgerEngine(db);
-    ownerId = createSystemUser(db);
+    ownerId = await createSystemUser(db);
   });
 
   // -----------------------------------------------------------------------
@@ -72,8 +72,8 @@ describe("LedgerEngine", () => {
   // -----------------------------------------------------------------------
 
   describe("createLedger", () => {
-    it("creates a ledger with defaults", () => {
-      const result = engine.createLedger({ name: "Test Ledger", ownerId });
+    it("creates a ledger with defaults", async () => {
+      const result = await engine.createLedger({ name: "Test Ledger", ownerId });
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
@@ -87,8 +87,8 @@ describe("LedgerEngine", () => {
       );
     });
 
-    it("creates a ledger with custom parameters", () => {
-      const result = engine.createLedger({
+    it("creates a ledger with custom parameters", async () => {
+      const result = await engine.createLedger({
         name: "EUR Ledger",
         ownerId,
         currency: "EUR",
@@ -109,11 +109,11 @@ describe("LedgerEngine", () => {
   // -----------------------------------------------------------------------
 
   describe("createAccount", () => {
-    it("creates an account with auto-derived normal balance", () => {
-      const ledger = engine.createLedger({ name: "Test", ownerId });
+    it("creates an account with auto-derived normal balance", async () => {
+      const ledger = await engine.createLedger({ name: "Test", ownerId });
       if (!ledger.ok) throw new Error("Failed to create ledger");
 
-      const result = engine.createAccount({
+      const result = await engine.createAccount({
         ledgerId: ledger.value.id,
         code: "1000",
         name: "Cash",
@@ -127,11 +127,11 @@ describe("LedgerEngine", () => {
       expect(result.value.normalBalance).toBe("debit"); // auto-derived
     });
 
-    it("auto-derives credit normal balance for revenue accounts", () => {
-      const ledger = engine.createLedger({ name: "Test", ownerId });
+    it("auto-derives credit normal balance for revenue accounts", async () => {
+      const ledger = await engine.createLedger({ name: "Test", ownerId });
       if (!ledger.ok) throw new Error("Failed to create ledger");
 
-      const result = engine.createAccount({
+      const result = await engine.createAccount({
         ledgerId: ledger.value.id,
         code: "4000",
         name: "Sales Revenue",
@@ -143,18 +143,18 @@ describe("LedgerEngine", () => {
       expect(result.value.normalBalance).toBe("credit"); // auto-derived
     });
 
-    it("rejects duplicate account codes within a ledger", () => {
-      const ledger = engine.createLedger({ name: "Test", ownerId });
+    it("rejects duplicate account codes within a ledger", async () => {
+      const ledger = await engine.createLedger({ name: "Test", ownerId });
       if (!ledger.ok) throw new Error("Failed to create ledger");
 
-      engine.createAccount({
+      await engine.createAccount({
         ledgerId: ledger.value.id,
         code: "1000",
         name: "Cash",
         type: "asset",
       });
 
-      const duplicate = engine.createAccount({
+      const duplicate = await engine.createAccount({
         ledgerId: ledger.value.id,
         code: "1000",
         name: "Cash Duplicate",
@@ -166,11 +166,11 @@ describe("LedgerEngine", () => {
       expect(duplicate.error.code).toBe(ErrorCode.DUPLICATE_ACCOUNT_CODE);
     });
 
-    it("creates child accounts with parent reference", () => {
-      const ledger = engine.createLedger({ name: "Test", ownerId });
+    it("creates child accounts with parent reference", async () => {
+      const ledger = await engine.createLedger({ name: "Test", ownerId });
       if (!ledger.ok) throw new Error("Failed to create ledger");
 
-      const parent = engine.createAccount({
+      const parent = await engine.createAccount({
         ledgerId: ledger.value.id,
         code: "1000",
         name: "Cash & Bank",
@@ -178,7 +178,7 @@ describe("LedgerEngine", () => {
       });
       expect(parent.ok).toBe(true);
 
-      const child = engine.createAccount({
+      const child = await engine.createAccount({
         ledgerId: ledger.value.id,
         code: "1010",
         name: "Checking Account",
@@ -196,15 +196,15 @@ describe("LedgerEngine", () => {
   // -----------------------------------------------------------------------
 
   describe("postTransaction — balanced", () => {
-    it("posts a balanced transaction successfully", () => {
-      const ledger = engine.createLedger({ name: "Test", ownerId });
+    it("posts a balanced transaction successfully", async () => {
+      const ledger = await engine.createLedger({ name: "Test", ownerId });
       if (!ledger.ok) throw new Error("Failed to create ledger");
       const ledgerId = ledger.value.id;
 
-      engine.createAccount({ ledgerId, code: "1000", name: "Cash", type: "asset" });
-      engine.createAccount({ ledgerId, code: "4000", name: "Revenue", type: "revenue" });
+      await engine.createAccount({ ledgerId, code: "1000", name: "Cash", type: "asset" });
+      await engine.createAccount({ ledgerId, code: "4000", name: "Revenue", type: "revenue" });
 
-      const result = engine.postTransaction({
+      const result = await engine.postTransaction({
         ledgerId,
         date: "2025-01-15",
         memo: "Client payment",
@@ -233,16 +233,16 @@ describe("LedgerEngine", () => {
       expect(debits).toBe(50000);
     });
 
-    it("posts a multi-line balanced transaction", () => {
-      const ledger = engine.createLedger({ name: "Test", ownerId });
+    it("posts a multi-line balanced transaction", async () => {
+      const ledger = await engine.createLedger({ name: "Test", ownerId });
       if (!ledger.ok) throw new Error("Failed to create ledger");
       const ledgerId = ledger.value.id;
 
-      engine.createAccount({ ledgerId, code: "1000", name: "Cash", type: "asset" });
-      engine.createAccount({ ledgerId, code: "2000", name: "Accounts Payable", type: "liability" });
-      engine.createAccount({ ledgerId, code: "5000", name: "Office Supplies", type: "expense" });
+      await engine.createAccount({ ledgerId, code: "1000", name: "Cash", type: "asset" });
+      await engine.createAccount({ ledgerId, code: "2000", name: "Accounts Payable", type: "liability" });
+      await engine.createAccount({ ledgerId, code: "5000", name: "Office Supplies", type: "expense" });
 
-      const result = engine.postTransaction({
+      const result = await engine.postTransaction({
         ledgerId,
         date: "2025-01-15",
         memo: "Office supplies purchased partially on credit",
@@ -273,15 +273,15 @@ describe("LedgerEngine", () => {
   // -----------------------------------------------------------------------
 
   describe("postTransaction — unbalanced", () => {
-    it("rejects an unbalanced transaction where debits > credits", () => {
-      const ledger = engine.createLedger({ name: "Test", ownerId });
+    it("rejects an unbalanced transaction where debits > credits", async () => {
+      const ledger = await engine.createLedger({ name: "Test", ownerId });
       if (!ledger.ok) throw new Error("Failed to create ledger");
       const ledgerId = ledger.value.id;
 
-      engine.createAccount({ ledgerId, code: "1000", name: "Cash", type: "asset" });
-      engine.createAccount({ ledgerId, code: "4000", name: "Revenue", type: "revenue" });
+      await engine.createAccount({ ledgerId, code: "1000", name: "Cash", type: "asset" });
+      await engine.createAccount({ ledgerId, code: "4000", name: "Revenue", type: "revenue" });
 
-      const result = engine.postTransaction({
+      const result = await engine.postTransaction({
         ledgerId,
         date: "2025-01-15",
         memo: "Unbalanced - should fail",
@@ -296,15 +296,15 @@ describe("LedgerEngine", () => {
       expect(result.error.code).toBe(ErrorCode.UNBALANCED_TRANSACTION);
     });
 
-    it("rejects an unbalanced transaction where credits > debits", () => {
-      const ledger = engine.createLedger({ name: "Test", ownerId });
+    it("rejects an unbalanced transaction where credits > debits", async () => {
+      const ledger = await engine.createLedger({ name: "Test", ownerId });
       if (!ledger.ok) throw new Error("Failed to create ledger");
       const ledgerId = ledger.value.id;
 
-      engine.createAccount({ ledgerId, code: "1000", name: "Cash", type: "asset" });
-      engine.createAccount({ ledgerId, code: "4000", name: "Revenue", type: "revenue" });
+      await engine.createAccount({ ledgerId, code: "1000", name: "Cash", type: "asset" });
+      await engine.createAccount({ ledgerId, code: "4000", name: "Revenue", type: "revenue" });
 
-      const result = engine.postTransaction({
+      const result = await engine.postTransaction({
         ledgerId,
         date: "2025-01-15",
         memo: "Unbalanced credits - should fail",
@@ -319,14 +319,14 @@ describe("LedgerEngine", () => {
       expect(result.error.code).toBe(ErrorCode.UNBALANCED_TRANSACTION);
     });
 
-    it("rejects a single-line transaction", () => {
-      const ledger = engine.createLedger({ name: "Test", ownerId });
+    it("rejects a single-line transaction", async () => {
+      const ledger = await engine.createLedger({ name: "Test", ownerId });
       if (!ledger.ok) throw new Error("Failed to create ledger");
       const ledgerId = ledger.value.id;
 
-      engine.createAccount({ ledgerId, code: "1000", name: "Cash", type: "asset" });
+      await engine.createAccount({ ledgerId, code: "1000", name: "Cash", type: "asset" });
 
-      const result = engine.postTransaction({
+      const result = await engine.postTransaction({
         ledgerId,
         date: "2025-01-15",
         memo: "Single line - invalid",
@@ -344,13 +344,13 @@ describe("LedgerEngine", () => {
   // -----------------------------------------------------------------------
 
   describe("idempotency", () => {
-    it("returns the original transaction when re-posting with the same idempotency key", () => {
-      const ledger = engine.createLedger({ name: "Test", ownerId });
+    it("returns the original transaction when re-posting with the same idempotency key", async () => {
+      const ledger = await engine.createLedger({ name: "Test", ownerId });
       if (!ledger.ok) throw new Error("Failed to create ledger");
       const ledgerId = ledger.value.id;
 
-      engine.createAccount({ ledgerId, code: "1000", name: "Cash", type: "asset" });
-      engine.createAccount({ ledgerId, code: "4000", name: "Revenue", type: "revenue" });
+      await engine.createAccount({ ledgerId, code: "1000", name: "Cash", type: "asset" });
+      await engine.createAccount({ ledgerId, code: "4000", name: "Revenue", type: "revenue" });
 
       const input = {
         ledgerId,
@@ -363,11 +363,11 @@ describe("LedgerEngine", () => {
         ],
       };
 
-      const first = engine.postTransaction(input);
+      const first = await engine.postTransaction(input);
       expect(first.ok).toBe(true);
       if (!first.ok) return;
 
-      const second = engine.postTransaction(input);
+      const second = await engine.postTransaction(input);
       expect(second.ok).toBe(true);
       if (!second.ok) return;
 
@@ -375,13 +375,13 @@ describe("LedgerEngine", () => {
       expect(second.value.id).toBe(first.value.id);
     });
 
-    it("does not create duplicate transactions on idempotent replay", () => {
-      const ledger = engine.createLedger({ name: "Test", ownerId });
+    it("does not create duplicate transactions on idempotent replay", async () => {
+      const ledger = await engine.createLedger({ name: "Test", ownerId });
       if (!ledger.ok) throw new Error("Failed to create ledger");
       const ledgerId = ledger.value.id;
 
-      engine.createAccount({ ledgerId, code: "1000", name: "Cash", type: "asset" });
-      engine.createAccount({ ledgerId, code: "4000", name: "Revenue", type: "revenue" });
+      await engine.createAccount({ ledgerId, code: "1000", name: "Cash", type: "asset" });
+      await engine.createAccount({ ledgerId, code: "4000", name: "Revenue", type: "revenue" });
 
       const input = {
         ledgerId,
@@ -394,12 +394,12 @@ describe("LedgerEngine", () => {
         ],
       };
 
-      engine.postTransaction(input);
-      engine.postTransaction(input);
-      engine.postTransaction(input);
+      await engine.postTransaction(input);
+      await engine.postTransaction(input);
+      await engine.postTransaction(input);
 
       // Should still be only 1 transaction in the ledger
-      const list = engine.listTransactions(ledgerId);
+      const list = await engine.listTransactions(ledgerId);
       expect(list.ok).toBe(true);
       if (!list.ok) return;
       expect(list.value.data).toHaveLength(1);
@@ -411,18 +411,18 @@ describe("LedgerEngine", () => {
   // -----------------------------------------------------------------------
 
   describe("balance calculation", () => {
-    it("computes correct balance for debit-normal account (asset)", () => {
-      const ledger = engine.createLedger({ name: "Test", ownerId });
+    it("computes correct balance for debit-normal account (asset)", async () => {
+      const ledger = await engine.createLedger({ name: "Test", ownerId });
       if (!ledger.ok) throw new Error("Failed to create ledger");
       const ledgerId = ledger.value.id;
 
-      const cashResult = engine.createAccount({ ledgerId, code: "1000", name: "Cash", type: "asset" });
-      engine.createAccount({ ledgerId, code: "4000", name: "Revenue", type: "revenue" });
+      const cashResult = await engine.createAccount({ ledgerId, code: "1000", name: "Cash", type: "asset" });
+      await engine.createAccount({ ledgerId, code: "4000", name: "Revenue", type: "revenue" });
 
       if (!cashResult.ok) throw new Error("Failed to create account");
 
       // Post $500 received as revenue
-      engine.postTransaction({
+      await engine.postTransaction({
         ledgerId,
         date: "2025-01-15",
         memo: "Payment received",
@@ -432,23 +432,23 @@ describe("LedgerEngine", () => {
         ],
       });
 
-      const balance = engine.getBalance(cashResult.value.id);
+      const balance = await engine.getBalance(cashResult.value.id);
       expect(balance.ok).toBe(true);
       if (!balance.ok) return;
       expect(balance.value).toBe(50000); // $500.00 debit balance
     });
 
-    it("computes correct balance for credit-normal account (revenue)", () => {
-      const ledger = engine.createLedger({ name: "Test", ownerId });
+    it("computes correct balance for credit-normal account (revenue)", async () => {
+      const ledger = await engine.createLedger({ name: "Test", ownerId });
       if (!ledger.ok) throw new Error("Failed to create ledger");
       const ledgerId = ledger.value.id;
 
-      engine.createAccount({ ledgerId, code: "1000", name: "Cash", type: "asset" });
-      const revResult = engine.createAccount({ ledgerId, code: "4000", name: "Revenue", type: "revenue" });
+      await engine.createAccount({ ledgerId, code: "1000", name: "Cash", type: "asset" });
+      const revResult = await engine.createAccount({ ledgerId, code: "4000", name: "Revenue", type: "revenue" });
 
       if (!revResult.ok) throw new Error("Failed to create account");
 
-      engine.postTransaction({
+      await engine.postTransaction({
         ledgerId,
         date: "2025-01-15",
         memo: "Payment received",
@@ -458,25 +458,25 @@ describe("LedgerEngine", () => {
         ],
       });
 
-      const balance = engine.getBalance(revResult.value.id);
+      const balance = await engine.getBalance(revResult.value.id);
       expect(balance.ok).toBe(true);
       if (!balance.ok) return;
       expect(balance.value).toBe(50000); // $500.00 credit balance (positive for credit-normal)
     });
 
-    it("computes balance after multiple transactions", () => {
-      const ledger = engine.createLedger({ name: "Test", ownerId });
+    it("computes balance after multiple transactions", async () => {
+      const ledger = await engine.createLedger({ name: "Test", ownerId });
       if (!ledger.ok) throw new Error("Failed to create ledger");
       const ledgerId = ledger.value.id;
 
-      const cashResult = engine.createAccount({ ledgerId, code: "1000", name: "Cash", type: "asset" });
-      engine.createAccount({ ledgerId, code: "4000", name: "Revenue", type: "revenue" });
-      engine.createAccount({ ledgerId, code: "5000", name: "Expenses", type: "expense" });
+      const cashResult = await engine.createAccount({ ledgerId, code: "1000", name: "Cash", type: "asset" });
+      await engine.createAccount({ ledgerId, code: "4000", name: "Revenue", type: "revenue" });
+      await engine.createAccount({ ledgerId, code: "5000", name: "Expenses", type: "expense" });
 
       if (!cashResult.ok) throw new Error("Failed to create account");
 
       // Receive $1000
-      engine.postTransaction({
+      await engine.postTransaction({
         ledgerId,
         date: "2025-01-15",
         memo: "Payment in",
@@ -487,7 +487,7 @@ describe("LedgerEngine", () => {
       });
 
       // Spend $350
-      engine.postTransaction({
+      await engine.postTransaction({
         ledgerId,
         date: "2025-01-16",
         memo: "Expense payment",
@@ -497,23 +497,23 @@ describe("LedgerEngine", () => {
         ],
       });
 
-      const balance = engine.getBalance(cashResult.value.id);
+      const balance = await engine.getBalance(cashResult.value.id);
       expect(balance.ok).toBe(true);
       if (!balance.ok) return;
       expect(balance.value).toBe(65000); // $1000 - $350 = $650
     });
 
-    it("computes balance with as-of date filter", () => {
-      const ledger = engine.createLedger({ name: "Test", ownerId });
+    it("computes balance with as-of date filter", async () => {
+      const ledger = await engine.createLedger({ name: "Test", ownerId });
       if (!ledger.ok) throw new Error("Failed to create ledger");
       const ledgerId = ledger.value.id;
 
-      const cashResult = engine.createAccount({ ledgerId, code: "1000", name: "Cash", type: "asset" });
-      engine.createAccount({ ledgerId, code: "4000", name: "Revenue", type: "revenue" });
+      const cashResult = await engine.createAccount({ ledgerId, code: "1000", name: "Cash", type: "asset" });
+      await engine.createAccount({ ledgerId, code: "4000", name: "Revenue", type: "revenue" });
 
       if (!cashResult.ok) throw new Error("Failed to create account");
 
-      engine.postTransaction({
+      await engine.postTransaction({
         ledgerId,
         date: "2025-01-15",
         memo: "Jan payment",
@@ -523,7 +523,7 @@ describe("LedgerEngine", () => {
         ],
       });
 
-      engine.postTransaction({
+      await engine.postTransaction({
         ledgerId,
         date: "2025-02-15",
         memo: "Feb payment",
@@ -534,27 +534,27 @@ describe("LedgerEngine", () => {
       });
 
       // Balance as of Jan 31 — only the first transaction
-      const janBalance = engine.getBalance(cashResult.value.id, "2025-01-31");
+      const janBalance = await engine.getBalance(cashResult.value.id, "2025-01-31");
       expect(janBalance.ok).toBe(true);
       if (!janBalance.ok) return;
       expect(janBalance.value).toBe(50000);
 
       // Balance as of Feb 28 — both transactions
-      const febBalance = engine.getBalance(cashResult.value.id, "2025-02-28");
+      const febBalance = await engine.getBalance(cashResult.value.id, "2025-02-28");
       expect(febBalance.ok).toBe(true);
       if (!febBalance.ok) return;
       expect(febBalance.value).toBe(80000);
     });
 
-    it("returns balance via listAccounts", () => {
-      const ledger = engine.createLedger({ name: "Test", ownerId });
+    it("returns balance via listAccounts", async () => {
+      const ledger = await engine.createLedger({ name: "Test", ownerId });
       if (!ledger.ok) throw new Error("Failed to create ledger");
       const ledgerId = ledger.value.id;
 
-      engine.createAccount({ ledgerId, code: "1000", name: "Cash", type: "asset" });
-      engine.createAccount({ ledgerId, code: "4000", name: "Revenue", type: "revenue" });
+      await engine.createAccount({ ledgerId, code: "1000", name: "Cash", type: "asset" });
+      await engine.createAccount({ ledgerId, code: "4000", name: "Revenue", type: "revenue" });
 
-      engine.postTransaction({
+      await engine.postTransaction({
         ledgerId,
         date: "2025-01-15",
         memo: "Payment",
@@ -564,7 +564,7 @@ describe("LedgerEngine", () => {
         ],
       });
 
-      const accounts = engine.listAccounts(ledgerId);
+      const accounts = await engine.listAccounts(ledgerId);
       expect(accounts.ok).toBe(true);
       if (!accounts.ok) return;
 
@@ -580,21 +580,21 @@ describe("LedgerEngine", () => {
   // -----------------------------------------------------------------------
 
   describe("period close", () => {
-    it("rejects transactions posted on or before the close date", () => {
-      const ledger = engine.createLedger({ name: "Test", ownerId });
+    it("rejects transactions posted on or before the close date", async () => {
+      const ledger = await engine.createLedger({ name: "Test", ownerId });
       if (!ledger.ok) throw new Error("Failed to create ledger");
       const ledgerId = ledger.value.id;
 
       // Manually close the period through Jan 31
-      db.run("UPDATE ledgers SET closed_through = ? WHERE id = ?", [
+      await db.run("UPDATE ledgers SET closed_through = ? WHERE id = ?", [
         "2025-01-31",
         ledgerId,
       ]);
 
-      engine.createAccount({ ledgerId, code: "1000", name: "Cash", type: "asset" });
-      engine.createAccount({ ledgerId, code: "4000", name: "Revenue", type: "revenue" });
+      await engine.createAccount({ ledgerId, code: "1000", name: "Cash", type: "asset" });
+      await engine.createAccount({ ledgerId, code: "4000", name: "Revenue", type: "revenue" });
 
-      const result = engine.postTransaction({
+      const result = await engine.postTransaction({
         ledgerId,
         date: "2025-01-15",
         memo: "Should be rejected — period closed",
@@ -609,20 +609,20 @@ describe("LedgerEngine", () => {
       expect(result.error.code).toBe(ErrorCode.PERIOD_CLOSED);
     });
 
-    it("allows transactions posted after the close date", () => {
-      const ledger = engine.createLedger({ name: "Test", ownerId });
+    it("allows transactions posted after the close date", async () => {
+      const ledger = await engine.createLedger({ name: "Test", ownerId });
       if (!ledger.ok) throw new Error("Failed to create ledger");
       const ledgerId = ledger.value.id;
 
-      db.run("UPDATE ledgers SET closed_through = ? WHERE id = ?", [
+      await db.run("UPDATE ledgers SET closed_through = ? WHERE id = ?", [
         "2025-01-31",
         ledgerId,
       ]);
 
-      engine.createAccount({ ledgerId, code: "1000", name: "Cash", type: "asset" });
-      engine.createAccount({ ledgerId, code: "4000", name: "Revenue", type: "revenue" });
+      await engine.createAccount({ ledgerId, code: "1000", name: "Cash", type: "asset" });
+      await engine.createAccount({ ledgerId, code: "4000", name: "Revenue", type: "revenue" });
 
-      const result = engine.postTransaction({
+      const result = await engine.postTransaction({
         ledgerId,
         date: "2025-02-01",
         memo: "Should succeed — after close date",
@@ -641,17 +641,17 @@ describe("LedgerEngine", () => {
   // -----------------------------------------------------------------------
 
   describe("reverseTransaction", () => {
-    it("creates an offsetting reversal transaction", () => {
-      const ledger = engine.createLedger({ name: "Test", ownerId });
+    it("creates an offsetting reversal transaction", async () => {
+      const ledger = await engine.createLedger({ name: "Test", ownerId });
       if (!ledger.ok) throw new Error("Failed to create ledger");
       const ledgerId = ledger.value.id;
 
-      const cashResult = engine.createAccount({ ledgerId, code: "1000", name: "Cash", type: "asset" });
-      engine.createAccount({ ledgerId, code: "4000", name: "Revenue", type: "revenue" });
+      const cashResult = await engine.createAccount({ ledgerId, code: "1000", name: "Cash", type: "asset" });
+      await engine.createAccount({ ledgerId, code: "4000", name: "Revenue", type: "revenue" });
 
       if (!cashResult.ok) throw new Error("Failed to create account");
 
-      const txn = engine.postTransaction({
+      const txn = await engine.postTransaction({
         ledgerId,
         date: "2025-01-15",
         memo: "Payment to reverse",
@@ -663,7 +663,7 @@ describe("LedgerEngine", () => {
 
       if (!txn.ok) throw new Error("Failed to post transaction");
 
-      const reversal = engine.reverseTransaction(txn.value.id, "Duplicate payment");
+      const reversal = await engine.reverseTransaction(txn.value.id, "Duplicate payment");
       expect(reversal.ok).toBe(true);
       if (!reversal.ok) return;
 
@@ -677,21 +677,21 @@ describe("LedgerEngine", () => {
       // Reversal should be: Cash credit 50000, Revenue debit 50000
 
       // After reversal, cash balance should be zero
-      const balance = engine.getBalance(cashResult.value.id);
+      const balance = await engine.getBalance(cashResult.value.id);
       expect(balance.ok).toBe(true);
       if (!balance.ok) return;
       expect(balance.value).toBe(0);
     });
 
-    it("marks the original transaction as reversed", () => {
-      const ledger = engine.createLedger({ name: "Test", ownerId });
+    it("marks the original transaction as reversed", async () => {
+      const ledger = await engine.createLedger({ name: "Test", ownerId });
       if (!ledger.ok) throw new Error("Failed to create ledger");
       const ledgerId = ledger.value.id;
 
-      engine.createAccount({ ledgerId, code: "1000", name: "Cash", type: "asset" });
-      engine.createAccount({ ledgerId, code: "4000", name: "Revenue", type: "revenue" });
+      await engine.createAccount({ ledgerId, code: "1000", name: "Cash", type: "asset" });
+      await engine.createAccount({ ledgerId, code: "4000", name: "Revenue", type: "revenue" });
 
-      const txn = engine.postTransaction({
+      const txn = await engine.postTransaction({
         ledgerId,
         date: "2025-01-15",
         memo: "Payment",
@@ -702,24 +702,24 @@ describe("LedgerEngine", () => {
       });
       if (!txn.ok) throw new Error("Failed to post");
 
-      engine.reverseTransaction(txn.value.id, "Error correction");
+      await engine.reverseTransaction(txn.value.id, "Error correction");
 
       // Original should now be marked as reversed
-      const original = engine.getTransaction(txn.value.id);
+      const original = await engine.getTransaction(txn.value.id);
       expect(original.ok).toBe(true);
       if (!original.ok) return;
       expect(original.value.status).toBe("reversed");
     });
 
-    it("rejects double reversal", () => {
-      const ledger = engine.createLedger({ name: "Test", ownerId });
+    it("rejects double reversal", async () => {
+      const ledger = await engine.createLedger({ name: "Test", ownerId });
       if (!ledger.ok) throw new Error("Failed to create ledger");
       const ledgerId = ledger.value.id;
 
-      engine.createAccount({ ledgerId, code: "1000", name: "Cash", type: "asset" });
-      engine.createAccount({ ledgerId, code: "4000", name: "Revenue", type: "revenue" });
+      await engine.createAccount({ ledgerId, code: "1000", name: "Cash", type: "asset" });
+      await engine.createAccount({ ledgerId, code: "4000", name: "Revenue", type: "revenue" });
 
-      const txn = engine.postTransaction({
+      const txn = await engine.postTransaction({
         ledgerId,
         date: "2025-01-15",
         memo: "Payment",
@@ -730,10 +730,10 @@ describe("LedgerEngine", () => {
       });
       if (!txn.ok) throw new Error("Failed to post");
 
-      const first = engine.reverseTransaction(txn.value.id, "First reversal");
+      const first = await engine.reverseTransaction(txn.value.id, "First reversal");
       expect(first.ok).toBe(true);
 
-      const second = engine.reverseTransaction(txn.value.id, "Second reversal attempt");
+      const second = await engine.reverseTransaction(txn.value.id, "Second reversal attempt");
       expect(second.ok).toBe(false);
       if (second.ok) return;
       expect(second.error.code).toBe(ErrorCode.TRANSACTION_ALREADY_REVERSED);
@@ -745,8 +745,8 @@ describe("LedgerEngine", () => {
   // -----------------------------------------------------------------------
 
   describe("error handling", () => {
-    it("rejects posting to a non-existent ledger", () => {
-      const result = engine.postTransaction({
+    it("rejects posting to a non-existent ledger", async () => {
+      const result = await engine.postTransaction({
         ledgerId: "00000000-0000-7000-8000-000000000099",
         date: "2025-01-15",
         memo: "Should fail",
@@ -761,18 +761,18 @@ describe("LedgerEngine", () => {
       expect(result.error.code).toBe(ErrorCode.LEDGER_NOT_FOUND);
     });
 
-    it("rejects posting with a non-existent account code", () => {
-      const ledger = engine.createLedger({ name: "Test", ownerId });
+    it("rejects posting with a non-existent account code", async () => {
+      const ledger = await engine.createLedger({ name: "Test", ownerId });
       if (!ledger.ok) throw new Error("Failed to create ledger");
 
-      engine.createAccount({
+      await engine.createAccount({
         ledgerId: ledger.value.id,
         code: "1000",
         name: "Cash",
         type: "asset",
       });
 
-      const result = engine.postTransaction({
+      const result = await engine.postTransaction({
         ledgerId: ledger.value.id,
         date: "2025-01-15",
         memo: "Bad account code",
@@ -787,8 +787,8 @@ describe("LedgerEngine", () => {
       expect(result.error.code).toBe(ErrorCode.ACCOUNT_NOT_FOUND);
     });
 
-    it("returns correct error for non-existent transaction", () => {
-      const result = engine.getTransaction("00000000-0000-7000-8000-nonexistent00");
+    it("returns correct error for non-existent transaction", async () => {
+      const result = await engine.getTransaction("00000000-0000-7000-8000-nonexistent00");
       expect(result.ok).toBe(false);
       if (result.ok) return;
       expect(result.error.code).toBe(ErrorCode.TRANSACTION_NOT_FOUND);
@@ -800,16 +800,16 @@ describe("LedgerEngine", () => {
   // -----------------------------------------------------------------------
 
   describe("integer amounts", () => {
-    it("stores and retrieves amounts as integers (cents)", () => {
-      const ledger = engine.createLedger({ name: "Test", ownerId });
+    it("stores and retrieves amounts as integers (cents)", async () => {
+      const ledger = await engine.createLedger({ name: "Test", ownerId });
       if (!ledger.ok) throw new Error("Failed to create ledger");
       const ledgerId = ledger.value.id;
 
-      engine.createAccount({ ledgerId, code: "1000", name: "Cash", type: "asset" });
-      engine.createAccount({ ledgerId, code: "4000", name: "Revenue", type: "revenue" });
+      await engine.createAccount({ ledgerId, code: "1000", name: "Cash", type: "asset" });
+      await engine.createAccount({ ledgerId, code: "4000", name: "Revenue", type: "revenue" });
 
       // $12.50 = 1250 cents
-      const result = engine.postTransaction({
+      const result = await engine.postTransaction({
         ledgerId,
         date: "2025-01-15",
         memo: "$12.50 payment",

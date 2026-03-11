@@ -36,14 +36,14 @@ const createTestDb = async (): Promise<Database> => {
     .split("\n")
     .filter((line) => !line.trim().startsWith("PRAGMA"))
     .join("\n");
-  db.exec(schemaWithoutPragmas);
-  db.exec(migration002);
+  await db.exec(schemaWithoutPragmas);
+  await db.exec(migration002);
   return db;
 };
 
-const createSystemUser = (db: Database): string => {
+const createSystemUser = async (db: Database): Promise<string> => {
   const userId = "00000000-0000-7000-8000-000000000001";
-  db.run(
+  await db.run(
     `INSERT INTO users (id, email, name, auth_provider, auth_provider_id)
      VALUES (?, ?, ?, ?, ?)`,
     [userId, "system@test.com", "System", "test", "test-001"],
@@ -56,7 +56,7 @@ const createSystemUser = (db: Database): string => {
 // ============================================================================
 
 describe("parseCSV", () => {
-  it("parses a standard CSV with headers", () => {
+  it("parses a standard CSV with headers", async () => {
     const csv = [
       "date,amount,payee,memo",
       "2024-06-15,99.99,Acme Corp,Monthly subscription",
@@ -77,61 +77,61 @@ describe("parseCSV", () => {
     expect(rows[1]!.memo).toBe("Paper supplies");
   });
 
-  it("normalizes US date format MM/DD/YYYY", () => {
+  it("normalizes US date format MM/DD/YYYY", async () => {
     const csv = "date,amount,description\n01/15/2025,100.00,Test";
     const rows = parseCSV(csv);
     expect(rows[0]!.date).toBe("2025-01-15");
   });
 
-  it("normalizes EU date format DD/MM/YYYY when day > 12", () => {
+  it("normalizes EU date format DD/MM/YYYY when day > 12", async () => {
     const csv = "date,amount,description\n25/01/2025,100.00,Test";
     const rows = parseCSV(csv);
     expect(rows[0]!.date).toBe("2025-01-25");
   });
 
-  it("normalizes DD-Mon-YYYY format", () => {
+  it("normalizes DD-Mon-YYYY format", async () => {
     const csv = "date,amount,description\n15-Jan-2025,100.00,Test";
     const rows = parseCSV(csv);
     expect(rows[0]!.date).toBe("2025-01-15");
   });
 
-  it("handles parenthesized negative amounts", () => {
+  it("handles parenthesized negative amounts", async () => {
     const csv = "date,amount,payee\n2024-01-01,(500.00),Vendor";
     const rows = parseCSV(csv);
     expect(rows[0]!.amount).toBe(-50000);
   });
 
-  it("strips currency symbols", () => {
+  it("strips currency symbols", async () => {
     const csv = "date,amount,payee\n2024-01-01,$1234.56,Vendor";
     const rows = parseCSV(csv);
     expect(rows[0]!.amount).toBe(123456);
   });
 
-  it("strips commas from amounts", () => {
+  it("strips commas from amounts", async () => {
     const csv = "date,amount,payee\n2024-01-01,\"1,234.56\",Vendor";
     const rows = parseCSV(csv);
     expect(rows[0]!.amount).toBe(123456);
   });
 
-  it("handles quoted fields with commas", () => {
+  it("handles quoted fields with commas", async () => {
     const csv = 'date,amount,payee\n2024-01-01,100.00,"Smith, John"';
     const rows = parseCSV(csv);
     expect(rows[0]!.payee).toBe("Smith, John");
   });
 
-  it("handles quoted fields with escaped quotes", () => {
+  it("handles quoted fields with escaped quotes", async () => {
     const csv = 'date,amount,payee\n2024-01-01,100.00,"He said ""hello"""';
     const rows = parseCSV(csv);
     expect(rows[0]!.payee).toBe('He said "hello"');
   });
 
-  it("handles CRLF line endings", () => {
+  it("handles CRLF line endings", async () => {
     const csv = "date,amount,payee\r\n2024-01-01,50.00,Test\r\n2024-01-02,75.00,Test2\r\n";
     const rows = parseCSV(csv);
     expect(rows).toHaveLength(2);
   });
 
-  it("supports alternative header names", () => {
+  it("supports alternative header names", async () => {
     const csv = "transaction date,transaction amount,merchant\n2024-03-01,42.00,Cafe";
     const rows = parseCSV(csv);
     expect(rows[0]!.date).toBe("2024-03-01");
@@ -139,25 +139,25 @@ describe("parseCSV", () => {
     expect(rows[0]!.payee).toBe("Cafe");
   });
 
-  it("throws on missing header columns", () => {
+  it("throws on missing header columns", async () => {
     expect(() => parseCSV("foo,bar,baz\n1,2,3")).toThrow("header");
   });
 
-  it("throws on empty CSV", () => {
+  it("throws on empty CSV", async () => {
     expect(() => parseCSV("")).toThrow();
   });
 
-  it("throws on header-only CSV", () => {
+  it("throws on header-only CSV", async () => {
     expect(() => parseCSV("date,amount,payee")).toThrow();
   });
 
-  it("sets memo to null when column is absent", () => {
+  it("sets memo to null when column is absent", async () => {
     const csv = "date,amount,payee\n2024-01-01,10.00,Vendor";
     const rows = parseCSV(csv);
     expect(rows[0]!.memo).toBeNull();
   });
 
-  it("preserves raw data from all columns", () => {
+  it("preserves raw data from all columns", async () => {
     const csv = "date,amount,payee,extra\n2024-01-01,10.00,Vendor,custom-val";
     const rows = parseCSV(csv);
     expect(rows[0]!.rawData["extra"]).toBe("custom-val");
@@ -169,27 +169,27 @@ describe("parseCSV", () => {
 // ============================================================================
 
 describe("normalizeDate", () => {
-  it("passes through ISO format", () => {
+  it("passes through ISO format", async () => {
     expect(normalizeDate("2024-06-15")).toBe("2024-06-15");
   });
 
-  it("normalizes US MM/DD/YYYY", () => {
+  it("normalizes US MM/DD/YYYY", async () => {
     expect(normalizeDate("06/15/2024")).toBe("2024-06-15");
   });
 
-  it("normalizes EU DD/MM/YYYY when day > 12", () => {
+  it("normalizes EU DD/MM/YYYY when day > 12", async () => {
     expect(normalizeDate("25/06/2024")).toBe("2024-06-25");
   });
 
-  it("normalizes DD-Mon-YYYY", () => {
+  it("normalizes DD-Mon-YYYY", async () => {
     expect(normalizeDate("15-Jun-2024")).toBe("2024-06-15");
   });
 
-  it("normalizes DD Mon YYYY with spaces", () => {
+  it("normalizes DD Mon YYYY with spaces", async () => {
     expect(normalizeDate("15 Jun 2024")).toBe("2024-06-15");
   });
 
-  it("throws on unrecognized format", () => {
+  it("throws on unrecognized format", async () => {
     expect(() => normalizeDate("not-a-date")).toThrow();
   });
 });
@@ -199,35 +199,35 @@ describe("normalizeDate", () => {
 // ============================================================================
 
 describe("normalizeAmount", () => {
-  it("converts decimal to cents", () => {
+  it("converts decimal to cents", async () => {
     expect(normalizeAmount("99.99")).toBe(9999);
   });
 
-  it("handles negative amounts", () => {
+  it("handles negative amounts", async () => {
     expect(normalizeAmount("-50.00")).toBe(-5000);
   });
 
-  it("handles parenthesized negatives", () => {
+  it("handles parenthesized negatives", async () => {
     expect(normalizeAmount("(123.45)")).toBe(-12345);
   });
 
-  it("strips dollar sign", () => {
+  it("strips dollar sign", async () => {
     expect(normalizeAmount("$100.00")).toBe(10000);
   });
 
-  it("strips euro sign", () => {
+  it("strips euro sign", async () => {
     expect(normalizeAmount("€50.00")).toBe(5000);
   });
 
-  it("strips commas", () => {
+  it("strips commas", async () => {
     expect(normalizeAmount("1,234.56")).toBe(123456);
   });
 
-  it("handles integer amounts", () => {
+  it("handles integer amounts", async () => {
     expect(normalizeAmount("100")).toBe(10000);
   });
 
-  it("throws on non-numeric input", () => {
+  it("throws on non-numeric input", async () => {
     expect(() => normalizeAmount("abc")).toThrow();
   });
 });
@@ -237,7 +237,7 @@ describe("normalizeAmount", () => {
 // ============================================================================
 
 describe("parseOFX", () => {
-  it("parses standard OFX 1.x with closed tags", () => {
+  it("parses standard OFX 1.x with closed tags", async () => {
     const ofx = `
 <OFX>
 <BANKMSGSRSV1>
@@ -279,7 +279,7 @@ describe("parseOFX", () => {
     expect(rows[1]!.memo).toBeNull();
   });
 
-  it("normalizes DTPOSTED to ISO date", () => {
+  it("normalizes DTPOSTED to ISO date", async () => {
     const ofx = `
 <STMTTRN>
 <DTPOSTED>20250115120000
@@ -290,7 +290,7 @@ describe("parseOFX", () => {
     expect(rows[0]!.date).toBe("2025-01-15");
   });
 
-  it("handles signed amounts correctly", () => {
+  it("handles signed amounts correctly", async () => {
     const ofx = `
 <STMTTRN>
 <DTPOSTED>20240101
@@ -301,7 +301,7 @@ describe("parseOFX", () => {
     expect(rows[0]!.amount).toBe(-2550);
   });
 
-  it("defaults payee to 'Unknown' when NAME is missing", () => {
+  it("defaults payee to 'Unknown' when NAME is missing", async () => {
     const ofx = `
 <STMTTRN>
 <DTPOSTED>20240101
@@ -311,7 +311,7 @@ describe("parseOFX", () => {
     expect(rows[0]!.payee).toBe("Unknown");
   });
 
-  it("preserves FITID and TRNTYPE in rawData", () => {
+  it("preserves FITID and TRNTYPE in rawData", async () => {
     const ofx = `
 <STMTTRN>
 <DTPOSTED>20240101
@@ -325,13 +325,13 @@ describe("parseOFX", () => {
     expect(rows[0]!.rawData["TRNTYPE"]).toBe("CHECK");
   });
 
-  it("throws on empty OFX content", () => {
+  it("throws on empty OFX content", async () => {
     expect(() => parseOFX("OFXHEADER:100\nDATA:OFXSGML\n<OFX></OFX>")).toThrow(
       "no transaction blocks",
     );
   });
 
-  it("skips blocks missing required fields", () => {
+  it("skips blocks missing required fields", async () => {
     const ofx = `
 <STMTTRN>
 <TRNTYPE>DEBIT
@@ -399,7 +399,7 @@ describe("matchRows", () => {
     ],
   });
 
-  it("matches exact date + exact amount → high confidence", () => {
+  it("matches exact date + exact amount → high confidence", async () => {
     const rows = [
       { date: "2024-06-15", amount: 9999, payee: "Acme", memo: null, rawData: {} },
     ];
@@ -413,7 +413,7 @@ describe("matchRows", () => {
     expect(results[0]!.breakdown.amountScore).toBe(40);
   });
 
-  it("scores ±1 day as lower date confidence", () => {
+  it("scores ±1 day as lower date confidence", async () => {
     const rows = [
       { date: "2024-06-16", amount: 9999, payee: "Acme", memo: null, rawData: {} },
     ];
@@ -423,7 +423,7 @@ describe("matchRows", () => {
     expect(results[0]!.breakdown.dateScore).toBe(30);
   });
 
-  it("returns unmatched when no transactions exist", () => {
+  it("returns unmatched when no transactions exist", async () => {
     const rows = [
       { date: "2024-06-15", amount: 5000, payee: "Unknown", memo: null, rawData: {} },
     ];
@@ -435,7 +435,7 @@ describe("matchRows", () => {
     expect(results[0]!.confidence).toBe(0);
   });
 
-  it("prevents duplicate transaction assignments", () => {
+  it("prevents duplicate transaction assignments", async () => {
     // Two import rows, one transaction
     const rows = [
       { date: "2024-06-15", amount: 5000, payee: "Vendor A", memo: null, rawData: {} },
@@ -450,7 +450,7 @@ describe("matchRows", () => {
     expect(matchedResults).toHaveLength(1);
   });
 
-  it("respects custom thresholds", () => {
+  it("respects custom thresholds", async () => {
     const rows = [
       { date: "2024-06-15", amount: 9999, payee: "Acme", memo: null, rawData: {} },
     ];
@@ -466,7 +466,7 @@ describe("matchRows", () => {
     expect(results[0]!.matchStatus).not.toBe("unmatched");
   });
 
-  it("returns unmatched for low-scoring pairs below suggest threshold", () => {
+  it("returns unmatched for low-scoring pairs below suggest threshold", async () => {
     const rows = [
       { date: "2024-01-01", amount: 100, payee: "CompanyX", memo: null, rawData: {} },
     ];
@@ -490,10 +490,10 @@ describe("Engine import methods", () => {
   beforeEach(async () => {
     db = await createTestDb();
     engine = new LedgerEngine(db);
-    ownerId = createSystemUser(db);
+    ownerId = await createSystemUser(db);
 
     // Create a ledger and provision accounts
-    const ledgerResult = engine.createLedger({
+    const ledgerResult = await engine.createLedger({
       name: "Import Test Ledger",
       ownerId,
     });
@@ -501,8 +501,8 @@ describe("Engine import methods", () => {
     ledgerId = ledgerResult.value.id;
 
     // Create accounts needed for transaction posting
-    engine.createAccount({ ledgerId, code: "1000", name: "Cash", type: "asset" });
-    engine.createAccount({ ledgerId, code: "4000", name: "Revenue", type: "revenue" });
+    await engine.createAccount({ ledgerId, code: "1000", name: "Cash", type: "asset" });
+    await engine.createAccount({ ledgerId, code: "4000", name: "Revenue", type: "revenue" });
   });
 
   // -----------------------------------------------------------------------
@@ -510,9 +510,9 @@ describe("Engine import methods", () => {
   // -----------------------------------------------------------------------
 
   describe("createImport", () => {
-    it("creates an import batch from CSV", () => {
+    it("creates an import batch from CSV", async () => {
       const csv = "date,amount,payee\n2024-06-15,100.00,TestVendor";
-      const result = engine.createImport({
+      const result = await engine.createImport({
         ledgerId,
         fileContent: csv,
         fileType: "csv",
@@ -531,7 +531,7 @@ describe("Engine import methods", () => {
       expect(result.value.rows[0]!.amount).toBe(10000);
     });
 
-    it("creates an import batch from OFX", () => {
+    it("creates an import batch from OFX", async () => {
       const ofx = `
 <STMTTRN>
 <DTPOSTED>20240615
@@ -539,7 +539,7 @@ describe("Engine import methods", () => {
 <NAME>Coffee Place
 </STMTTRN>`;
 
-      const result = engine.createImport({
+      const result = await engine.createImport({
         ledgerId,
         fileContent: ofx,
         fileType: "ofx",
@@ -553,9 +553,9 @@ describe("Engine import methods", () => {
       expect(result.value.rows[0]!.amount).toBe(-7500);
     });
 
-    it("matches import rows against existing transactions", () => {
+    it("matches import rows against existing transactions", async () => {
       // Post a transaction first
-      const txnResult = engine.postTransaction({
+      const txnResult = await engine.postTransaction({
         ledgerId,
         date: "2024-06-15",
         memo: "Acme subscription payment",
@@ -568,7 +568,7 @@ describe("Engine import methods", () => {
 
       // Now import a CSV with a matching row
       const csv = "date,amount,payee,memo\n2024-06-15,99.99,Acme Corp,subscription payment";
-      const result = engine.createImport({
+      const result = await engine.createImport({
         ledgerId,
         fileContent: csv,
         fileType: "csv",
@@ -582,8 +582,8 @@ describe("Engine import methods", () => {
       expect(row.matchedTransactionId).not.toBeNull();
     });
 
-    it("returns IMPORT_PARSE_ERROR for invalid CSV", () => {
-      const result = engine.createImport({
+    it("returns IMPORT_PARSE_ERROR for invalid CSV", async () => {
+      const result = await engine.createImport({
         ledgerId,
         fileContent: "random text without csv structure",
         fileType: "csv",
@@ -594,8 +594,8 @@ describe("Engine import methods", () => {
       expect(result.error.code).toBe(ErrorCode.IMPORT_PARSE_ERROR);
     });
 
-    it("returns IMPORT_PARSE_ERROR for invalid OFX", () => {
-      const result = engine.createImport({
+    it("returns IMPORT_PARSE_ERROR for invalid OFX", async () => {
+      const result = await engine.createImport({
         ledgerId,
         fileContent: "<OFX>no transactions here</OFX>",
         fileType: "ofx",
@@ -606,8 +606,8 @@ describe("Engine import methods", () => {
       expect(result.error.code).toBe(ErrorCode.IMPORT_PARSE_ERROR);
     });
 
-    it("returns LEDGER_NOT_FOUND for nonexistent ledger", () => {
-      const result = engine.createImport({
+    it("returns LEDGER_NOT_FOUND for nonexistent ledger", async () => {
+      const result = await engine.createImport({
         ledgerId: "00000000-0000-0000-0000-000000000000",
         fileContent: "date,amount,payee\n2024-01-01,10.00,Test",
         fileType: "csv",
@@ -618,14 +618,14 @@ describe("Engine import methods", () => {
       expect(result.error.code).toBe(ErrorCode.LEDGER_NOT_FOUND);
     });
 
-    it("creates audit entry for import", () => {
+    it("creates audit entry for import", async () => {
       const csv = "date,amount,payee\n2024-01-01,10.00,TestVendor";
-      const result = engine.createImport({ ledgerId, fileContent: csv, fileType: "csv" });
+      const result = await engine.createImport({ ledgerId, fileContent: csv, fileType: "csv" });
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
       // Check that an audit entry was created
-      const audit = db.all(
+      const audit = await db.all(
         "SELECT * FROM audit_entries WHERE entity_type = 'import_batch' AND entity_id = ?",
         [result.value.batch.id],
       ) as { action: string }[];
@@ -639,13 +639,13 @@ describe("Engine import methods", () => {
   // -----------------------------------------------------------------------
 
   describe("getImportBatch", () => {
-    it("returns batch with rows", () => {
+    it("returns batch with rows", async () => {
       const csv = "date,amount,payee\n2024-01-01,10.00,Vendor A\n2024-01-02,20.00,Vendor B";
-      const importResult = engine.createImport({ ledgerId, fileContent: csv, fileType: "csv" });
+      const importResult = await engine.createImport({ ledgerId, fileContent: csv, fileType: "csv" });
       expect(importResult.ok).toBe(true);
       if (!importResult.ok) return;
 
-      const getResult = engine.getImportBatch(importResult.value.batch.id);
+      const getResult = await engine.getImportBatch(importResult.value.batch.id);
       expect(getResult.ok).toBe(true);
       if (!getResult.ok) return;
 
@@ -653,8 +653,8 @@ describe("Engine import methods", () => {
       expect(getResult.value.rows).toHaveLength(2);
     });
 
-    it("returns IMPORT_NOT_FOUND for nonexistent batch", () => {
-      const result = engine.getImportBatch("00000000-0000-0000-0000-000000000000");
+    it("returns IMPORT_NOT_FOUND for nonexistent batch", async () => {
+      const result = await engine.getImportBatch("00000000-0000-0000-0000-000000000000");
       expect(result.ok).toBe(false);
       if (result.ok) return;
       expect(result.error.code).toBe(ErrorCode.IMPORT_NOT_FOUND);
@@ -666,35 +666,35 @@ describe("Engine import methods", () => {
   // -----------------------------------------------------------------------
 
   describe("listImportBatches", () => {
-    it("lists batches for a ledger", () => {
+    it("lists batches for a ledger", async () => {
       // Create two batches
-      engine.createImport({ ledgerId, fileContent: "date,amount,payee\n2024-01-01,10.00,A", fileType: "csv" });
-      engine.createImport({ ledgerId, fileContent: "date,amount,payee\n2024-01-02,20.00,B", fileType: "csv" });
+      await engine.createImport({ ledgerId, fileContent: "date,amount,payee\n2024-01-01,10.00,A", fileType: "csv" });
+      await engine.createImport({ ledgerId, fileContent: "date,amount,payee\n2024-01-02,20.00,B", fileType: "csv" });
 
-      const result = engine.listImportBatches(ledgerId);
+      const result = await engine.listImportBatches(ledgerId);
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
       expect(result.value.data.length).toBe(2);
     });
 
-    it("supports pagination", () => {
+    it("supports pagination", async () => {
       for (let i = 0; i < 3; i++) {
-        engine.createImport({
+        await engine.createImport({
           ledgerId,
           fileContent: `date,amount,payee\n2024-01-0${i + 1},10.00,Vendor${i}`,
           fileType: "csv",
         });
       }
 
-      const page1 = engine.listImportBatches(ledgerId, { limit: 2 });
+      const page1 = await engine.listImportBatches(ledgerId, { limit: 2 });
       expect(page1.ok).toBe(true);
       if (!page1.ok) return;
 
       expect(page1.value.data).toHaveLength(2);
       expect(page1.value.nextCursor).not.toBeNull();
 
-      const page2 = engine.listImportBatches(ledgerId, {
+      const page2 = await engine.listImportBatches(ledgerId, {
         limit: 2,
         cursor: page1.value.nextCursor!,
       });
@@ -704,8 +704,8 @@ describe("Engine import methods", () => {
       expect(page2.value.data.length).toBeGreaterThan(0);
     });
 
-    it("returns LEDGER_NOT_FOUND for nonexistent ledger", () => {
-      const result = engine.listImportBatches("00000000-0000-0000-0000-000000000000");
+    it("returns LEDGER_NOT_FOUND for nonexistent ledger", async () => {
+      const result = await engine.listImportBatches("00000000-0000-0000-0000-000000000000");
       expect(result.ok).toBe(false);
       if (result.ok) return;
       expect(result.error.code).toBe(ErrorCode.LEDGER_NOT_FOUND);
@@ -717,9 +717,9 @@ describe("Engine import methods", () => {
   // -----------------------------------------------------------------------
 
   describe("confirmMatches", () => {
-    it("rejects a suggested match", () => {
+    it("rejects a suggested match", async () => {
       // Post a transaction
-      engine.postTransaction({
+      await engine.postTransaction({
         ledgerId,
         date: "2024-06-15",
         memo: "Acme subscription",
@@ -731,7 +731,7 @@ describe("Engine import methods", () => {
 
       // Import with a matching row
       const csv = "date,amount,payee\n2024-06-15,99.99,Acme Corp";
-      const importResult = engine.createImport({ ledgerId, fileContent: csv, fileType: "csv" });
+      const importResult = await engine.createImport({ ledgerId, fileContent: csv, fileType: "csv" });
       expect(importResult.ok).toBe(true);
       if (!importResult.ok) return;
 
@@ -739,7 +739,7 @@ describe("Engine import methods", () => {
       if (row.matchStatus === "unmatched") return; // Skip if no match
 
       // Reject the match
-      const confirmResult = engine.confirmMatches({
+      const confirmResult = await engine.confirmMatches({
         batchId: importResult.value.batch.id,
         actions: [{ rowId: row.id, action: "reject" }],
       });
@@ -752,9 +752,9 @@ describe("Engine import methods", () => {
       expect(updatedRow!.matchedTransactionId).toBeNull();
     });
 
-    it("overrides with a specific transaction", () => {
+    it("overrides with a specific transaction", async () => {
       // Post two transactions
-      const txn1 = engine.postTransaction({
+      const txn1 = await engine.postTransaction({
         ledgerId,
         date: "2024-06-15",
         memo: "Payment A",
@@ -766,7 +766,7 @@ describe("Engine import methods", () => {
       expect(txn1.ok).toBe(true);
       if (!txn1.ok) return;
 
-      const txn2 = engine.postTransaction({
+      const txn2 = await engine.postTransaction({
         ledgerId,
         date: "2024-06-16",
         memo: "Payment B",
@@ -780,14 +780,14 @@ describe("Engine import methods", () => {
 
       // Import a row
       const csv = "date,amount,payee\n2024-06-15,50.00,Vendor";
-      const importResult = engine.createImport({ ledgerId, fileContent: csv, fileType: "csv" });
+      const importResult = await engine.createImport({ ledgerId, fileContent: csv, fileType: "csv" });
       expect(importResult.ok).toBe(true);
       if (!importResult.ok) return;
 
       const row = importResult.value.rows[0]!;
 
       // Override to match txn2 instead
-      const confirmResult = engine.confirmMatches({
+      const confirmResult = await engine.confirmMatches({
         batchId: importResult.value.batch.id,
         actions: [
           {
@@ -807,8 +807,8 @@ describe("Engine import methods", () => {
       expect(updatedRow!.confidence).toBe(1);
     });
 
-    it("returns IMPORT_NOT_FOUND for nonexistent batch", () => {
-      const result = engine.confirmMatches({
+    it("returns IMPORT_NOT_FOUND for nonexistent batch", async () => {
+      const result = await engine.confirmMatches({
         batchId: "00000000-0000-0000-0000-000000000000",
         actions: [{ rowId: "00000000-0000-0000-0000-000000000001", action: "reject" }],
       });
@@ -818,20 +818,20 @@ describe("Engine import methods", () => {
       expect(result.error.code).toBe(ErrorCode.IMPORT_NOT_FOUND);
     });
 
-    it("creates audit entry for confirmMatches", () => {
+    it("creates audit entry for confirmMatches", async () => {
       const csv = "date,amount,payee\n2024-01-01,10.00,TestVendor";
-      const importResult = engine.createImport({ ledgerId, fileContent: csv, fileType: "csv" });
+      const importResult = await engine.createImport({ ledgerId, fileContent: csv, fileType: "csv" });
       expect(importResult.ok).toBe(true);
       if (!importResult.ok) return;
 
       const row = importResult.value.rows[0]!;
-      const confirmResult = engine.confirmMatches({
+      const confirmResult = await engine.confirmMatches({
         batchId: importResult.value.batch.id,
         actions: [{ rowId: row.id, action: "reject" }],
       });
       expect(confirmResult.ok).toBe(true);
 
-      const audits = db.all(
+      const audits = await db.all(
         "SELECT * FROM audit_entries WHERE entity_type = 'import_batch' AND entity_id = ? AND action = 'updated'",
         [importResult.value.batch.id],
       ) as { action: string }[];

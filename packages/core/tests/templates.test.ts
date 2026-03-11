@@ -39,13 +39,13 @@ const createTestDb = async (): Promise<Database> => {
     .split("\n")
     .filter((line) => !line.trim().startsWith("PRAGMA"))
     .join("\n");
-  db.exec(schemaWithoutPragmas);
+  await db.exec(schemaWithoutPragmas);
   return db;
 };
 
-const createSystemUser = (db: Database): string => {
+const createSystemUser = async (db: Database): Promise<string> => {
   const userId = "00000000-0000-7000-8000-000000000001";
-  db.run(
+  await db.run(
     `INSERT INTO users (id, email, name, auth_provider, auth_provider_id)
      VALUES (?, ?, ?, ?, ?)`,
     [userId, "system@test.com", "System", "test", "test-001"],
@@ -59,12 +59,12 @@ const createSystemUser = (db: Database): string => {
 
 describe("Template System", () => {
   describe("getTemplates", () => {
-    it("returns all 8 starter templates", () => {
+    it("returns all 8 starter templates", async () => {
       const templates = getTemplates();
       expect(templates).toHaveLength(8);
     });
 
-    it("each template has required fields", () => {
+    it("each template has required fields", async () => {
       for (const t of getTemplates()) {
         expect(t.id).toMatch(/^tpl_/);
         expect(t.slug).toBeTruthy();
@@ -77,32 +77,32 @@ describe("Template System", () => {
       }
     });
 
-    it("all template slugs are unique", () => {
+    it("all template slugs are unique", async () => {
       const slugs = getTemplates().map((t) => t.slug);
       expect(new Set(slugs).size).toBe(slugs.length);
     });
   });
 
   describe("getTemplate", () => {
-    it("looks up by slug", () => {
+    it("looks up by slug", async () => {
       const template = getTemplate("saas");
       expect(template).toBeDefined();
       expect(template!.name).toBe("SaaS");
     });
 
-    it("looks up by ID", () => {
+    it("looks up by ID", async () => {
       const template = getTemplate("tpl_marketplace");
       expect(template).toBeDefined();
       expect(template!.slug).toBe("marketplace");
     });
 
-    it("returns undefined for unknown template", () => {
+    it("returns undefined for unknown template", async () => {
       expect(getTemplate("unknown")).toBeUndefined();
     });
   });
 
   describe("recommendTemplate", () => {
-    it("ranks SaaS first for software subscription business", () => {
+    it("ranks SaaS first for software subscription business", async () => {
       const results = recommendTemplate({
         industry: "software",
         description: "B2B SaaS platform with subscription billing",
@@ -112,14 +112,14 @@ describe("Template System", () => {
       expect(results[0]!.score).toBeGreaterThan(0);
     });
 
-    it("ranks marketplace first for two-sided platform", () => {
+    it("ranks marketplace first for two-sided platform", async () => {
       const results = recommendTemplate({
         description: "Marketplace connecting buyers and sellers with commissions",
       });
       expect(results[0]!.template.slug).toBe("marketplace");
     });
 
-    it("ranks ecommerce first for online store", () => {
+    it("ranks ecommerce first for online store", async () => {
       const results = recommendTemplate({
         industry: "retail",
         description: "Online store selling products with shipping and inventory",
@@ -127,19 +127,19 @@ describe("Template System", () => {
       expect(results[0]!.template.slug).toBe("ecommerce");
     });
 
-    it("ranks nonprofit first for charity description", () => {
+    it("ranks nonprofit first for charity description", async () => {
       const results = recommendTemplate({
         description: "Nonprofit foundation accepting donations and grants",
       });
       expect(results[0]!.template.slug).toBe("nonprofit");
     });
 
-    it("returns empty array when no matches", () => {
+    it("returns empty array when no matches", async () => {
       const results = recommendTemplate({ description: "xyz123" });
       expect(results).toHaveLength(0);
     });
 
-    it("includes reason with matched keywords", () => {
+    it("includes reason with matched keywords", async () => {
       const results = recommendTemplate({ industry: "consulting" });
       expect(results.length).toBeGreaterThan(0);
       expect(results[0]!.reason).toContain("Matched keywords");
@@ -160,10 +160,10 @@ describe("Template Application & Financial Statements", () => {
   beforeEach(async () => {
     db = await createTestDb();
     engine = new LedgerEngine(db);
-    ownerId = createSystemUser(db);
+    ownerId = await createSystemUser(db);
 
     // Create a ledger and apply the SaaS template
-    const ledgerResult = engine.createLedger({ name: "SaaS Co", ownerId });
+    const ledgerResult = await engine.createLedger({ name: "SaaS Co", ownerId });
     expect(ledgerResult.ok).toBe(true);
     if (!ledgerResult.ok) throw new Error("Failed to create ledger");
     ledger = ledgerResult.value;
@@ -174,8 +174,8 @@ describe("Template Application & Financial Statements", () => {
   // -----------------------------------------------------------------------
 
   describe("applyTemplate", () => {
-    it("creates all accounts from the SaaS template", () => {
-      const result = engine.applyTemplate(ledger.id, "saas");
+    it("creates all accounts from the SaaS template", async () => {
+      const result = await engine.applyTemplate(ledger.id, "saas");
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
@@ -183,8 +183,8 @@ describe("Template Application & Financial Statements", () => {
       expect(result.value).toHaveLength(saasTemplate.chartOfAccounts.length);
     });
 
-    it("stores tags in account metadata", () => {
-      const result = engine.applyTemplate(ledger.id, "saas");
+    it("stores tags in account metadata", async () => {
+      const result = await engine.applyTemplate(ledger.id, "saas");
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
@@ -193,35 +193,35 @@ describe("Template Application & Financial Statements", () => {
       expect(cashAccount!.metadata).toEqual({ tags: ["cash", "current"] });
     });
 
-    it("updates ledger template_id", () => {
-      engine.applyTemplate(ledger.id, "saas");
-      const updated = engine.getLedger(ledger.id);
+    it("updates ledger template_id", async () => {
+      await engine.applyTemplate(ledger.id, "saas");
+      const updated = await engine.getLedger(ledger.id);
       expect(updated.ok).toBe(true);
       if (!updated.ok) return;
       expect(updated.value.templateId).toBe("tpl_saas");
     });
 
-    it("rejects unknown template", () => {
-      const result = engine.applyTemplate(ledger.id, "unknown");
+    it("rejects unknown template", async () => {
+      const result = await engine.applyTemplate(ledger.id, "unknown");
       expect(result.ok).toBe(false);
       if (result.ok) return;
       expect(result.error.code).toBe(ErrorCode.TEMPLATE_NOT_FOUND);
     });
 
-    it("rejects unknown ledger", () => {
-      const result = engine.applyTemplate("00000000-0000-7000-8000-999999999999", "saas");
+    it("rejects unknown ledger", async () => {
+      const result = await engine.applyTemplate("00000000-0000-7000-8000-999999999999", "saas");
       expect(result.ok).toBe(false);
       if (result.ok) return;
       expect(result.error.code).toBe(ErrorCode.LEDGER_NOT_FOUND);
     });
 
-    it("works with all 8 templates", () => {
+    it("works with all 8 templates", async () => {
       for (const template of TEMPLATES) {
-        const l = engine.createLedger({ name: template.name, ownerId });
+        const l = await engine.createLedger({ name: template.name, ownerId });
         expect(l.ok).toBe(true);
         if (!l.ok) continue;
 
-        const result = engine.applyTemplate(l.value.id, template.slug);
+        const result = await engine.applyTemplate(l.value.id, template.slug);
         expect(result.ok).toBe(true);
         if (!result.ok) continue;
 
@@ -261,9 +261,9 @@ describe("Template Application & Financial Statements", () => {
   //   Net change: $4,000 (matches ending cash)
   // -----------------------------------------------------------------------
 
-  const postFixtureTransactions = (engine: LedgerEngine, ledgerId: string) => {
+  const postFixtureTransactions = async (engine: LedgerEngine, ledgerId: string) => {
     // Transaction 1: Subscription revenue received in cash
-    const t1 = engine.postTransaction({
+    const t1 = await engine.postTransaction({
       ledgerId,
       date: "2024-01-05",
       memo: "January subscription revenue",
@@ -275,7 +275,7 @@ describe("Template Application & Financial Statements", () => {
     expect(t1.ok).toBe(true);
 
     // Transaction 2: Hosting costs paid
-    const t2 = engine.postTransaction({
+    const t2 = await engine.postTransaction({
       ledgerId,
       date: "2024-01-10",
       memo: "Hosting infrastructure costs",
@@ -287,7 +287,7 @@ describe("Template Application & Financial Statements", () => {
     expect(t2.ok).toBe(true);
 
     // Transaction 3: Salaries paid
-    const t3 = engine.postTransaction({
+    const t3 = await engine.postTransaction({
       ledgerId,
       date: "2024-01-15",
       memo: "January salaries",
@@ -299,7 +299,7 @@ describe("Template Application & Financial Statements", () => {
     expect(t3.ok).toBe(true);
 
     // Transaction 4: Marketing paid
-    const t4 = engine.postTransaction({
+    const t4 = await engine.postTransaction({
       ledgerId,
       date: "2024-01-20",
       memo: "Digital marketing spend",
@@ -311,7 +311,7 @@ describe("Template Application & Financial Statements", () => {
     expect(t4.ok).toBe(true);
 
     // Transaction 5: Professional services invoiced (AR, not cash)
-    const t5 = engine.postTransaction({
+    const t5 = await engine.postTransaction({
       ledgerId,
       date: "2024-01-25",
       memo: "Professional services engagement",
@@ -328,13 +328,13 @@ describe("Template Application & Financial Statements", () => {
   // -----------------------------------------------------------------------
 
   describe("generateIncomeStatement", () => {
-    beforeEach(() => {
-      engine.applyTemplate(ledger.id, "saas");
-      postFixtureTransactions(engine, ledger.id);
+    beforeEach(async () => {
+      await engine.applyTemplate(ledger.id, "saas");
+      await postFixtureTransactions(engine, ledger.id);
     });
 
-    it("computes correct revenue, COGS, and net income", () => {
-      const result = engine.generateIncomeStatement(ledger.id, "2024-01-01", "2024-01-31");
+    it("computes correct revenue, COGS, and net income", async () => {
+      const result = await engine.generateIncomeStatement(ledger.id, "2024-01-01", "2024-01-31");
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
@@ -347,8 +347,8 @@ describe("Template Application & Financial Statements", () => {
       expect(stmt.totals["netIncome"]).toBe(900000);      // $9,000
     });
 
-    it("has three sections: Revenue, COGS, OpEx", () => {
-      const result = engine.generateIncomeStatement(ledger.id, "2024-01-01", "2024-01-31");
+    it("has three sections: Revenue, COGS, OpEx", async () => {
+      const result = await engine.generateIncomeStatement(ledger.id, "2024-01-01", "2024-01-31");
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
@@ -358,8 +358,8 @@ describe("Template Application & Financial Statements", () => {
       expect(result.value.sections[2]!.name).toBe("Operating Expenses");
     });
 
-    it("revenue section has correct line items", () => {
-      const result = engine.generateIncomeStatement(ledger.id, "2024-01-01", "2024-01-31");
+    it("revenue section has correct line items", async () => {
+      const result = await engine.generateIncomeStatement(ledger.id, "2024-01-01", "2024-01-31");
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
@@ -373,8 +373,8 @@ describe("Template Application & Financial Statements", () => {
       expect(psRev!.currentPeriod).toBe(500000);
     });
 
-    it("returns zero for a period with no transactions", () => {
-      const result = engine.generateIncomeStatement(ledger.id, "2024-06-01", "2024-06-30");
+    it("returns zero for a period with no transactions", async () => {
+      const result = await engine.generateIncomeStatement(ledger.id, "2024-06-01", "2024-06-30");
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
@@ -382,8 +382,8 @@ describe("Template Application & Financial Statements", () => {
       expect(result.value.totals["totalRevenue"]).toBe(0);
     });
 
-    it("generates a plain-language summary", () => {
-      const result = engine.generateIncomeStatement(ledger.id, "2024-01-01", "2024-01-31");
+    it("generates a plain-language summary", async () => {
+      const result = await engine.generateIncomeStatement(ledger.id, "2024-01-01", "2024-01-31");
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
@@ -392,8 +392,8 @@ describe("Template Application & Financial Statements", () => {
       expect(result.value.plainLanguageSummary).toContain("87%"); // gross margin
     });
 
-    it("rejects unknown ledger", () => {
-      const result = engine.generateIncomeStatement("00000000-0000-7000-8000-999999999999", "2024-01-01", "2024-01-31");
+    it("rejects unknown ledger", async () => {
+      const result = await engine.generateIncomeStatement("00000000-0000-7000-8000-999999999999", "2024-01-01", "2024-01-31");
       expect(result.ok).toBe(false);
     });
   });
@@ -403,13 +403,13 @@ describe("Template Application & Financial Statements", () => {
   // -----------------------------------------------------------------------
 
   describe("generateBalanceSheet", () => {
-    beforeEach(() => {
-      engine.applyTemplate(ledger.id, "saas");
-      postFixtureTransactions(engine, ledger.id);
+    beforeEach(async () => {
+      await engine.applyTemplate(ledger.id, "saas");
+      await postFixtureTransactions(engine, ledger.id);
     });
 
-    it("computes correct asset, liability, and equity totals", () => {
-      const result = engine.generateBalanceSheet(ledger.id, "2024-01-31");
+    it("computes correct asset, liability, and equity totals", async () => {
+      const result = await engine.generateBalanceSheet(ledger.id, "2024-01-31");
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
@@ -420,8 +420,8 @@ describe("Template Application & Financial Statements", () => {
       expect(stmt.totals["totalEquity"]).toBe(900000);      // net income = $9,000
     });
 
-    it("balance sheet equation holds: assets = liabilities + equity", () => {
-      const result = engine.generateBalanceSheet(ledger.id, "2024-01-31");
+    it("balance sheet equation holds: assets = liabilities + equity", async () => {
+      const result = await engine.generateBalanceSheet(ledger.id, "2024-01-31");
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
@@ -429,16 +429,16 @@ describe("Template Application & Financial Statements", () => {
       expect(totalAssets).toBe(totalLiabilities! + totalEquity!);
     });
 
-    it("has no warnings when balanced", () => {
-      const result = engine.generateBalanceSheet(ledger.id, "2024-01-31");
+    it("has no warnings when balanced", async () => {
+      const result = await engine.generateBalanceSheet(ledger.id, "2024-01-31");
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
       expect(result.value.warnings).toHaveLength(0);
     });
 
-    it("has three sections: Assets, Liabilities, Equity", () => {
-      const result = engine.generateBalanceSheet(ledger.id, "2024-01-31");
+    it("has three sections: Assets, Liabilities, Equity", async () => {
+      const result = await engine.generateBalanceSheet(ledger.id, "2024-01-31");
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
@@ -448,8 +448,8 @@ describe("Template Application & Financial Statements", () => {
       expect(result.value.sections[2]!.name).toBe("Equity");
     });
 
-    it("cash balance is $4,000", () => {
-      const result = engine.generateBalanceSheet(ledger.id, "2024-01-31");
+    it("cash balance is $4,000", async () => {
+      const result = await engine.generateBalanceSheet(ledger.id, "2024-01-31");
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
@@ -458,8 +458,8 @@ describe("Template Application & Financial Statements", () => {
       expect(cashLine!.currentPeriod).toBe(400000); // $4,000
     });
 
-    it("AR balance is $5,000", () => {
-      const result = engine.generateBalanceSheet(ledger.id, "2024-01-31");
+    it("AR balance is $5,000", async () => {
+      const result = await engine.generateBalanceSheet(ledger.id, "2024-01-31");
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
@@ -468,8 +468,8 @@ describe("Template Application & Financial Statements", () => {
       expect(arLine!.currentPeriod).toBe(500000); // $5,000
     });
 
-    it("includes net income in equity section", () => {
-      const result = engine.generateBalanceSheet(ledger.id, "2024-01-31");
+    it("includes net income in equity section", async () => {
+      const result = await engine.generateBalanceSheet(ledger.id, "2024-01-31");
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
@@ -479,8 +479,8 @@ describe("Template Application & Financial Statements", () => {
       expect(niLine!.currentPeriod).toBe(900000); // $9,000
     });
 
-    it("generates a plain-language summary", () => {
-      const result = engine.generateBalanceSheet(ledger.id, "2024-01-31");
+    it("generates a plain-language summary", async () => {
+      const result = await engine.generateBalanceSheet(ledger.id, "2024-01-31");
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
@@ -494,13 +494,13 @@ describe("Template Application & Financial Statements", () => {
   // -----------------------------------------------------------------------
 
   describe("generateCashFlow", () => {
-    beforeEach(() => {
-      engine.applyTemplate(ledger.id, "saas");
-      postFixtureTransactions(engine, ledger.id);
+    beforeEach(async () => {
+      await engine.applyTemplate(ledger.id, "saas");
+      await postFixtureTransactions(engine, ledger.id);
     });
 
-    it("computes correct operating, investing, financing totals", () => {
-      const result = engine.generateCashFlow(ledger.id, "2024-01-01", "2024-01-31");
+    it("computes correct operating, investing, financing totals", async () => {
+      const result = await engine.generateCashFlow(ledger.id, "2024-01-01", "2024-01-31");
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
@@ -512,8 +512,8 @@ describe("Template Application & Financial Statements", () => {
       expect(stmt.totals["netCashChange"]).toBe(400000);    // $4,000
     });
 
-    it("starting cash is $0 and ending cash is $4,000", () => {
-      const result = engine.generateCashFlow(ledger.id, "2024-01-01", "2024-01-31");
+    it("starting cash is $0 and ending cash is $4,000", async () => {
+      const result = await engine.generateCashFlow(ledger.id, "2024-01-01", "2024-01-31");
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
@@ -521,8 +521,8 @@ describe("Template Application & Financial Statements", () => {
       expect(result.value.totals["endingCash"]).toBe(400000);
     });
 
-    it("net income in operating section is $9,000", () => {
-      const result = engine.generateCashFlow(ledger.id, "2024-01-01", "2024-01-31");
+    it("net income in operating section is $9,000", async () => {
+      const result = await engine.generateCashFlow(ledger.id, "2024-01-01", "2024-01-31");
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
@@ -531,8 +531,8 @@ describe("Template Application & Financial Statements", () => {
       expect(niLine!.currentPeriod).toBe(900000); // $9,000
     });
 
-    it("AR increase shows as negative operating adjustment", () => {
-      const result = engine.generateCashFlow(ledger.id, "2024-01-01", "2024-01-31");
+    it("AR increase shows as negative operating adjustment", async () => {
+      const result = await engine.generateCashFlow(ledger.id, "2024-01-01", "2024-01-31");
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
@@ -542,8 +542,8 @@ describe("Template Application & Financial Statements", () => {
       expect(arLine!.currentPeriod).toBe(-500000); // -$5,000 (AR increase reduces cash)
     });
 
-    it("cash reconciliation: starting + net change = ending", () => {
-      const result = engine.generateCashFlow(ledger.id, "2024-01-01", "2024-01-31");
+    it("cash reconciliation: starting + net change = ending", async () => {
+      const result = await engine.generateCashFlow(ledger.id, "2024-01-01", "2024-01-31");
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
@@ -551,16 +551,16 @@ describe("Template Application & Financial Statements", () => {
       expect(startingCash! + netCashChange!).toBe(endingCash);
     });
 
-    it("has no reconciliation warnings", () => {
-      const result = engine.generateCashFlow(ledger.id, "2024-01-01", "2024-01-31");
+    it("has no reconciliation warnings", async () => {
+      const result = await engine.generateCashFlow(ledger.id, "2024-01-01", "2024-01-31");
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
       expect(result.value.warnings).toHaveLength(0);
     });
 
-    it("has three sections: Operating, Investing, Financing", () => {
-      const result = engine.generateCashFlow(ledger.id, "2024-01-01", "2024-01-31");
+    it("has three sections: Operating, Investing, Financing", async () => {
+      const result = await engine.generateCashFlow(ledger.id, "2024-01-01", "2024-01-31");
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
@@ -570,8 +570,8 @@ describe("Template Application & Financial Statements", () => {
       expect(result.value.sections[2]!.name).toBe("Financing Activities");
     });
 
-    it("generates a plain-language summary", () => {
-      const result = engine.generateCashFlow(ledger.id, "2024-01-01", "2024-01-31");
+    it("generates a plain-language summary", async () => {
+      const result = await engine.generateCashFlow(ledger.id, "2024-01-01", "2024-01-31");
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
@@ -585,12 +585,12 @@ describe("Template Application & Financial Statements", () => {
   // -----------------------------------------------------------------------
 
   describe("multi-period statements", () => {
-    beforeEach(() => {
-      engine.applyTemplate(ledger.id, "saas");
-      postFixtureTransactions(engine, ledger.id);
+    beforeEach(async () => {
+      await engine.applyTemplate(ledger.id, "saas");
+      await postFixtureTransactions(engine, ledger.id);
 
       // February: collect the AR and earn more revenue
-      engine.postTransaction({
+      await engine.postTransaction({
         ledgerId: ledger.id,
         date: "2024-02-10",
         memo: "AR collection from January",
@@ -600,7 +600,7 @@ describe("Template Application & Financial Statements", () => {
         ],
       });
 
-      engine.postTransaction({
+      await engine.postTransaction({
         ledgerId: ledger.id,
         date: "2024-02-15",
         memo: "February subscription revenue",
@@ -611,8 +611,8 @@ describe("Template Application & Financial Statements", () => {
       });
     });
 
-    it("P&L for February shows only February activity", () => {
-      const result = engine.generateIncomeStatement(ledger.id, "2024-02-01", "2024-02-28");
+    it("P&L for February shows only February activity", async () => {
+      const result = await engine.generateIncomeStatement(ledger.id, "2024-02-01", "2024-02-28");
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
@@ -621,8 +621,8 @@ describe("Template Application & Financial Statements", () => {
       expect(result.value.totals["netIncome"]).toBe(1200000);
     });
 
-    it("Balance sheet at end of February reflects cumulative balances", () => {
-      const result = engine.generateBalanceSheet(ledger.id, "2024-02-28");
+    it("Balance sheet at end of February reflects cumulative balances", async () => {
+      const result = await engine.generateBalanceSheet(ledger.id, "2024-02-28");
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 
@@ -643,8 +643,8 @@ describe("Template Application & Financial Statements", () => {
       expect(result.value.totals["totalAssets"]).toBe(result.value.totals["totalEquity"]);
     });
 
-    it("Cash flow for February shows AR collection as operating inflow", () => {
-      const result = engine.generateCashFlow(ledger.id, "2024-02-01", "2024-02-28");
+    it("Cash flow for February shows AR collection as operating inflow", async () => {
+      const result = await engine.generateCashFlow(ledger.id, "2024-02-01", "2024-02-28");
       expect(result.ok).toBe(true);
       if (!result.ok) return;
 

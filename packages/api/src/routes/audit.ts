@@ -20,7 +20,7 @@ auditRoutes.get("/", async (c) => {
   const limitStr = c.req.query("limit");
   const limit = limitStr ? parseInt(limitStr, 10) : undefined;
 
-  const result = engine.listAuditEntries(ledgerId!, { cursor, limit });
+  const result = await engine.listAuditEntries(ledgerId!, { cursor, limit });
   if (!result.ok) {
     return errorResponse(c, result.error);
   }

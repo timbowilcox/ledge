@@ -23,14 +23,14 @@ export function TemplatesGrid({ templates }: { templates: Template[] }) {
           className="font-bold"
           style={{
             fontSize: 28,
-            color: "#f1f5f9",
+            color: "#0A0A0A",
             marginBottom: 8,
             fontFamily: "var(--font-family-display)",
           }}
         >
           Choose a starting point
         </h1>
-        <p className="text-sm" style={{ color: "#94a3b8", marginBottom: 40 }}>
+        <p className="text-sm" style={{ color: "rgba(0,0,0,0.55)", marginBottom: 40 }}>
           Pick the template closest to your business. You can customise everything later.
         </p>
 
@@ -45,12 +45,12 @@ export function TemplatesGrid({ templates }: { templates: Template[] }) {
               }}
             >
               <h2
-                className="font-bold text-slate-50"
+                className="font-bold"
                 style={{ fontSize: 18, marginBottom: 8, fontFamily: "var(--font-family-display)" }}
               >
                 {t.name}
               </h2>
-              <p className="text-sm" style={{ color: "#94a3b8", marginBottom: 16, lineHeight: 1.6 }}>
+              <p className="text-sm" style={{ color: "rgba(0,0,0,0.55)", marginBottom: 16, lineHeight: 1.6 }}>
                 {t.description}
               </p>
               <div className="flex flex-wrap" style={{ gap: 6 }}>
@@ -59,9 +59,9 @@ export function TemplatesGrid({ templates }: { templates: Template[] }) {
                   style={{
                     padding: "3px 10px",
                     borderRadius: 9999,
-                    backgroundColor: "rgba(13,148,136,0.1)",
-                    color: "#5eead4",
-                    border: "1px solid rgba(13,148,136,0.15)",
+                    backgroundColor: "rgba(232,71,10,0.06)",
+                    color: "#E8470A",
+                    border: "1px solid rgba(232,71,10,0.18)",
                   }}
                 >
                   {t.businessType}

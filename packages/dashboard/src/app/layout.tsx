@@ -17,7 +17,7 @@ export default function RootLayout({
       <head>
         <link
           rel="stylesheet"
-          href="https://api.fontshare.com/v2/css?f[]=satoshi@700&f[]=general-sans@400;500;600&display=swap"
+          href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap"
         />
         <link
           rel="stylesheet"

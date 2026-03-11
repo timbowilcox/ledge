@@ -23,7 +23,7 @@ export function CopyButton({
     <button
       onClick={handleCopy}
       className={`btn-ghost text-xs ${className}`}
-      style={{ color: copied ? "#5eead4" : undefined }}
+      style={{ color: copied ? "#16A34A" : undefined }}
     >
       {copied ? "Copied!" : label}
     </button>

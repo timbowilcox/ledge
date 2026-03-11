@@ -62,11 +62,11 @@ export default function McpPage() {
     <div>
       <h1
         className="font-bold"
-        style={{ fontSize: 24, color: "#f1f5f9", marginBottom: 8, fontFamily: "var(--font-family-display)" }}
+        style={{ fontSize: 24, color: "#0A0A0A", marginBottom: 8, fontFamily: "var(--font-family-display)" }}
       >
         MCP Connection Guide
       </h1>
-      <p className="text-sm" style={{ color: "#94a3b8", marginBottom: 32, lineHeight: 1.6 }}>
+      <p className="text-sm" style={{ color: "rgba(0,0,0,0.55)", marginBottom: 32, lineHeight: 1.6 }}>
         Connect Ledge to your AI coding assistant. Your agent can then post
         transactions, query balances, and generate financial statements
         conversationally.
@@ -83,9 +83,9 @@ export default function McpPage() {
               borderRadius: 10,
               fontSize: 14,
               fontWeight: 500,
-              backgroundColor: activeTool === key ? "rgba(13,148,136,0.1)" : "transparent",
-              color: activeTool === key ? "#5eead4" : "#64748b",
-              border: activeTool === key ? "1px solid rgba(13,148,136,0.2)" : "1px solid transparent",
+              backgroundColor: activeTool === key ? "rgba(232,71,10,0.06)" : "transparent",
+              color: activeTool === key ? "#E8470A" : "rgba(0,0,0,0.36)",
+              border: activeTool === key ? "1px solid rgba(232,71,10,0.18)" : "1px solid transparent",
               cursor: "pointer",
               transition: "all 200ms cubic-bezier(0.16, 1, 0.3, 1)",
             }}
@@ -100,15 +100,15 @@ export default function McpPage() {
         <div className="section-label" style={{ marginBottom: 16 }}>Setup Steps</div>
         <ol style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {config.steps.map((step, i) => (
-            <li key={i} className="flex text-sm" style={{ color: "#94a3b8", gap: 14 }}>
+            <li key={i} className="flex text-sm" style={{ color: "rgba(0,0,0,0.55)", gap: 14 }}>
               <span
                 className="flex-shrink-0 flex items-center justify-center text-xs font-bold"
                 style={{
                   width: 28,
                   height: 28,
                   borderRadius: "50%",
-                  backgroundColor: "rgba(13,148,136,0.1)",
-                  color: "#5eead4",
+                  backgroundColor: "rgba(232,71,10,0.06)",
+                  color: "#E8470A",
                 }}
               >
                 {i + 1}
@@ -123,7 +123,7 @@ export default function McpPage() {
       <div style={{ marginBottom: 32 }}>
         <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
           <div className="section-label">
-            Configuration \u2014 <code className="font-mono text-xs" style={{ color: "#5eead4" }}>{config.file}</code>
+            Configuration \u2014 <code className="font-mono text-xs" style={{ color: "#E8470A" }}>{config.file}</code>
           </div>
           <CopyButton text={config.config} label="Copy config" />
         </div>
@@ -131,24 +131,24 @@ export default function McpPage() {
           style={{
             borderRadius: 18,
             padding: 24,
-            backgroundColor: "rgba(255,255,255,0.02)",
-            border: "1px solid rgba(255,255,255,0.04)",
+            backgroundColor: "#F3F3F1",
+            border: "1px solid rgba(0,0,0,0.10)",
           }}
         >
-          <pre className="font-mono text-sm overflow-x-auto" style={{ color: "#94a3b8", lineHeight: 1.7 }}>
+          <pre className="font-mono text-sm overflow-x-auto" style={{ color: "rgba(0,0,0,0.55)", lineHeight: 1.7 }}>
             {config.config.split("\n").map((line, i) => {
               if (line.includes("YOUR_API_KEY_HERE")) {
                 const parts = line.split("YOUR_API_KEY_HERE");
                 return (
                   <div key={i}>
                     <span>{parts[0]}</span>
-                    <span style={{ color: "#f59e0b", fontWeight: 500 }}>YOUR_API_KEY_HERE</span>
+                    <span style={{ color: "#D97706", fontWeight: 500 }}>YOUR_API_KEY_HERE</span>
                     <span>{parts[1]}</span>
                   </div>
                 );
               }
               if (line.includes('"ledge"') || line.includes('"mcpServers"')) {
-                return <div key={i} style={{ color: "#5eead4" }}>{line}</div>;
+                return <div key={i} style={{ color: "#E8470A" }}>{line}</div>;
               }
               return <div key={i}>{line}</div>;
             })}
@@ -162,10 +162,10 @@ export default function McpPage() {
         <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 12 }}>
           {mcpTools.map((tool) => (
             <div key={tool.name} className="card" style={{ padding: 18 }}>
-              <code className="font-mono text-xs font-medium" style={{ color: "#5eead4" }}>
+              <code className="font-mono text-xs font-medium" style={{ color: "#E8470A" }}>
                 {tool.name}
               </code>
-              <p className="text-xs" style={{ color: "#64748b", marginTop: 6, lineHeight: 1.5 }}>
+              <p className="text-xs" style={{ color: "rgba(0,0,0,0.36)", marginTop: 6, lineHeight: 1.5 }}>
                 {tool.description}
               </p>
             </div>

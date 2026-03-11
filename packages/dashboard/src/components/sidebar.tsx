@@ -22,8 +22,8 @@ export function Sidebar() {
       className="fixed left-0 top-0 h-screen flex flex-col"
       style={{
         width: 260,
-        backgroundColor: "#080c18",
-        borderRight: "1px solid rgba(255,255,255,0.04)",
+        backgroundColor: "#F7F7F6",
+        borderRight: "1px solid rgba(0,0,0,0.10)",
         paddingTop: 32,
         paddingBottom: 24,
       }}
@@ -37,16 +37,16 @@ export function Sidebar() {
               width: 32,
               height: 32,
               borderRadius: 10,
-              backgroundColor: "#0d9488",
+              backgroundColor: "#E8470A",
               color: "white",
-              boxShadow: "0 2px 12px rgba(13, 148, 136, 0.3)",
+              boxShadow: "0 2px 12px rgba(232, 71, 10, 0.3)",
             }}
           >
             L
           </div>
           <span
             className="text-lg font-bold tracking-tight"
-            style={{ color: "#f1f5f9", fontFamily: "var(--font-family-display)" }}
+            style={{ color: "#0A0A0A", fontFamily: "var(--font-family-display)" }}
           >
             Ledge
           </span>
@@ -71,20 +71,20 @@ export function Sidebar() {
                     borderRadius: 12,
                     fontSize: 14,
                     fontWeight: isActive ? 600 : 500,
-                    color: isActive ? "#5eead4" : "#94a3b8",
-                    backgroundColor: isActive ? "rgba(13,148,136,0.1)" : "transparent",
+                    color: isActive ? "#E8470A" : "rgba(0,0,0,0.55)",
+                    backgroundColor: isActive ? "rgba(232,71,10,0.06)" : "transparent",
                     transition: "all 200ms cubic-bezier(0.16, 1, 0.3, 1)",
                   }}
                   onMouseEnter={(e) => {
                     if (!isActive) {
-                      e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.03)";
-                      e.currentTarget.style.color = "#cbd5e1";
+                      e.currentTarget.style.backgroundColor = "rgba(0,0,0,0.04)";
+                      e.currentTarget.style.color = "#0A0A0A";
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (!isActive) {
                       e.currentTarget.style.backgroundColor = "transparent";
-                      e.currentTarget.style.color = "#94a3b8";
+                      e.currentTarget.style.color = "rgba(0,0,0,0.55)";
                     }
                   }}
                 >
@@ -95,7 +95,7 @@ export function Sidebar() {
                         width: 3,
                         height: 20,
                         borderRadius: "0 3px 3px 0",
-                        backgroundColor: "#0d9488",
+                        backgroundColor: "#E8470A",
                       }}
                     />
                   )}
@@ -114,16 +114,16 @@ export function Sidebar() {
           paddingLeft: 28,
           paddingRight: 28,
           paddingTop: 20,
-          borderTop: "1px solid rgba(255,255,255,0.04)",
+          borderTop: "1px solid rgba(0,0,0,0.10)",
         }}
       >
         {session?.user && (
           <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
             <div style={{ minWidth: 0 }}>
-              <div className="text-sm font-medium truncate" style={{ color: "#e2e8f0" }}>
+              <div className="text-sm font-medium truncate" style={{ color: "#0A0A0A" }}>
                 {session.user.name}
               </div>
-              <div className="text-xs truncate" style={{ color: "#64748b" }}>
+              <div className="text-xs truncate" style={{ color: "rgba(0,0,0,0.36)" }}>
                 {session.user.email}
               </div>
             </div>
@@ -131,10 +131,10 @@ export function Sidebar() {
               onClick={() => signOut({ callbackUrl: "/signin" })}
               className="text-xs"
               style={{
-                color: "#64748b",
+                color: "rgba(0,0,0,0.36)",
                 padding: "4px 8px",
                 borderRadius: 6,
-                border: "1px solid rgba(255,255,255,0.06)",
+                border: "1px solid rgba(0,0,0,0.10)",
                 cursor: "pointer",
                 flexShrink: 0,
               }}
@@ -143,7 +143,7 @@ export function Sidebar() {
             </button>
           </div>
         )}
-        <div className="text-xs" style={{ color: "#475569" }}>
+        <div className="text-xs" style={{ color: "rgba(0,0,0,0.28)" }}>
           Ledge v0.1.0
         </div>
       </div>
@@ -155,7 +155,7 @@ export function Sidebar() {
 
 function OverviewIcon({ active }: { active: boolean }) {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke={active ? "#5eead4" : "#64748b"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke={active ? "#E8470A" : "rgba(0,0,0,0.36)"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <rect x="2" y="2" width="6" height="6" rx="1.5" />
       <rect x="12" y="2" width="6" height="6" rx="1.5" />
       <rect x="2" y="12" width="6" height="6" rx="1.5" />
@@ -166,7 +166,7 @@ function OverviewIcon({ active }: { active: boolean }) {
 
 function AccountsIcon({ active }: { active: boolean }) {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke={active ? "#5eead4" : "#64748b"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke={active ? "#E8470A" : "rgba(0,0,0,0.36)"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M7 3v14" />
       <path d="M7 3h6a3.5 3.5 0 0 1 0 7H7" />
       <path d="M7 10h7a3.5 3.5 0 0 1 0 7H7" />
@@ -176,7 +176,7 @@ function AccountsIcon({ active }: { active: boolean }) {
 
 function TransactionsIcon({ active }: { active: boolean }) {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke={active ? "#5eead4" : "#64748b"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke={active ? "#E8470A" : "rgba(0,0,0,0.36)"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 5.5h14" />
       <path d="M3 10h14" />
       <path d="M3 14.5h9" />
@@ -186,7 +186,7 @@ function TransactionsIcon({ active }: { active: boolean }) {
 
 function StatementsIcon({ active }: { active: boolean }) {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke={active ? "#5eead4" : "#64748b"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke={active ? "#E8470A" : "rgba(0,0,0,0.36)"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 17V6" />
       <path d="M7.5 17V9" />
       <path d="M12 17V3" />
@@ -197,7 +197,7 @@ function StatementsIcon({ active }: { active: boolean }) {
 
 function KeysIcon({ active }: { active: boolean }) {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke={active ? "#5eead4" : "#64748b"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke={active ? "#E8470A" : "rgba(0,0,0,0.36)"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="7.5" cy="12.5" r="3.5" />
       <path d="M10.5 9.5L15.5 4.5" />
       <path d="M13.5 4.5h2v2" />
@@ -207,7 +207,7 @@ function KeysIcon({ active }: { active: boolean }) {
 
 function McpIcon({ active }: { active: boolean }) {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke={active ? "#5eead4" : "#64748b"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke={active ? "#E8470A" : "rgba(0,0,0,0.36)"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M5.5 5.5l-3.5 4.5 3.5 4.5" />
       <path d="M14.5 5.5l3.5 4.5-3.5 4.5" />
       <path d="M11 3l-2 14" />

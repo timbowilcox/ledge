@@ -13,7 +13,7 @@ const typeLabels: Record<string, string> = {
 };
 
 const typeBadge: Record<string, string> = {
-  asset: "badge-teal", liability: "badge-amber", equity: "badge-green", revenue: "badge-green", expense: "badge-red",
+  asset: "badge-orange", liability: "badge-amber", equity: "badge-green", revenue: "badge-green", expense: "badge-red",
 };
 
 export function AccountsView({ accounts }: { accounts: AccountWithBalance[] }) {
@@ -46,7 +46,7 @@ export function AccountsView({ accounts }: { accounts: AccountWithBalance[] }) {
     <div>
       <h1
         className="font-bold"
-        style={{ fontSize: 24, color: "#f1f5f9", marginBottom: 28, fontFamily: "var(--font-family-display)" }}
+        style={{ fontSize: 24, color: "#0A0A0A", marginBottom: 28, fontFamily: "var(--font-family-display)" }}
       >
         Account Tree
       </h1>
@@ -102,13 +102,13 @@ function GroupRows({
       <tr
         className="cursor-pointer table-row"
         onClick={onToggle}
-        style={{ backgroundColor: "rgba(255,255,255,0.01)" }}
+        style={{ backgroundColor: "rgba(0,0,0,0.02)" }}
       >
         <td className="table-cell" colSpan={2}>
           <div className="flex items-center gap-2.5">
             <svg
               width="14" height="14" viewBox="0 0 14 14"
-              fill="none" stroke="#64748b" strokeWidth="1.5"
+              fill="none" stroke="rgba(0,0,0,0.36)" strokeWidth="1.5"
               style={{
                 transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
                 transition: "transform 200ms cubic-bezier(0.16, 1, 0.3, 1)",
@@ -116,20 +116,20 @@ function GroupRows({
             >
               <path d="M5 3l4 4-4 4" />
             </svg>
-            <span className="text-sm font-semibold text-slate-50">
+            <span className="text-sm font-semibold">
               {typeLabels[type] ?? type}s
             </span>
-            <span className="text-xs" style={{ color: "#475569" }}>
+            <span className="text-xs" style={{ color: "rgba(0,0,0,0.28)" }}>
               ({accounts.length})
             </span>
           </div>
         </td>
         <td className="table-cell">
-          <span className={"badge " + (typeBadge[type] ?? "badge-teal")}>{typeLabels[type] ?? type}</span>
+          <span className={"badge " + (typeBadge[type] ?? "badge-orange")}>{typeLabels[type] ?? type}</span>
         </td>
         <td
           className="table-cell text-right font-mono text-sm font-medium"
-          style={{ color: groupTotal < 0 ? "#ef4444" : "#f8fafc" }}
+          style={{ color: groupTotal < 0 ? "#DC2626" : "#0A0A0A" }}
         >
           {formatCurrency(Math.abs(groupTotal))}
         </td>
@@ -139,17 +139,17 @@ function GroupRows({
         accounts.map((account) => (
           <tr key={account.id} className="table-row">
             <td className="table-cell" style={{ paddingLeft: 44 }}>
-              <code className="text-xs font-mono" style={{ color: "#5eead4" }}>
+              <code className="text-xs font-mono" style={{ color: "#E8470A" }}>
                 {account.code}
               </code>
             </td>
-            <td className="table-cell text-sm text-slate-50">{account.name}</td>
+            <td className="table-cell text-sm">{account.name}</td>
             <td className="table-cell">
-              <span className={"badge " + (typeBadge[type] ?? "badge-teal")}>{typeLabels[type] ?? type}</span>
+              <span className={"badge " + (typeBadge[type] ?? "badge-orange")}>{typeLabels[type] ?? type}</span>
             </td>
             <td
               className="table-cell text-right font-mono text-sm"
-              style={{ color: account.balance < 0 ? "#ef4444" : "#f8fafc" }}
+              style={{ color: account.balance < 0 ? "#DC2626" : "#0A0A0A" }}
             >
               {formatCurrency(Math.abs(account.balance))}
             </td>

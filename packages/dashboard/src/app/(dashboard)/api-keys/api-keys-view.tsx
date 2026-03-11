@@ -44,7 +44,7 @@ export function ApiKeysView({ initialKeys }: { initialKeys: ApiKeySafe[] }) {
       <div className="flex items-center justify-between" style={{ marginBottom: 28 }}>
         <h1
           className="font-bold"
-          style={{ fontSize: 24, color: "#f1f5f9", fontFamily: "var(--font-family-display)" }}
+          style={{ fontSize: 24, color: "#0A0A0A", fontFamily: "var(--font-family-display)" }}
         >
           API Keys
         </h1>
@@ -68,8 +68,8 @@ export function ApiKeysView({ initialKeys }: { initialKeys: ApiKeySafe[] }) {
           <tbody>
             {keys.map((key) => (
               <tr key={key.id} className="table-row">
-                <td className="table-cell text-sm text-slate-50 font-medium">{key.name}</td>
-                <td className="table-cell font-mono text-xs" style={{ color: "#5eead4" }}>{key.prefix}...</td>
+                <td className="table-cell text-sm font-medium">{key.name}</td>
+                <td className="table-cell font-mono text-xs" style={{ color: "#E8470A" }}>{key.prefix}...</td>
                 <td className="table-cell text-sm">{formatDate(key.createdAt)}</td>
                 <td className="table-cell text-sm">{key.lastUsedAt ? formatDate(key.lastUsedAt) : "Never"}</td>
                 <td className="table-cell text-right">
@@ -80,8 +80,8 @@ export function ApiKeysView({ initialKeys }: { initialKeys: ApiKeySafe[] }) {
                     <>
                       {confirmRevoke === key.id ? (
                         <span className="flex items-center justify-end gap-2">
-                          <span className="text-xs" style={{ color: "#ef4444" }}>Confirm?</span>
-                          <button className="text-xs font-medium" style={{ color: "#ef4444", background: "none", border: "none", cursor: "pointer" }} onClick={() => handleRevoke(key.id)}>Yes</button>
+                          <span className="text-xs" style={{ color: "#DC2626" }}>Confirm?</span>
+                          <button className="text-xs font-medium" style={{ color: "#DC2626", background: "none", border: "none", cursor: "pointer" }} onClick={() => handleRevoke(key.id)}>Yes</button>
                           <button className="btn-ghost text-xs" onClick={() => setConfirmRevoke(null)}>No</button>
                         </span>
                       ) : (
@@ -94,7 +94,7 @@ export function ApiKeysView({ initialKeys }: { initialKeys: ApiKeySafe[] }) {
             ))}
             {keys.length === 0 && (
               <tr>
-                <td colSpan={6} className="table-cell text-center text-sm" style={{ color: "#64748b", padding: 48 }}>
+                <td colSpan={6} className="table-cell text-center text-sm" style={{ color: "rgba(0,0,0,0.36)", padding: 48 }}>
                   No API keys yet
                 </td>
               </tr>
@@ -107,7 +107,7 @@ export function ApiKeysView({ initialKeys }: { initialKeys: ApiKeySafe[] }) {
       {showCreateModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center"
-          style={{ backgroundColor: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
+          style={{ backgroundColor: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)" }}
           onClick={() => { if (!createdKey) setShowCreateModal(false); }}
         >
           <div
@@ -118,7 +118,7 @@ export function ApiKeysView({ initialKeys }: { initialKeys: ApiKeySafe[] }) {
             {!createdKey ? (
               <>
                 <h2
-                  className="font-bold text-slate-50"
+                  className="font-bold"
                   style={{ fontSize: 20, marginBottom: 20, fontFamily: "var(--font-family-display)" }}
                 >
                   Create API Key
@@ -143,12 +143,12 @@ export function ApiKeysView({ initialKeys }: { initialKeys: ApiKeySafe[] }) {
             ) : (
               <>
                 <h2
-                  className="font-bold text-slate-50"
+                  className="font-bold"
                   style={{ fontSize: 20, marginBottom: 8, fontFamily: "var(--font-family-display)" }}
                 >
                   Key Created
                 </h2>
-                <p className="text-sm" style={{ color: "#f59e0b", marginBottom: 20 }}>
+                <p className="text-sm" style={{ color: "#D97706", marginBottom: 20 }}>
                   Copy this key now. You won&apos;t be able to see it again.
                 </p>
 
@@ -159,11 +159,11 @@ export function ApiKeysView({ initialKeys }: { initialKeys: ApiKeySafe[] }) {
                     padding: 16,
                     marginBottom: 20,
                     gap: 12,
-                    backgroundColor: "rgba(255,255,255,0.03)",
-                    border: "1px solid rgba(255,255,255,0.06)",
+                    backgroundColor: "#F7F7F6",
+                    border: "1px solid rgba(0,0,0,0.10)",
                   }}
                 >
-                  <code className="text-sm font-mono" style={{ color: "#5eead4", wordBreak: "break-all" }}>{createdKey}</code>
+                  <code className="text-sm font-mono" style={{ color: "#E8470A", wordBreak: "break-all" }}>{createdKey}</code>
                   <CopyButton text={createdKey} />
                 </div>
 

@@ -59,7 +59,7 @@ export function StatementsView({
     <div>
       <h1
         className="font-bold"
-        style={{ fontSize: 24, color: "#f1f5f9", marginBottom: 28, fontFamily: "var(--font-family-display)" }}
+        style={{ fontSize: 24, color: "#0A0A0A", marginBottom: 28, fontFamily: "var(--font-family-display)" }}
       >
         Statements
       </h1>
@@ -75,9 +75,9 @@ export function StatementsView({
               borderRadius: 10,
               fontSize: 14,
               fontWeight: 500,
-              backgroundColor: activeTab === tab.key ? "rgba(13,148,136,0.1)" : "transparent",
-              color: activeTab === tab.key ? "#5eead4" : "#64748b",
-              border: activeTab === tab.key ? "1px solid rgba(13,148,136,0.2)" : "1px solid transparent",
+              backgroundColor: activeTab === tab.key ? "rgba(232,71,10,0.06)" : "transparent",
+              color: activeTab === tab.key ? "#E8470A" : "rgba(0,0,0,0.36)",
+              border: activeTab === tab.key ? "1px solid rgba(232,71,10,0.18)" : "1px solid transparent",
               cursor: "pointer",
               transition: "all 200ms cubic-bezier(0.16, 1, 0.3, 1)",
             }}
@@ -122,11 +122,11 @@ export function StatementsView({
           borderRadius: 18,
           padding: 24,
           marginBottom: 24,
-          backgroundColor: "rgba(13,148,136,0.05)",
-          border: "1px solid rgba(13,148,136,0.1)",
+          backgroundColor: "rgba(232,71,10,0.04)",
+          border: "1px solid rgba(232,71,10,0.06)",
         }}
       >
-        <p className="text-sm" style={{ color: "#94a3b8", lineHeight: 1.7 }}>
+        <p className="text-sm" style={{ color: "rgba(0,0,0,0.55)", lineHeight: 1.7 }}>
           {statement.plainLanguageSummary}
         </p>
       </div>
@@ -135,12 +135,12 @@ export function StatementsView({
       <div className="card" style={{ padding: 0 }}>
         <div style={{ padding: "20px 24px" }}>
           <h2
-            className="font-bold text-slate-50"
+            className="font-bold"
             style={{ fontSize: 18, fontFamily: "var(--font-family-display)" }}
           >
             {formatStatementTitle(statement.statementType)}
           </h2>
-          <span className="text-xs" style={{ color: "#64748b" }}>
+          <span className="text-xs" style={{ color: "rgba(0,0,0,0.36)" }}>
             {activeTab === "balance_sheet"
               ? "As of " + endDate
               : startDate + " to " + endDate}
@@ -162,8 +162,8 @@ export function StatementsView({
             {Object.entries(statement.totals).map(([key, value]) => (
               <tr key={key}>
                 <td
-                  className="text-sm font-bold text-slate-50"
-                  style={{ padding: "14px 20px", borderTop: "1px solid rgba(255,255,255,0.06)" }}
+                  className="text-sm font-bold"
+                  style={{ padding: "14px 20px", borderTop: "1px solid rgba(0,0,0,0.10)" }}
                 >
                   {formatTotalLabel(key)}
                 </td>
@@ -171,12 +171,12 @@ export function StatementsView({
                   className="text-right font-mono text-sm font-bold"
                   style={{
                     padding: "14px 20px",
-                    borderTop: "1px solid rgba(255,255,255,0.06)",
+                    borderTop: "1px solid rgba(0,0,0,0.10)",
                     color: key === "netIncome" || key === "netChange"
-                      ? value >= 0 ? "#5eead4" : "#ef4444"
-                      : "#f8fafc",
+                      ? value >= 0 ? "#E8470A" : "#DC2626"
+                      : "#0A0A0A",
                     backgroundColor: (key === "netIncome" || key === "netChange" || key === "totalAssets")
-                      ? "rgba(13,148,136,0.04)"
+                      ? "rgba(232,71,10,0.04)"
                       : undefined,
                   }}
                 >
@@ -200,7 +200,7 @@ function SectionRows({ section }: { section: StatementResponse["sections"][numbe
         <td
           colSpan={2}
           className="text-sm font-bold"
-          style={{ padding: "20px 20px 10px", color: "#5eead4" }}
+          style={{ padding: "20px 20px 10px", color: "#E8470A" }}
         >
           {section.name}
         </td>
@@ -210,15 +210,15 @@ function SectionRows({ section }: { section: StatementResponse["sections"][numbe
         <tr key={line.accountCode + line.accountName} className="table-row">
           <td className="table-cell text-sm" style={{ paddingLeft: 36 }}>
             {line.accountCode && (
-              <code className="font-mono text-xs" style={{ color: "#5eead4", marginRight: 8 }}>
+              <code className="font-mono text-xs" style={{ color: "#E8470A", marginRight: 8 }}>
                 {line.accountCode}
               </code>
             )}
-            <span style={{ color: "#94a3b8" }}>{line.accountName}</span>
+            <span style={{ color: "rgba(0,0,0,0.55)" }}>{line.accountName}</span>
           </td>
           <td
             className="table-cell text-right font-mono text-sm"
-            style={{ color: line.currentPeriod < 0 ? "#ef4444" : "#f8fafc" }}
+            style={{ color: line.currentPeriod < 0 ? "#DC2626" : "#0A0A0A" }}
           >
             {line.currentPeriod < 0 ? "(" : ""}
             {formatCurrency(Math.abs(line.currentPeriod))}
@@ -229,11 +229,11 @@ function SectionRows({ section }: { section: StatementResponse["sections"][numbe
 
       <tr>
         <td
-          className="text-sm font-medium text-slate-50"
+          className="text-sm font-medium"
           style={{
             paddingLeft: 36,
             padding: "10px 20px 10px 36px",
-            borderTop: "1px solid rgba(255,255,255,0.04)",
+            borderTop: "1px solid rgba(0,0,0,0.06)",
           }}
         >
           Total {section.name}
@@ -242,8 +242,8 @@ function SectionRows({ section }: { section: StatementResponse["sections"][numbe
           className="text-right font-mono text-sm font-medium"
           style={{
             padding: "10px 20px",
-            borderTop: "1px solid rgba(255,255,255,0.04)",
-            color: section.total < 0 ? "#ef4444" : "#f8fafc",
+            borderTop: "1px solid rgba(0,0,0,0.06)",
+            color: section.total < 0 ? "#DC2626" : "#0A0A0A",
           }}
         >
           {section.total < 0 ? "(" : ""}

@@ -42,7 +42,7 @@ export function TransactionsView({ initialData, accountMap }: Props) {
     <div>
       <h1
         className="font-bold"
-        style={{ fontSize: 24, color: "#f1f5f9", marginBottom: 28, fontFamily: "var(--font-family-display)" }}
+        style={{ fontSize: 24, color: "#0A0A0A", marginBottom: 28, fontFamily: "var(--font-family-display)" }}
       >
         Transactions
       </h1>
@@ -68,9 +68,9 @@ export function TransactionsView({ initialData, accountMap }: Props) {
                 borderRadius: 10,
                 fontSize: 13,
                 fontWeight: 500,
-                backgroundColor: filter === s ? "rgba(13,148,136,0.1)" : "transparent",
-                color: filter === s ? "#5eead4" : "#64748b",
-                border: filter === s ? "1px solid rgba(13,148,136,0.2)" : "1px solid transparent",
+                backgroundColor: filter === s ? "rgba(232,71,10,0.06)" : "transparent",
+                color: filter === s ? "#E8470A" : "rgba(0,0,0,0.36)",
+                border: filter === s ? "1px solid rgba(232,71,10,0.18)" : "1px solid transparent",
                 cursor: "pointer",
                 transition: "all 200ms cubic-bezier(0.16, 1, 0.3, 1)",
               }}
@@ -106,7 +106,7 @@ export function TransactionsView({ initialData, accountMap }: Props) {
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={5} className="table-cell text-center text-sm" style={{ color: "#64748b", padding: 48 }}>
+                <td colSpan={5} className="table-cell text-center text-sm" style={{ color: "rgba(0,0,0,0.36)", padding: 48 }}>
                   No transactions found
                 </td>
               </tr>
@@ -148,12 +148,12 @@ function TransactionRow({
   return (
     <>
       <tr className="table-row cursor-pointer" onClick={onToggle}>
-        <td className="table-cell font-mono text-xs" style={{ color: "#64748b" }}>
+        <td className="table-cell font-mono text-xs" style={{ color: "rgba(0,0,0,0.36)" }}>
           {truncateId(tx.id)}
         </td>
         <td className="table-cell text-sm">{formatDate(tx.date)}</td>
-        <td className="table-cell text-sm text-slate-50">{tx.memo}</td>
-        <td className="table-cell text-right font-mono text-sm text-slate-50">
+        <td className="table-cell text-sm">{tx.memo}</td>
+        <td className="table-cell text-right font-mono text-sm">
           {formatCurrency(amount)}
         </td>
         <td className="table-cell text-right">
@@ -170,8 +170,8 @@ function TransactionRow({
               style={{
                 margin: "0 16px 12px",
                 borderRadius: 14,
-                backgroundColor: "rgba(255,255,255,0.015)",
-                border: "1px solid rgba(255,255,255,0.03)",
+                backgroundColor: "#F7F7F6",
+                border: "1px solid rgba(0,0,0,0.06)",
               }}
             >
               <table className="w-full">
@@ -189,11 +189,11 @@ function TransactionRow({
                       <tr key={i}>
                         <td className="table-cell text-sm" style={{ paddingTop: 10, paddingBottom: 10 }}>
                           {acct && (
-                            <code className="font-mono text-xs" style={{ color: "#5eead4", marginRight: 8 }}>
+                            <code className="font-mono text-xs" style={{ color: "#E8470A", marginRight: 8 }}>
                               {acct.code}
                             </code>
                           )}
-                          <span className="text-slate-50">{acct?.name ?? line.accountId}</span>
+                          <span >{acct?.name ?? line.accountId}</span>
                         </td>
                         <td className="table-cell text-right font-mono text-sm" style={{ paddingTop: 10, paddingBottom: 10 }}>
                           {line.direction === "debit" ? formatCurrency(line.amount) : ""}

@@ -28,12 +28,12 @@ export default async function OverviewPage() {
       <div className="flex items-center gap-3" style={{ marginBottom: 32 }}>
         <h1
           className="font-bold"
-          style={{ fontSize: 24, color: "#f1f5f9", fontFamily: "var(--font-family-display)" }}
+          style={{ fontSize: 24, color: "#0A0A0A", fontFamily: "var(--font-family-display)" }}
         >
           {ledger.name}
         </h1>
-        <span className="badge badge-teal">{ledger.accountingBasis}</span>
-        <span className="text-sm" style={{ color: "#64748b" }}>
+        <span className="badge badge-orange">{ledger.accountingBasis}</span>
+        <span className="text-sm" style={{ color: "rgba(0,0,0,0.36)" }}>
           {ledger.currency}
         </span>
       </div>
@@ -82,12 +82,12 @@ export default async function OverviewPage() {
                 .reduce((sum, l) => sum + l.amount, 0);
               return (
                 <tr key={tx.id} className="table-row">
-                  <td className="table-cell font-mono text-xs" style={{ color: "#64748b" }}>
+                  <td className="table-cell font-mono text-xs" style={{ color: "rgba(0,0,0,0.36)" }}>
                     {truncateId(tx.id)}
                   </td>
                   <td className="table-cell text-sm">{formatDate(tx.date)}</td>
-                  <td className="table-cell text-sm text-slate-50">{tx.memo}</td>
-                  <td className="table-cell text-right font-mono text-sm text-slate-50">
+                  <td className="table-cell text-sm">{tx.memo}</td>
+                  <td className="table-cell text-right font-mono text-sm">
                     {formatCurrency(totalDebit)}
                   </td>
                   <td className="table-cell text-right">
@@ -100,7 +100,7 @@ export default async function OverviewPage() {
             })}
             {recentTransactions.length === 0 && (
               <tr>
-                <td colSpan={5} className="table-cell text-center text-sm" style={{ color: "#64748b", padding: 48 }}>
+                <td colSpan={5} className="table-cell text-center text-sm" style={{ color: "rgba(0,0,0,0.36)", padding: 48 }}>
                   No transactions yet
                 </td>
               </tr>
@@ -132,7 +132,7 @@ function MetricCard({
           fontSize: 28,
           lineHeight: 1.1,
           letterSpacing: "-0.02em",
-          color: accent ? "#f59e0b" : "#f8fafc",
+          color: accent ? "#D97706" : "#0A0A0A",
         }}
       >
         {value}

@@ -11,6 +11,12 @@ Monorepo with 5 packages, ~8,645 lines of TypeScript, 235 tests passing.
 - Next.js (dashboard), Turborepo (monorepo), Vitest (tests)
 - Docker (single-container deployment)
 
+## Repository
+
+- **GitHub**: https://github.com/timbowilcox/ledge
+- **Branch**: main
+- **Deployed**: Vercel (all three example apps)
+
 ## Monorepo Structure
 
 ```
@@ -172,6 +178,21 @@ packages/
   - templates/page.tsx (83 lines): template picker grid
 - **Verified**: All 8 routes screenshot-verified at 1440x900 viewport
 
+### Stage 13: Vercel Deployment Fixes
+- **GitHub push**: Initialized repo, reviewed .gitignore for secrets, pushed 163 files to timbowilcox/ledge
+- **SDK constructor fixes** (invoice-manager, expense-tracker):
+  - Added missing required `apiKey` param to `new Ledge()` calls in seed scripts
+  - Fixed `key.raw` to `key.rawKey` to match SDK's `ApiKeyWithRaw` type
+- **Seed script relocation**: Moved all three `src/lib/seed.ts` to `scripts/seed.ts` so Next.js build does not include them in the module graph. Updated package.json `seed` scripts accordingly.
+- **Vercel build fixes** (all three examples):
+  - Wrapped page.tsx SDK calls in `fetchData()` with try/catch: shows "Setup Required" fallback when Ledge API is unreachable (invoice-manager and expense-tracker now match saas-tracker pattern)
+  - Created `/api/seed` POST routes for invoice-manager and expense-tracker
+  - Added `"scripts"` to tsconfig.json `exclude` in all three examples so Next.js does not type-check standalone seed scripts
+  - Added missing `fiscalYearStart` and `accountingBasis` to `ledgers.create()` in all three seed scripts
+  - Added missing `subtitle` prop to expense-tracker `StatementTable` calls
+  - All pages already had `export const dynamic = "force-dynamic"`
+- **Build verified**: `pnpm build` passes for all 8 packages (core, api, sdk, mcp, dashboard, saas-tracker, invoice-manager, expense-tracker)
+
 ## API Endpoints
 
 | Method | Path | Auth |
@@ -266,3 +287,10 @@ pnpm typecheck        # type-check all packages
 ### Documentation
 - Getting started guide
 - Deployment documentation
+
+### Production Readiness
+- Landing page / marketing site
+- CI/CD pipeline (GitHub Actions: lint, test, build, deploy)
+- Environment variable documentation for Vercel deployment
+- Rate limiting / abuse prevention
+- Monitoring / error tracking integration

@@ -367,6 +367,15 @@ export class LedgerEngine {
     const accountingBasis = params.accountingBasis ?? "accrual";
     const businessContext = params.businessContext ? JSON.stringify(params.businessContext) : null;
 
+    // Ensure the owner user exists (auto-create for admin/system callers)
+    const existingUser = await this.db.get("SELECT id FROM users WHERE id = ?", [params.ownerId]);
+    if (!existingUser) {
+      await this.db.run(
+        "INSERT INTO users (id, email, name, auth_provider, auth_provider_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [params.ownerId, `user-${params.ownerId.substring(0, 8)}@ledge.internal`, "Auto-created User", "system", params.ownerId, now, now]
+      );
+    }
+
     await this.db.run(
       `INSERT INTO ledgers (id, name, currency, fiscal_year_start, accounting_basis, status, owner_id, business_context, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)`,
@@ -879,6 +888,15 @@ export class LedgerEngine {
 
     const id = generateId();
     const now = nowUtc();
+
+    // Ensure the user exists (auto-create for admin/system callers)
+    const existingUser = await this.db.get("SELECT id FROM users WHERE id = ?", [params.userId]);
+    if (!existingUser) {
+      await this.db.run(
+        "INSERT INTO users (id, email, name, auth_provider, auth_provider_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [params.userId, `user-${params.userId.substring(0, 8)}@ledge.internal`, "Auto-created User", "system", params.userId, now, now]
+      );
+    }
 
     await this.db.run(
       `INSERT INTO api_keys (id, user_id, ledger_id, key_hash, prefix, name, status, created_at, updated_at)

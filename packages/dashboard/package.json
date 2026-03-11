@@ -15,7 +15,8 @@
     "next": "^15.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "next-auth": "5.0.0-beta.30"
+    "next-auth": "5.0.0-beta.30",
+    "@ledge/sdk": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.7.0",

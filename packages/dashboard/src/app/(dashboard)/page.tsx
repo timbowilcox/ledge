@@ -1,9 +1,27 @@
-import { ledger, metrics, transactions } from "@/lib/mock-data";
-import { formatCurrency, formatDate, formatNumber, formatPercent, truncateId } from "@/lib/format";
+import { getLedgeClient, getLedgerId } from "@/lib/ledge";
+import { formatCurrency, formatDate, formatNumber, truncateId } from "@/lib/format";
 import Link from "next/link";
+import type { TransactionWithLines, AccountWithBalance } from "@ledge/sdk";
 
-export default function OverviewPage() {
-  const recentTransactions = transactions.slice(0, 5);
+export const dynamic = "force-dynamic";
+
+export default async function OverviewPage() {
+  const client = getLedgeClient();
+  const ledgerId = getLedgerId();
+
+  const [ledger, accountsList, txResult] = await Promise.all([
+    client.ledgers.get(ledgerId),
+    client.accounts.list(ledgerId),
+    client.transactions.list(ledgerId, { limit: 5 }),
+  ]);
+
+  const transactionCount = txResult.data.length;
+  const accountCount = accountsList.length;
+  const totalAssets = accountsList
+    .filter((a: AccountWithBalance) => a.type === "asset")
+    .reduce((sum: number, a: AccountWithBalance) => sum + a.balance, 0);
+
+  const recentTransactions = txResult.data;
 
   return (
     <div>
@@ -15,9 +33,9 @@ export default function OverviewPage() {
         >
           {ledger.name}
         </h1>
-        <span className="badge badge-teal">{ledger.template}</span>
+        <span className="badge badge-teal">{ledger.accountingBasis}</span>
         <span className="text-sm" style={{ color: "#64748b" }}>
-          {ledger.entity}
+          {ledger.currency}
         </span>
       </div>
 
@@ -26,24 +44,14 @@ export default function OverviewPage() {
         className="grid grid-cols-4"
         style={{ gap: 20, marginBottom: 36 }}
       >
+        <MetricCard label="Accounts" value={formatNumber(accountCount)} />
         <MetricCard
-          label="Transactions"
-          value={formatNumber(metrics.transactionCount)}
-        />
-        <MetricCard
-          label="Accounts"
-          value={formatNumber(metrics.accountCount)}
-        />
-        <MetricCard
-          label="Ledger Value"
-          value={formatCurrency(metrics.ledgerValue)}
+          label="Total Assets"
+          value={formatCurrency(totalAssets)}
           mono
         />
-        <MetricCard
-          label="Plan Usage"
-          value={formatPercent(metrics.planUsage)}
-          accent={metrics.planUsage > 80}
-        />
+        <MetricCard label="Currency" value={ledger.currency} />
+        <MetricCard label="Basis" value={ledger.accountingBasis} />
       </div>
 
       {/* Recent transactions */}
@@ -69,23 +77,35 @@ export default function OverviewPage() {
             </tr>
           </thead>
           <tbody>
-            {recentTransactions.map((tx) => (
-              <tr key={tx.id} className="table-row">
-                <td className="table-cell font-mono text-xs" style={{ color: "#64748b" }}>
-                  {truncateId(tx.id)}
-                </td>
-                <td className="table-cell text-sm">{formatDate(tx.date)}</td>
-                <td className="table-cell text-sm text-slate-50">{tx.memo}</td>
-                <td className="table-cell text-right font-mono text-sm text-slate-50">
-                  {formatCurrency(tx.amount)}
-                </td>
-                <td className="table-cell text-right">
-                  <span className={`badge ${tx.status === "posted" ? "badge-green" : "badge-red"}`}>
-                    {tx.status}
-                  </span>
+            {recentTransactions.map((tx: TransactionWithLines) => {
+              const totalDebit = tx.lines
+                .filter((l) => l.direction === "debit")
+                .reduce((sum, l) => sum + l.amount, 0);
+              return (
+                <tr key={tx.id} className="table-row">
+                  <td className="table-cell font-mono text-xs" style={{ color: "#64748b" }}>
+                    {truncateId(tx.id)}
+                  </td>
+                  <td className="table-cell text-sm">{formatDate(tx.date)}</td>
+                  <td className="table-cell text-sm text-slate-50">{tx.memo}</td>
+                  <td className="table-cell text-right font-mono text-sm text-slate-50">
+                    {formatCurrency(totalDebit)}
+                  </td>
+                  <td className="table-cell text-right">
+                    <span className={"badge " + (tx.status === "posted" ? "badge-green" : "badge-red")}>
+                      {tx.status}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+            {recentTransactions.length === 0 && (
+              <tr>
+                <td colSpan={5} className="table-cell text-center text-sm" style={{ color: "#64748b", padding: 48 }}>
+                  No transactions yet
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
@@ -108,7 +128,7 @@ function MetricCard({
     <div className="card">
       <div className="section-label" style={{ marginBottom: 10 }}>{label}</div>
       <div
-        className={`font-bold ${mono ? "font-mono" : ""}`}
+        className={"font-bold " + (mono ? "font-mono" : "")}
         style={{
           fontSize: 28,
           lineHeight: 1.1,

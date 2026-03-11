@@ -19,13 +19,17 @@ import type { Database } from "@ledge/core";
 import { SqliteDatabase, PostgresDatabase, LedgerEngine } from "@ledge/core";
 import { createApp } from "./app.js";
 
+const SYSTEM_USER_ID = "00000000-0000-0000-0000-000000000001";
+
 const main = async () => {
   const databaseUrl = process.env["DATABASE_URL"];
   let db: Database;
 
   if (databaseUrl) {
     // PostgreSQL mode
-    db = new PostgresDatabase(databaseUrl);
+    const pgDb = new PostgresDatabase(databaseUrl);
+    await applyPostgresMigrations(pgDb);
+    db = pgDb;
     console.log("Connected to PostgreSQL");
   } else {
     // SQLite mode
@@ -44,7 +48,7 @@ const main = async () => {
         console.log(`Loaded existing database from ${dbPath}`);
       } else {
         sqliteDb = await SqliteDatabase.create();
-        await applyMigrations(sqliteDb);
+        await applySqliteMigrations(sqliteDb);
         persistDatabase(sqliteDb, dbPath);
         console.log(`Created new database at ${dbPath}`);
       }
@@ -65,7 +69,7 @@ const main = async () => {
     } else {
       // In-memory mode (dev/test)
       sqliteDb = await SqliteDatabase.create();
-      await applyMigrations(sqliteDb);
+      await applySqliteMigrations(sqliteDb);
       console.log("Running with in-memory database (data will not persist)");
     }
 
@@ -82,8 +86,12 @@ const main = async () => {
   });
 };
 
-/** Apply all SQLite migrations in order. */
-const applyMigrations = async (db: SqliteDatabase) => {
+// ---------------------------------------------------------------------------
+// Migration helpers
+// ---------------------------------------------------------------------------
+
+/** Resolve the migrations directory from known locations. */
+const findMigrationsDir = (): string | undefined => {
   const possiblePaths = [
     // Docker layout: packages/core/migrations/
     join(process.cwd(), "packages", "core", "migrations"),
@@ -91,14 +99,72 @@ const applyMigrations = async (db: SqliteDatabase) => {
     join(dirname(fileURLToPath(import.meta.url)), "..", "..", "core", "src", "db", "migrations"),
   ];
 
-  let migrationsDir: string | undefined;
   for (const p of possiblePaths) {
-    if (existsSync(p)) {
-      migrationsDir = p;
-      break;
+    if (existsSync(p)) return p;
+  }
+  return undefined;
+};
+
+/** Ensure the system user exists for admin/dashboard operations. */
+const ensureSystemUser = async (db: Database) => {
+  const existing = await db.get("SELECT id FROM users WHERE id = ?", [SYSTEM_USER_ID]);
+  if (!existing) {
+    await db.run(
+      "INSERT INTO users (id, email, name, auth_provider, auth_provider_id) VALUES (?, ?, ?, ?, ?)",
+      [SYSTEM_USER_ID, "system@ledge.internal", "System", "system", "system"]
+    );
+    console.log("Created system user for admin operations");
+  }
+};
+
+/** Apply PostgreSQL migrations if tables don't exist yet. Idempotent. */
+const applyPostgresMigrations = async (db: PostgresDatabase) => {
+  // Check if schema already exists
+  const result = await db.get<{ exists: boolean }>(
+    "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'ledgers') as exists"
+  );
+
+  if (result?.exists) {
+    console.log("PostgreSQL schema already exists — skipping migration");
+    await ensureSystemUser(db);
+
+    // Ensure 'updated' audit action exists (idempotent)
+    try {
+      await db.exec("ALTER TYPE audit_action ADD VALUE IF NOT EXISTS 'updated'");
+    } catch {
+      /* already exists or not supported */
     }
+    return;
   }
 
+  const migrationsDir = findMigrationsDir();
+  if (!migrationsDir) {
+    console.warn("PostgreSQL migration files not found — schema must be applied manually");
+    return;
+  }
+
+  const pgMigration = join(migrationsDir, "001_initial_schema.sql");
+  if (existsSync(pgMigration)) {
+    const sql = readFileSync(pgMigration, "utf-8");
+    await db.exec(sql);
+    console.log("Applied PostgreSQL migration: 001_initial_schema.sql");
+
+    // Add 'updated' to audit_action enum
+    try {
+      await db.exec("ALTER TYPE audit_action ADD VALUE IF NOT EXISTS 'updated'");
+      console.log("Added 'updated' to audit_action enum");
+    } catch {
+      /* already exists */
+    }
+
+    // Seed system user
+    await ensureSystemUser(db);
+  }
+};
+
+/** Apply all SQLite migrations in order. */
+const applySqliteMigrations = async (db: SqliteDatabase) => {
+  const migrationsDir = findMigrationsDir();
   if (!migrationsDir) {
     console.warn("Migration files not found — schema must be applied manually");
     return;

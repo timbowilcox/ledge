@@ -1,0 +1,160 @@
+"use client";
+
+import { useState } from "react";
+import { formatCurrency } from "@/lib/format";
+import type { AccountWithBalance, AccountType } from "@ledge/sdk";
+
+const typeOrder: Record<string, number> = {
+  asset: 0, liability: 1, equity: 2, revenue: 3, expense: 4,
+};
+
+const typeLabels: Record<string, string> = {
+  asset: "Asset", liability: "Liability", equity: "Equity", revenue: "Revenue", expense: "Expense",
+};
+
+const typeBadge: Record<string, string> = {
+  asset: "badge-teal", liability: "badge-amber", equity: "badge-green", revenue: "badge-green", expense: "badge-red",
+};
+
+export function AccountsView({ accounts }: { accounts: AccountWithBalance[] }) {
+  const [expanded, setExpanded] = useState<Set<string>>(
+    new Set(["asset", "liability", "equity", "revenue", "expense"])
+  );
+
+  const grouped = accounts.reduce(
+    (acc, account) => {
+      const t = account.type as string;
+      if (!acc[t]) acc[t] = [];
+      acc[t].push(account);
+      return acc;
+    },
+    {} as Record<string, AccountWithBalance[]>
+  );
+
+  const sortedTypes = Object.keys(grouped).sort(
+    (a, b) => (typeOrder[a] ?? 99) - (typeOrder[b] ?? 99)
+  );
+
+  const toggleGroup = (type: string) => {
+    const next = new Set(expanded);
+    if (next.has(type)) next.delete(type);
+    else next.add(type);
+    setExpanded(next);
+  };
+
+  return (
+    <div>
+      <h1
+        className="font-bold"
+        style={{ fontSize: 24, color: "#f1f5f9", marginBottom: 28, fontFamily: "var(--font-family-display)" }}
+      >
+        Account Tree
+      </h1>
+
+      <div className="card" style={{ padding: 0 }}>
+        <table className="w-full">
+          <thead>
+            <tr>
+              <th className="table-header" style={{ width: 120 }}>Code</th>
+              <th className="table-header">Account Name</th>
+              <th className="table-header" style={{ width: 100 }}>Type</th>
+              <th className="table-header text-right" style={{ width: 160 }}>Balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedTypes.map((type) => {
+              const group = grouped[type];
+              const isExpanded = expanded.has(type);
+              const groupTotal = group.reduce((sum, a) => sum + a.balance, 0);
+              return (
+                <GroupRows
+                  key={type}
+                  type={type}
+                  accounts={group}
+                  isExpanded={isExpanded}
+                  groupTotal={groupTotal}
+                  onToggle={() => toggleGroup(type)}
+                />
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function GroupRows({
+  type,
+  accounts,
+  isExpanded,
+  groupTotal,
+  onToggle,
+}: {
+  type: string;
+  accounts: AccountWithBalance[];
+  isExpanded: boolean;
+  groupTotal: number;
+  onToggle: () => void;
+}) {
+  return (
+    <>
+      <tr
+        className="cursor-pointer table-row"
+        onClick={onToggle}
+        style={{ backgroundColor: "rgba(255,255,255,0.01)" }}
+      >
+        <td className="table-cell" colSpan={2}>
+          <div className="flex items-center gap-2.5">
+            <svg
+              width="14" height="14" viewBox="0 0 14 14"
+              fill="none" stroke="#64748b" strokeWidth="1.5"
+              style={{
+                transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
+                transition: "transform 200ms cubic-bezier(0.16, 1, 0.3, 1)",
+              }}
+            >
+              <path d="M5 3l4 4-4 4" />
+            </svg>
+            <span className="text-sm font-semibold text-slate-50">
+              {typeLabels[type] ?? type}s
+            </span>
+            <span className="text-xs" style={{ color: "#475569" }}>
+              ({accounts.length})
+            </span>
+          </div>
+        </td>
+        <td className="table-cell">
+          <span className={"badge " + (typeBadge[type] ?? "badge-teal")}>{typeLabels[type] ?? type}</span>
+        </td>
+        <td
+          className="table-cell text-right font-mono text-sm font-medium"
+          style={{ color: groupTotal < 0 ? "#ef4444" : "#f8fafc" }}
+        >
+          {formatCurrency(Math.abs(groupTotal))}
+        </td>
+      </tr>
+
+      {isExpanded &&
+        accounts.map((account) => (
+          <tr key={account.id} className="table-row">
+            <td className="table-cell" style={{ paddingLeft: 44 }}>
+              <code className="text-xs font-mono" style={{ color: "#5eead4" }}>
+                {account.code}
+              </code>
+            </td>
+            <td className="table-cell text-sm text-slate-50">{account.name}</td>
+            <td className="table-cell">
+              <span className={"badge " + (typeBadge[type] ?? "badge-teal")}>{typeLabels[type] ?? type}</span>
+            </td>
+            <td
+              className="table-cell text-right font-mono text-sm"
+              style={{ color: account.balance < 0 ? "#ef4444" : "#f8fafc" }}
+            >
+              {formatCurrency(Math.abs(account.balance))}
+            </td>
+          </tr>
+        ))}
+    </>
+  );
+}

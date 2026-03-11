@@ -78,7 +78,7 @@ interface LedgerRow {
   name: string;
   currency: string;
   template_id: string | null;
-  business_context: string | null;
+  business_context: string | Record<string, unknown> | null;
   fiscal_year_start: number;
   accounting_basis: string;
   status: string;
@@ -97,7 +97,7 @@ interface AccountRow {
   type: string;
   normal_balance: string;
   is_system: number | boolean;
-  metadata: string | null;
+  metadata: string | Record<string, unknown> | null;
   status: string;
   created_at: string;
   updated_at: string;
@@ -114,7 +114,7 @@ interface TransactionRow {
   source_type: string;
   source_ref: string | null;
   agent_id: string | null;
-  metadata: string | null;
+  metadata: string | Record<string, unknown> | null;
   posted_at: string;
   created_at: string;
   updated_at: string;
@@ -127,7 +127,7 @@ interface LineItemRow {
   amount: number;
   direction: string;
   memo: string | null;
-  metadata: string | null;
+  metadata: string | Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
 }
@@ -154,7 +154,7 @@ interface AuditEntryRow {
   actor_type: string;
   actor_id: string;
   evidence_ref: string | null;
-  snapshot: string;
+  snapshot: string | Record<string, unknown>;
   created_at: string;
 }
 
@@ -178,7 +178,7 @@ interface ImportRowRow {
   amount: number;
   payee: string;
   memo: string | null;
-  raw_data: string;
+  raw_data: string | Record<string, unknown>;
   match_status: string;
   matched_transaction_id: string | null;
   confidence: number | null;
@@ -190,6 +190,17 @@ interface BalanceRow {
   balance: number;
 }
 
+
+/**
+ * Safely parse a JSONB value from the database.
+ * SQLite returns JSON as TEXT (string), PostgreSQL returns JSONB as a parsed JS object.
+ * This helper handles both cases.
+ */
+const parseJsonb = <T = Record<string, unknown>>(value: string | T): T => {
+  if (typeof value === "string") return JSON.parse(value) as T;
+  return value as T;
+};
+
 // ---------------------------------------------------------------------------
 // Row → Domain mappers
 // ---------------------------------------------------------------------------
@@ -199,7 +210,7 @@ const toLedger = (row: LedgerRow): Ledger => ({
   name: row.name,
   currency: row.currency,
   templateId: row.template_id,
-  businessContext: row.business_context ? JSON.parse(row.business_context) as Record<string, unknown> : null,
+  businessContext: row.business_context ? parseJsonb(row.business_context) as Record<string, unknown> : null,
   fiscalYearStart: row.fiscal_year_start,
   accountingBasis: row.accounting_basis as Ledger["accountingBasis"],
   status: row.status as Ledger["status"],
@@ -218,7 +229,7 @@ const toAccount = (row: AccountRow): Account => ({
   type: row.type as Account["type"],
   normalBalance: row.normal_balance as Account["normalBalance"],
   isSystem: !!row.is_system,
-  metadata: row.metadata ? JSON.parse(row.metadata) as Record<string, unknown> : null,
+  metadata: row.metadata ? parseJsonb(row.metadata) as Record<string, unknown> : null,
   status: row.status as Account["status"],
   createdAt: row.created_at,
   updatedAt: row.updated_at,
@@ -235,7 +246,7 @@ const toTransaction = (row: TransactionRow): TransactionWithLines["lines"] exten
   sourceType: row.source_type as TransactionWithLines["sourceType"],
   sourceRef: row.source_ref,
   agentId: row.agent_id,
-  metadata: row.metadata ? JSON.parse(row.metadata) as Record<string, unknown> : null,
+  metadata: row.metadata ? parseJsonb(row.metadata) as Record<string, unknown> : null,
   postedAt: row.posted_at,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
@@ -248,7 +259,7 @@ const toLineItem = (row: LineItemRow): LineItem => ({
   amount: row.amount,
   direction: row.direction as LineItem["direction"],
   memo: row.memo,
-  metadata: row.metadata ? JSON.parse(row.metadata) as Record<string, unknown> : null,
+  metadata: row.metadata ? parseJsonb(row.metadata) as Record<string, unknown> : null,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
 });
@@ -275,7 +286,7 @@ const toAuditEntry = (row: AuditEntryRow): AuditEntry => ({
   actorType: row.actor_type as AuditEntry["actorType"],
   actorId: row.actor_id,
   evidenceRef: row.evidence_ref,
-  snapshot: JSON.parse(row.snapshot) as Record<string, unknown>,
+  snapshot: parseJsonb(row.snapshot) as Record<string, unknown>,
   createdAt: row.created_at,
 });
 
@@ -299,7 +310,7 @@ const toImportRow = (row: ImportRowRow): ImportRow => ({
   amount: row.amount,
   payee: row.payee,
   memo: row.memo,
-  rawData: JSON.parse(row.raw_data) as Record<string, unknown>,
+  rawData: parseJsonb(row.raw_data) as Record<string, unknown>,
   matchStatus: row.match_status as ImportRow["matchStatus"],
   matchedTransactionId: row.matched_transaction_id,
   confidence: row.confidence,
@@ -1101,7 +1112,7 @@ export class LedgerEngine {
         normalBalance: row.normal_balance as NormalBalance,
         balance: await this.computeBalanceInPeriod(row.id, row.normal_balance as NormalBalance, startDate, endDate),
         priorBalance: null,
-        metadata: row.metadata ? (JSON.parse(row.metadata) as Record<string, unknown>) : null,
+        metadata: row.metadata ? (parseJsonb(row.metadata) as Record<string, unknown>) : null,
       });
     }
 
@@ -1132,7 +1143,7 @@ export class LedgerEngine {
         normalBalance: row.normal_balance as NormalBalance,
         balance: await this.computeBalance(row.id, row.normal_balance as NormalBalance, asOfDate),
         priorBalance: null,
-        metadata: row.metadata ? (JSON.parse(row.metadata) as Record<string, unknown>) : null,
+        metadata: row.metadata ? (parseJsonb(row.metadata) as Record<string, unknown>) : null,
       });
     }
 
@@ -1207,7 +1218,7 @@ export class LedgerEngine {
         normalBalance: nb,
         balance: endBalance,
         priorBalance: null,
-        metadata: row.metadata ? (JSON.parse(row.metadata) as Record<string, unknown>) : null,
+        metadata: row.metadata ? (parseJsonb(row.metadata) as Record<string, unknown>) : null,
         delta: endBalance - startBalance,
       });
     }
@@ -1251,7 +1262,7 @@ export class LedgerEngine {
 
     // Read match config from ledger's business_context
     const businessContext = ledger.business_context
-      ? (JSON.parse(ledger.business_context) as Record<string, unknown>)
+      ? (parseJsonb(ledger.business_context) as Record<string, unknown>)
       : null;
     const importConfig = businessContext?.importConfig as Partial<MatchConfig> | undefined;
     const config: MatchConfig = {

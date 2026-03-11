@@ -31,19 +31,7 @@ export function Sidebar() {
       {/* Logo */}
       <div style={{ paddingLeft: 28, paddingRight: 28, marginBottom: 40 }}>
         <Link href="/" className="flex items-center gap-3">
-          <div
-            className="flex items-center justify-center font-mono text-sm font-bold"
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 10,
-              backgroundColor: "#E8470A",
-              color: "white",
-              boxShadow: "0 2px 12px rgba(232, 71, 10, 0.3)",
-            }}
-          >
-            L
-          </div>
+          <img src="/logo-icon.svg" alt="Ledge" width={28} height={28} />
           <span
             className="text-lg font-bold tracking-tight"
             style={{ color: "#0A0A0A", fontFamily: "var(--font-family-display)" }}

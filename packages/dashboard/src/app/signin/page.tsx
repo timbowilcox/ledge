@@ -24,20 +24,7 @@ export default function SignInPage() {
       >
         {/* Logo */}
         <div className="flex items-center justify-center" style={{ gap: 14, marginBottom: 36 }}>
-          <div
-            className="flex items-center justify-center font-mono font-bold"
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 14,
-              fontSize: 20,
-              backgroundColor: "#E8470A",
-              color: "white",
-              boxShadow: "0 4px 16px rgba(232, 71, 10, 0.3)",
-            }}
-          >
-            L
-          </div>
+          <img src="/logo-icon.svg" alt="Ledge" width={38} height={38} />
           <span
             className="font-bold tracking-tight"
             style={{ fontSize: 26, color: "#0A0A0A", fontFamily: "var(--font-family-display)" }}

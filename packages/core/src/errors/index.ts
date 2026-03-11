@@ -22,6 +22,8 @@ export const ErrorCode = {
   UNAUTHORIZED: "UNAUTHORIZED",
   FORBIDDEN: "FORBIDDEN",
   API_KEY_NOT_FOUND: "API_KEY_NOT_FOUND",
+  PLAN_LIMIT_REACHED: "PLAN_LIMIT_REACHED",
+  PLAN_LIMIT_EXCEEDED: "PLAN_LIMIT_EXCEEDED",
   INTERNAL_ERROR: "INTERNAL_ERROR",
 } as const;
 
@@ -259,6 +261,45 @@ export const importParseError = (
               "Check that the file is valid CSV or OFX format. CSV files must include date, amount, and payee columns.",
           },
         ]
+  );
+
+
+export const planLimitReachedError = (
+  count: number,
+  limit: number,
+  nextResetDate: string,
+  upgradeUrl: string
+): LedgeError =>
+  createError(
+    ErrorCode.PLAN_LIMIT_REACHED,
+    `Free plan soft limit reached (${count}/${limit}). Transaction accepted as pending.`,
+    [
+      {
+        field: "plan",
+        actual: `${count} transactions used`,
+        expected: `under ${limit}`,
+        suggestion: `Upgrade at ${upgradeUrl} to post transactions immediately. Usage resets on ${nextResetDate}.`,
+      },
+    ]
+  );
+
+export const planLimitExceededError = (
+  count: number,
+  limit: number,
+  nextResetDate: string,
+  upgradeUrl: string
+): LedgeError =>
+  createError(
+    ErrorCode.PLAN_LIMIT_EXCEEDED,
+    `Free plan hard limit exceeded (${count}/${limit}). Transaction rejected.`,
+    [
+      {
+        field: "plan",
+        actual: `${count} transactions used`,
+        expected: `under ${limit + 100}`,
+        suggestion: `Upgrade at ${upgradeUrl} to remove limits. Usage resets on ${nextResetDate}.`,
+      },
+    ]
   );
 
 export const internalError = (

@@ -193,12 +193,27 @@ interface UserRow {
   name: string;
   auth_provider: string;
   auth_provider_id: string;
+  plan: string | null;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  plan_period_start: string | null;
+  plan_period_end: string | null;
   created_at: string;
   updated_at: string;
 }
 
 interface BalanceRow {
   balance: number | string;
+}
+
+interface UsagePeriodRow {
+  id: string;
+  ledger_id: string;
+  period_start: string;
+  period_end: string;
+  transaction_count: number;
+  created_at: string;
+  updated_at: string;
 }
 
 
@@ -335,6 +350,11 @@ const toUser = (row: UserRow): User => ({
   name: row.name,
   authProvider: row.auth_provider,
   authProviderId: row.auth_provider_id,
+  plan: (row.plan || "free") as User["plan"],
+  stripeCustomerId: row.stripe_customer_id,
+  stripeSubscriptionId: row.stripe_subscription_id,
+  planPeriodStart: row.plan_period_start,
+  planPeriodEnd: row.plan_period_end,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
 });
@@ -634,7 +654,7 @@ export class LedgerEngine {
 
       await this.db.run(
         `INSERT INTO transactions (id, ledger_id, idempotency_key, date, effective_date, memo, status, source_type, source_ref, agent_id, metadata, posted_at, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, 'posted', ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           txnId,
           input.ledgerId,
@@ -642,11 +662,12 @@ export class LedgerEngine {
           input.date,
           input.effectiveDate ?? null,
           input.memo,
+          input.statusOverride ?? "posted",
           sourceType,
           input.sourceRef ?? null,
           input.agentId ?? null,
           metadata,
-          now,
+          input.statusOverride === "pending" ? null : now,
           now,
           now,
         ]
@@ -887,14 +908,15 @@ export class LedgerEngine {
                COALESCE(SUM(CASE WHEN li.direction = 'credit' THEN li.amount ELSE 0 END), 0) AS balance
              FROM line_items li
              JOIN transactions t ON t.id = li.transaction_id
-             WHERE li.account_id = ? AND t.date <= ?`;
+             WHERE li.account_id = ? AND t.date <= ? AND t.status != 'pending'`;
       params = [accountId, asOfDate];
     } else {
       sql = `SELECT
                COALESCE(SUM(CASE WHEN li.direction = 'debit' THEN li.amount ELSE 0 END), 0) -
                COALESCE(SUM(CASE WHEN li.direction = 'credit' THEN li.amount ELSE 0 END), 0) AS balance
              FROM line_items li
-             WHERE li.account_id = ?`;
+             JOIN transactions t ON t.id = li.transaction_id
+             WHERE li.account_id = ? AND t.status != 'pending'`;
       params = [accountId];
     }
 
@@ -918,7 +940,7 @@ export class LedgerEngine {
                    COALESCE(SUM(CASE WHEN li.direction = 'credit' THEN li.amount ELSE 0 END), 0) AS balance
                  FROM line_items li
                  JOIN transactions t ON t.id = li.transaction_id
-                 WHERE li.account_id = ? AND t.date >= ? AND t.date <= ?`;
+                 WHERE li.account_id = ? AND t.date >= ? AND t.date <= ? AND t.status != 'pending'`;
 
     const row = await this.db.get<BalanceRow>(sql, [accountId, startDate, endDate]);
     const rawBalance = Number(row?.balance ?? 0);
@@ -1537,4 +1559,152 @@ export class LedgerEngine {
 
     return ok(result);
   }
+
+  // -------------------------------------------------------------------------
+  // Billing — usage tracking and plan management
+  // -------------------------------------------------------------------------
+
+  async getUsage(ledgerId: string): Promise<Result<{ count: number; limit: number; plan: string; periodStart: string; periodEnd: string }>> {
+    // Get the user's plan via ledger owner
+    const ledger = await this.db.get<LedgerRow>("SELECT * FROM ledgers WHERE id = ?", [ledgerId]);
+    if (!ledger) return err(ledgerNotFoundError(ledgerId));
+
+    const user = await this.db.get<UserRow>("SELECT * FROM users WHERE id = ?", [ledger.owner_id]);
+    if (!user) return err(createError(ErrorCode.INTERNAL_ERROR, "Owner not found for ledger"));
+
+    const plan = user.plan || "free";
+    const limit = plan === "free" ? 500 : -1; // -1 = unlimited
+
+    // Get current month boundaries
+    const now = new Date();
+    const periodStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0]!;
+    const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split("T")[0]!;
+
+    // Get or create usage period
+    const usage = await this.db.get<UsagePeriodRow>(
+      "SELECT * FROM usage_periods WHERE ledger_id = ? AND period_start = ?",
+      [ledgerId, periodStart]
+    );
+
+    return ok({
+      count: usage ? usage.transaction_count : 0,
+      limit,
+      plan,
+      periodStart,
+      periodEnd,
+    });
+  }
+
+  async incrementUsage(ledgerId: string): Promise<void> {
+    const now = new Date();
+    const periodStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
+    const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split("T")[0];
+    const ts = nowUtc();
+
+    // Upsert usage period — increment count
+    const existing = await this.db.get<UsagePeriodRow>(
+      "SELECT * FROM usage_periods WHERE ledger_id = ? AND period_start = ?",
+      [ledgerId, periodStart]
+    );
+
+    if (existing) {
+      await this.db.run(
+        "UPDATE usage_periods SET transaction_count = transaction_count + 1, updated_at = ? WHERE id = ?",
+        [ts, existing.id]
+      );
+    } else {
+      const id = generateId();
+      await this.db.run(
+        "INSERT INTO usage_periods (id, ledger_id, period_start, period_end, transaction_count, created_at, updated_at) VALUES (?, ?, ?, ?, 1, ?, ?)",
+        [id, ledgerId, periodStart, periodEnd, ts, ts]
+      );
+    }
+  }
+
+  async postPendingTransactions(ledgerId: string): Promise<Result<number>> {
+    const now = nowUtc();
+
+    // Find all pending transactions for this ledger
+    const pending = await this.db.all<TransactionRow>(
+      "SELECT * FROM transactions WHERE ledger_id = ? AND status = 'pending'",
+      [ledgerId]
+    );
+
+    if (pending.length === 0) return ok(0);
+
+    await this.db.transaction(async () => {
+      for (const txn of pending) {
+        await this.db.run(
+          "UPDATE transactions SET status = 'posted', posted_at = ?, updated_at = ? WHERE id = ?",
+          [now, now, txn.id]
+        );
+
+        // Audit entry for each posted pending transaction
+        const auditId = generateId();
+        await this.db.run(
+          `INSERT INTO audit_entries (id, ledger_id, entity_type, entity_id, action, actor_type, actor_id, snapshot, created_at)
+           VALUES (?, ?, 'transaction', ?, 'updated', 'system', 'billing', ?, ?)`,
+          [auditId, ledgerId, txn.id, JSON.stringify({ previousStatus: "pending", newStatus: "posted", reason: "plan_upgrade" }), now]
+        );
+      }
+    });
+
+    return ok(pending.length);
+  }
+
+  async getUserByLedger(ledgerId: string): Promise<Result<User>> {
+    const row = await this.db.get<UserRow>(
+      "SELECT u.* FROM users u JOIN ledgers l ON l.owner_id = u.id WHERE l.id = ?",
+      [ledgerId]
+    );
+    if (!row) return err(createError(ErrorCode.INTERNAL_ERROR, "Owner not found for ledger"));
+    return ok(toUser(row));
+  }
+
+  async updateUserPlan(
+    userId: string,
+    plan: string,
+    stripeCustomerId?: string,
+    stripeSubscriptionId?: string,
+    periodStart?: string,
+    periodEnd?: string
+  ): Promise<Result<User>> {
+    const now = nowUtc();
+    await this.db.run(
+      `UPDATE users SET
+        plan = ?,
+        stripe_customer_id = COALESCE(?, stripe_customer_id),
+        stripe_subscription_id = COALESCE(?, stripe_subscription_id),
+        plan_period_start = COALESCE(?, plan_period_start),
+        plan_period_end = COALESCE(?, plan_period_end),
+        updated_at = ?
+       WHERE id = ?`,
+      [plan, stripeCustomerId ?? null, stripeSubscriptionId ?? null, periodStart ?? null, periodEnd ?? null, now, userId]
+    );
+
+    const row = await this.db.get<UserRow>("SELECT * FROM users WHERE id = ?", [userId]);
+    if (!row) return err(createError(ErrorCode.INTERNAL_ERROR, "User not found after update"));
+    return ok(toUser(row));
+  }
+
+  async findUserByStripeCustomer(stripeCustomerId: string): Promise<Result<User>> {
+    const row = await this.db.get<UserRow>(
+      "SELECT * FROM users WHERE stripe_customer_id = ?",
+      [stripeCustomerId]
+    );
+    if (!row) return err(createError(ErrorCode.INTERNAL_ERROR, "User not found for Stripe customer"));
+    return ok(toUser(row));
+  }
+
+  async resetUsage(ledgerId: string): Promise<void> {
+    const now = new Date();
+    const periodStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
+    const ts = nowUtc();
+
+    await this.db.run(
+      "UPDATE usage_periods SET transaction_count = 0, updated_at = ? WHERE ledger_id = ? AND period_start = ?",
+      [ts, ledgerId, periodStart]
+    );
+  }
+
 }

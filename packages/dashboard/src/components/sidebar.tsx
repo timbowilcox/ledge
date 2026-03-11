@@ -11,6 +11,7 @@ const navItems = [
   { href: "/statements", label: "Statements", icon: StatementsIcon },
   { href: "/api-keys", label: "API Keys", icon: KeysIcon },
   { href: "/mcp", label: "MCP Guide", icon: McpIcon },
+  { href: "/billing", label: "Billing", icon: BillingIcon },
 ];
 
 export function Sidebar() {
@@ -199,6 +200,16 @@ function McpIcon({ active }: { active: boolean }) {
       <path d="M5.5 5.5l-3.5 4.5 3.5 4.5" />
       <path d="M14.5 5.5l3.5 4.5-3.5 4.5" />
       <path d="M11 3l-2 14" />
+    </svg>
+  );
+}
+
+function BillingIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke={active ? "#E8470A" : "rgba(0,0,0,0.36)"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="3" width="16" height="14" rx="2" />
+      <path d="M2 8h16" />
+      <path d="M6 12h3" />
     </svg>
   );
 }

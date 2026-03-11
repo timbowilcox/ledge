@@ -26,6 +26,7 @@ const httpStatusForCode: Record<string, number> = {
   [ErrorCode.TRANSACTION_ALREADY_REVERSED]: 409,
   [ErrorCode.IDEMPOTENCY_CONFLICT]: 409,
   [ErrorCode.DUPLICATE_ACCOUNT_CODE]: 409,
+  [ErrorCode.PLAN_LIMIT_EXCEEDED]: 429,
   [ErrorCode.INTERNAL_ERROR]: 500,
 };
 
@@ -48,6 +49,10 @@ export const errorResponse = (c: Context<Env>, error: LedgeError) => {
 /** Return a 201 Created JSON response */
 export const created = <T>(c: Context<Env>, data: T) =>
   c.json({ data }, 201);
+
+/** Return a 202 Accepted JSON response */
+export const accepted = <T>(c: Context<Env>, data: T) =>
+  c.json({ data }, 202);
 
 /** Return a 200 OK JSON response */
 export const success = <T>(c: Context<Env>, data: T) =>

@@ -5,7 +5,9 @@
 import { Hono } from "hono";
 import type { Env } from "../lib/context.js";
 import { apiKeyAuth } from "../middleware/auth.js";
-import { errorResponse, created, success, paginated } from "../lib/responses.js";
+import { errorResponse, created, accepted, success, paginated } from "../lib/responses.js";
+import { enforcePlanLimit, UPGRADE_URL } from "../middleware/plan.js";
+import { planLimitExceededError } from "@ledge/core";
 
 export const transactionRoutes = new Hono<Env>();
 
@@ -22,6 +24,28 @@ transactionRoutes.post("/", async (c) => {
   const headerKey = c.req.header("Idempotency-Key");
   const idempotencyKey = body.idempotencyKey ?? headerKey;
 
+  // Plan enforcement — check usage limits before posting
+  let enforcement: Awaited<ReturnType<typeof enforcePlanLimit>>;
+  try {
+    enforcement = await enforcePlanLimit(engine, ledgerId!);
+  } catch {
+    // If plan enforcement fails (e.g. migration not applied), allow the transaction
+    enforcement = { allowed: true, status: "posted" as const };
+  }
+
+  if (!enforcement.allowed) {
+    const nextReset = enforcement.nextResetDate ?? "next month";
+    c.header("X-Ledge-Usage", String(enforcement.count ?? 0) + "/" + String(enforcement.limit ?? 500));
+    return errorResponse(c, planLimitExceededError(
+      enforcement.count ?? 0,
+      enforcement.limit ?? 500,
+      nextReset,
+      UPGRADE_URL,
+    ));
+  }
+
+  const statusOverride = enforcement.status;
+
   const result = await engine.postTransaction({
     ledgerId: ledgerId!,
     date: body.date,
@@ -33,10 +57,29 @@ transactionRoutes.post("/", async (c) => {
     sourceRef: body.sourceRef,
     agentId: body.agentId,
     metadata: body.metadata,
+    statusOverride,
   });
 
   if (!result.ok) {
     return errorResponse(c, result.error);
+  }
+
+  // Increment usage counter (best-effort — migration may not be applied)
+  try { await engine.incrementUsage(ledgerId!); } catch { /* ignore */ }
+
+  // Add usage header
+  const newCount = (enforcement.count ?? 0) + 1;
+  c.header("X-Ledge-Usage", String(newCount) + "/" + String(enforcement.limit ?? 500));
+
+  if (statusOverride === "pending") {
+    return accepted(c, {
+      ...result.value,
+      _billing: {
+        status: "pending",
+        reason: "plan_limit_reached",
+        upgradeUrl: UPGRADE_URL,
+      },
+    });
   }
 
   return created(c, result.value);
@@ -54,6 +97,14 @@ transactionRoutes.get("/", async (c) => {
   if (!result.ok) {
     return errorResponse(c, result.error);
   }
+
+  // Add usage header to list response (best-effort)
+  try {
+    const usageInfo = await enforcePlanLimit(engine, ledgerId!);
+    if (usageInfo.count !== undefined && usageInfo.limit !== undefined) {
+      c.header("X-Ledge-Usage", String(usageInfo.count) + "/" + String(usageInfo.limit));
+    }
+  } catch { /* ignore — billing migration may not be applied */ }
 
   return paginated(c, result.value.data, result.value.nextCursor);
 });

@@ -7,7 +7,8 @@
 export type AccountType = "asset" | "liability" | "equity" | "revenue" | "expense";
 export type NormalBalance = "debit" | "credit";
 export type Direction = "debit" | "credit";
-export type TransactionStatus = "posted" | "reversed";
+export type TransactionStatus = "posted" | "reversed" | "pending";
+export type UserPlan = "free" | "builder" | "pro" | "platform";
 export type SourceType = "api" | "mcp" | "import" | "manual";
 export type AccountingBasis = "accrual" | "cash";
 export type LedgerStatus = "active" | "archived";
@@ -65,7 +66,7 @@ export interface Transaction {
   readonly sourceRef: string | null;
   readonly agentId: string | null;
   readonly metadata: Record<string, unknown> | null;
-  readonly postedAt: string;
+  readonly postedAt: string | null;
   readonly createdAt: string;
   readonly updatedAt: string;
 }
@@ -138,6 +139,11 @@ export interface User {
   readonly name: string;
   readonly authProvider: string;
   readonly authProviderId: string;
+  readonly plan: UserPlan;
+  readonly stripeCustomerId: string | null;
+  readonly stripeSubscriptionId: string | null;
+  readonly planPeriodStart: string | null;
+  readonly planPeriodEnd: string | null;
   readonly createdAt: string;
   readonly updatedAt: string;
 }
@@ -179,6 +185,20 @@ export interface TemplateAccount {
   readonly tags?: readonly string[];
 }
 
+export interface UsagePeriod {
+  readonly id: string;
+  readonly ledgerId: string;
+  readonly periodStart: string;
+  readonly periodEnd: string;
+  readonly transactionCount: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export type PlanEnforcementResult =
+  | { readonly allowed: true; readonly status: "posted" | "pending" }
+  | { readonly allowed: false };
+
 // ---------------------------------------------------------------------------
 // Composite types used by the engine
 // ---------------------------------------------------------------------------
@@ -202,6 +222,7 @@ export interface PostTransactionInput {
   readonly sourceRef?: string;
   readonly agentId?: string;
   readonly metadata?: Record<string, unknown>;
+  readonly statusOverride?: TransactionStatus;
 }
 
 export interface PostLineInput {

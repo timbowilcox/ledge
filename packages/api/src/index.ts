@@ -134,6 +134,22 @@ const applyPostgresMigrations = async (db: PostgresDatabase) => {
     } catch {
       /* already exists or not supported */
     }
+
+    // Apply billing migration (003) if not yet applied
+    const usageTableExists = await db.get<{ exists: boolean }>(
+      "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'usage_periods') as exists"
+    );
+    if (!usageTableExists?.exists) {
+      const mgDir = findMigrationsDir();
+      if (mgDir) {
+        const billingMigration = join(mgDir, "003_billing.sql");
+        if (existsSync(billingMigration)) {
+          const sql = readFileSync(billingMigration, "utf-8");
+          await db.exec(sql);
+          console.log("Applied PostgreSQL migration: 003_billing.sql");
+        }
+      }
+    }
     return;
   }
 
@@ -157,6 +173,14 @@ const applyPostgresMigrations = async (db: PostgresDatabase) => {
       /* already exists */
     }
 
+    // Apply billing migration
+    const billingMigration = join(migrationsDir, "003_billing.sql");
+    if (existsSync(billingMigration)) {
+      const billingSql = readFileSync(billingMigration, "utf-8");
+      await db.exec(billingSql);
+      console.log("Applied PostgreSQL migration: 003_billing.sql");
+    }
+
     // Seed system user
     await ensureSystemUser(db);
   }
@@ -173,6 +197,7 @@ const applySqliteMigrations = async (db: SqliteDatabase) => {
   const migrationFiles = [
     "001_initial_schema.sqlite.sql",
     "002_audit_action_updated.sqlite.sql",
+    "003_billing.sqlite.sql",
   ];
 
   for (const file of migrationFiles) {

@@ -23,11 +23,6 @@ export default auth((req) => {
     return NextResponse.redirect(signInUrl);
   }
 
-  // If user needs template selection, redirect to templates page
-  if (req.auth.needsTemplate && pathname !== "/templates") {
-    return NextResponse.redirect(new URL("/templates", req.nextUrl.origin));
-  }
-
   return NextResponse.next();
 });
 

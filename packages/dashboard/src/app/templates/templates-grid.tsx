@@ -8,8 +8,12 @@ export function TemplatesGrid({ templates }: { templates: Template[] }) {
   const router = useRouter();
 
   const handleSelect = async (slug: string) => {
-    await applyTemplateAction(slug);
-    router.push("/");
+    try {
+      await applyTemplateAction(slug);
+    } catch (err) {
+      console.error("Failed to apply template:", err);
+    }
+    window.location.href = "/";
   };
 
   return (

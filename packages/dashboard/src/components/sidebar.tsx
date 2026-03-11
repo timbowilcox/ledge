@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 
 const navItems = [
   { href: "/", label: "Overview", icon: OverviewIcon },
@@ -14,6 +15,7 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { data: session } = useSession();
 
   return (
     <aside
@@ -115,6 +117,32 @@ export function Sidebar() {
           borderTop: "1px solid rgba(255,255,255,0.04)",
         }}
       >
+        {session?.user && (
+          <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
+            <div style={{ minWidth: 0 }}>
+              <div className="text-sm font-medium truncate" style={{ color: "#e2e8f0" }}>
+                {session.user.name}
+              </div>
+              <div className="text-xs truncate" style={{ color: "#64748b" }}>
+                {session.user.email}
+              </div>
+            </div>
+            <button
+              onClick={() => signOut({ callbackUrl: "/signin" })}
+              className="text-xs"
+              style={{
+                color: "#64748b",
+                padding: "4px 8px",
+                borderRadius: 6,
+                border: "1px solid rgba(255,255,255,0.06)",
+                cursor: "pointer",
+                flexShrink: 0,
+              }}
+            >
+              Sign out
+            </button>
+          </div>
+        )}
         <div className="text-xs" style={{ color: "#475569" }}>
           Ledge v0.1.0
         </div>

@@ -1,11 +1,10 @@
-import { getLedgeClient, getLedgerId } from "@/lib/ledge";
+import { getSessionClient } from "@/lib/ledge";
 import { StatementsView } from "./statements-view";
 
 export const dynamic = "force-dynamic";
 
 export default async function StatementsPage() {
-  const client = getLedgeClient();
-  const ledgerId = getLedgerId();
+  const { client, ledgerId } = await getSessionClient();
 
   // Default date range: start of year to today
   const now = new Date();

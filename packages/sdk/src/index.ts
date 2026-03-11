@@ -84,6 +84,7 @@ import type {
   ImportBatch,
   ImportRow,
   Template,
+  User,
   StatementResponse,
   PaginatedResult,
 } from "@ledge/core";
@@ -178,6 +179,7 @@ export class Ledge {
   readonly imports: ImportsModule;
   readonly templates: TemplatesModule;
   readonly apiKeys: ApiKeysModule;
+  readonly admin: AdminModule;
 
   constructor(config: LedgeConfig) {
     this._apiKey = config.apiKey;
@@ -193,6 +195,7 @@ export class Ledge {
     this.imports = new ImportsModule(this);
     this.templates = new TemplatesModule(this);
     this.apiKeys = new ApiKeysModule(this);
+    this.admin = new AdminModule(this);
   }
 
   // -------------------------------------------------------------------------
@@ -535,6 +538,44 @@ export interface ApiKeySafe {
   readonly updatedAt: string;
 }
 
+
+// --- Admin -----------------------------------------------------------------
+
+/** Result of provisioning a user with a ledger and API key. */
+export interface ProvisionResult {
+  readonly user: User;
+  readonly ledger: Ledger;
+  readonly apiKey: {
+    readonly id: string;
+    readonly userId: string;
+    readonly ledgerId: string;
+    readonly prefix: string;
+    readonly name: string;
+    readonly rawKey: string;
+    readonly status: string;
+    readonly createdAt: string;
+  };
+  readonly needsTemplate: boolean;
+  readonly isNew: boolean;
+}
+
+class AdminModule {
+  constructor(private readonly c: Ledge) {}
+
+  /** Provision a user with a ledger and API key. Requires admin auth. */
+  async provision(input: {
+    email: string;
+    name: string;
+    authProvider: string;
+    authProviderId: string;
+    templateSlug?: string;
+  }): Promise<ProvisionResult> {
+    return this.c.request("POST", "/v1/admin/provision", {
+      body: input,
+      auth: "admin",
+    });
+  }
+}
 class ApiKeysModule {
   constructor(private readonly c: Ledge) {}
 

@@ -23,6 +23,7 @@ import type {
   AuditEntry,
   ImportBatch,
   ImportRow,
+  User,
   Result,
   StatementResponse,
 } from "../types/index.js";
@@ -186,6 +187,16 @@ interface ImportRowRow {
   updated_at: string;
 }
 
+interface UserRow {
+  id: string;
+  email: string;
+  name: string;
+  auth_provider: string;
+  auth_provider_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
 interface BalanceRow {
   balance: number | string;
 }
@@ -318,6 +329,16 @@ const toImportRow = (row: ImportRowRow): ImportRow => ({
   updatedAt: row.updated_at,
 });
 
+const toUser = (row: UserRow): User => ({
+  id: row.id,
+  email: row.email,
+  name: row.name,
+  authProvider: row.auth_provider,
+  authProviderId: row.auth_provider_id,
+  createdAt: row.created_at,
+  updatedAt: row.updated_at,
+});
+
 /** Hash a raw API key with SHA-256 */
 const hashApiKey = (rawKey: string): string =>
   createHash("sha256").update(rawKey).digest("hex");
@@ -406,6 +427,34 @@ export class LedgerEngine {
       return err(ledgerNotFoundError(id));
     }
     return ok(toLedger(row));
+  }
+
+  async findUserByProvider(authProvider: string, authProviderId: string): Promise<Result<User | null>> {
+    const row = await this.db.get<UserRow>(
+      "SELECT * FROM users WHERE auth_provider = ? AND auth_provider_id = ?",
+      [authProvider, authProviderId],
+    );
+    return ok(row ? toUser(row) : null);
+  }
+
+  async findLedgersByOwner(ownerId: string): Promise<Result<Ledger[]>> {
+    const rows = await this.db.all<LedgerRow>(
+      "SELECT * FROM ledgers WHERE owner_id = ? AND status = 'active' ORDER BY created_at DESC",
+      [ownerId],
+    );
+    return ok(rows.map(toLedger));
+  }
+
+  async createUser(params: { email: string; name: string; authProvider: string; authProviderId: string }): Promise<Result<User>> {
+    const id = generateId();
+    const now = nowUtc();
+    await this.db.run(
+      "INSERT INTO users (id, email, name, auth_provider, auth_provider_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      [id, params.email, params.name, params.authProvider, params.authProviderId, now, now]
+    );
+    const row = await this.db.get<UserRow>("SELECT * FROM users WHERE id = ?", [id]);
+    if (!row) return err(createError(ErrorCode.INTERNAL_ERROR, "Failed to create user"));
+    return ok(toUser(row));
   }
 
   // -------------------------------------------------------------------------

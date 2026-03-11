@@ -1,5 +1,7 @@
 "use client";
 
+import { signIn } from "next-auth/react";
+
 export default function SignInPage() {
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
@@ -116,7 +118,7 @@ export default function SignInPage() {
 }
 
 function handleOAuth(provider: string) {
-  window.location.href = "/templates";
+  signIn(provider, { callbackUrl: "/" });
 }
 
 function GitHubIcon() {

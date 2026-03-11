@@ -1,4 +1,4 @@
-import { getLedgeClient, getLedgerId } from "@/lib/ledge";
+import { getSessionClient } from "@/lib/ledge";
 import { formatCurrency, formatDate, formatNumber, truncateId } from "@/lib/format";
 import Link from "next/link";
 import type { TransactionWithLines, AccountWithBalance } from "@ledge/sdk";
@@ -6,8 +6,7 @@ import type { TransactionWithLines, AccountWithBalance } from "@ledge/sdk";
 export const dynamic = "force-dynamic";
 
 export default async function OverviewPage() {
-  const client = getLedgeClient();
-  const ledgerId = getLedgerId();
+  const { client, ledgerId } = await getSessionClient();
 
   const [ledger, accountsList, txResult] = await Promise.all([
     client.ledgers.get(ledgerId),

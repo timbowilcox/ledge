@@ -2,12 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import type { Template } from "@ledge/sdk";
+import { applyTemplateAction } from "@/lib/actions";
 
 export function TemplatesGrid({ templates }: { templates: Template[] }) {
   const router = useRouter();
 
-  const handleSelect = (slug: string) => {
-    void slug;
+  const handleSelect = async (slug: string) => {
+    await applyTemplateAction(slug);
     router.push("/");
   };
 

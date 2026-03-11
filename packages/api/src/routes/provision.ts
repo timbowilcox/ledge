@@ -39,18 +39,24 @@ provisionRoutes.post("/provision", adminAuth, async (c) => {
     );
   }
 
-  // 1. Find or create user
-  const existingResult = await engine.findUserByProvider(authProvider, authProviderId);
-  if (!existingResult.ok) return errorResponse(c, existingResult.error);
+  // 1. Find or create user (check provider first, then email for cross-provider)
+  const byProvider = await engine.findUserByProvider(authProvider, authProviderId);
+  if (!byProvider.ok) return errorResponse(c, byProvider.error);
 
-  let user = existingResult.value;
+  let user = byProvider.value;
   let isNew = false;
 
   if (!user) {
-    isNew = true;
-    const createResult = await engine.createUser({ email, name, authProvider, authProviderId });
-    if (!createResult.ok) return errorResponse(c, createResult.error);
-    user = createResult.value;
+    // Same person may have signed in with a different provider before
+    const byEmail = await engine.findUserByEmail(email);
+    if (byEmail.ok && byEmail.value) {
+      user = byEmail.value;
+    } else {
+      isNew = true;
+      const createResult = await engine.createUser({ email, name, authProvider, authProviderId });
+      if (!createResult.ok) return errorResponse(c, createResult.error);
+      user = createResult.value;
+    }
   }
 
   // 2. Find or create ledger

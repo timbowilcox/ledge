@@ -437,6 +437,14 @@ export class LedgerEngine {
     return ok(row ? toUser(row) : null);
   }
 
+  async findUserByEmail(email: string): Promise<Result<User | null>> {
+    const row = await this.db.get<UserRow>(
+      "SELECT * FROM users WHERE email = ?",
+      [email],
+    );
+    return ok(row ? toUser(row) : null);
+  }
+
   async findLedgersByOwner(ownerId: string): Promise<Result<Ledger[]>> {
     const rows = await this.db.all<LedgerRow>(
       "SELECT * FROM ledgers WHERE owner_id = ? AND status = 'active' ORDER BY created_at DESC",

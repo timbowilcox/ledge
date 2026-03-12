@@ -303,7 +303,7 @@ function PageHeader({ unreadCount }: { unreadCount: number }) {
           className="font-bold"
           style={{ fontSize: 24, color: "#0A0A0A", fontFamily: "var(--font-family-display)" }}
         >
-          Notifications
+          Insights
         </h1>
         {unreadCount > 0 && (
           <span

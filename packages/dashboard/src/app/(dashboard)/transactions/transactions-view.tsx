@@ -86,11 +86,11 @@ export function TransactionsView({ initialData, accountMap }: Props) {
         <table className="w-full">
           <thead>
             <tr>
-              <th className="table-header" style={{ width: 100 }}>ID</th>
-              <th className="table-header" style={{ width: 120 }}>Date</th>
-              <th className="table-header">Description</th>
-              <th className="table-header text-right" style={{ width: 140 }}>Amount</th>
-              <th className="table-header text-right" style={{ width: 100 }}>Status</th>
+              <th className="table-header" style={{ width: 100, position: "sticky", top: 0, backgroundColor: "#F7F7F6", zIndex: 1 }}>ID</th>
+              <th className="table-header" style={{ width: 120, position: "sticky", top: 0, backgroundColor: "#F7F7F6", zIndex: 1 }}>Date</th>
+              <th className="table-header" style={{ position: "sticky", top: 0, backgroundColor: "#F7F7F6", zIndex: 1 }}>Description</th>
+              <th className="table-header text-right" style={{ width: 140, position: "sticky", top: 0, backgroundColor: "#F7F7F6", zIndex: 1 }}>Amount</th>
+              <th className="table-header text-right" style={{ width: 100, position: "sticky", top: 0, backgroundColor: "#F7F7F6", zIndex: 1 }}>Status</th>
             </tr>
           </thead>
           <tbody>
@@ -106,8 +106,18 @@ export function TransactionsView({ initialData, accountMap }: Props) {
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={5} className="table-cell text-center text-sm" style={{ color: "rgba(0,0,0,0.36)", padding: 48 }}>
-                  No transactions found
+                <td colSpan={5} className="table-cell text-center" style={{ padding: 48 }}>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                    <div style={{ marginBottom: 8 }}>
+                      <svg width="40" height="40" viewBox="0 0 40 40" fill="none" stroke="rgba(0,0,0,0.15)" strokeWidth="1.5" strokeLinecap="round">
+                        <path d="M6 11h28M6 20h28M6 29h18" />
+                      </svg>
+                    </div>
+                    <div className="text-sm font-medium" style={{ color: "#0A0A0A" }}>No transactions found</div>
+                    <div className="text-xs" style={{ color: "rgba(0,0,0,0.36)", maxWidth: 280 }}>
+                      {search || filter !== "all" ? "Try adjusting your search or filters." : "Post your first transaction to see it here."}
+                    </div>
+                  </div>
                 </td>
               </tr>
             )}
@@ -153,7 +163,7 @@ function TransactionRow({
         </td>
         <td className="table-cell text-sm">{formatDate(tx.date)}</td>
         <td className="table-cell text-sm">{tx.memo}</td>
-        <td className="table-cell text-right font-mono text-sm">
+        <td className="table-cell text-right font-mono text-sm" style={{ fontVariantNumeric: "tabular-nums", color: amount < 0 ? "#EF4444" : undefined }}>
           {formatCurrency(amount)}
         </td>
         <td className="table-cell text-right">
@@ -195,10 +205,10 @@ function TransactionRow({
                           )}
                           <span >{acct?.name ?? line.accountId}</span>
                         </td>
-                        <td className="table-cell text-right font-mono text-sm" style={{ paddingTop: 10, paddingBottom: 10 }}>
+                        <td className="table-cell text-right font-mono text-sm" style={{ paddingTop: 10, paddingBottom: 10, fontVariantNumeric: "tabular-nums" }}>
                           {line.direction === "debit" ? formatCurrency(line.amount) : ""}
                         </td>
-                        <td className="table-cell text-right font-mono text-sm" style={{ paddingTop: 10, paddingBottom: 10 }}>
+                        <td className="table-cell text-right font-mono text-sm" style={{ paddingTop: 10, paddingBottom: 10, fontVariantNumeric: "tabular-nums" }}>
                           {line.direction === "credit" ? formatCurrency(line.amount) : ""}
                         </td>
                       </tr>

@@ -517,6 +517,7 @@ export function ChatPanel() {
                   <button
                     key={prompt}
                     onClick={() => sendMessage(prompt)}
+                    className="chat-prompt-btn"
                     style={{
                       padding: "10px 14px",
                       backgroundColor: "#F7F7F6",
@@ -527,7 +528,7 @@ export function ChatPanel() {
                       fontSize: 13,
                       color: "#334155",
                       fontFamily: "'DM Sans', sans-serif",
-                      transition: "border-color 200ms",
+                      transition: "all 200ms cubic-bezier(0.16, 1, 0.3, 1)",
                     }}
                   >
                     {prompt}
@@ -549,6 +550,7 @@ export function ChatPanel() {
                     return (
                       <div
                         key={key}
+                        className={tc.status === "running" ? "chat-tool-shimmer" : ""}
                         style={{
                           backgroundColor: "#F7F7F6",
                           border: "1px solid rgba(0,0,0,0.06)",
@@ -764,6 +766,11 @@ export function ChatPanel() {
               </svg>
             </button>
           </div>
+          <div style={{ textAlign: "center", marginTop: 6 }}>
+            <span style={{ fontSize: 10, color: "rgba(0,0,0,0.24)", fontFamily: "'DM Sans', sans-serif" }}>
+              Powered by Claude Haiku
+            </span>
+          </div>
         </div>
       </div>
 
@@ -771,6 +778,10 @@ export function ChatPanel() {
       <style>{`
         @keyframes chat-spin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
         @keyframes chat-pulse { 0%, 100% { opacity: 0.4 } 50% { opacity: 1 } }
+        @keyframes chat-shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
         .chat-spinner {
           display: inline-block;
           width: 12px;
@@ -789,6 +800,16 @@ export function ChatPanel() {
         }
         .chat-dot-2 { animation-delay: 0.3s; }
         .chat-dot-3 { animation-delay: 0.6s; }
+        .chat-tool-shimmer {
+          background: linear-gradient(90deg, #F7F7F6 25%, #EFEFED 50%, #F7F7F6 75%) !important;
+          background-size: 200% 100%;
+          animation: chat-shimmer 2s infinite;
+        }
+        .chat-prompt-btn:hover {
+          transform: scale(1.02);
+          border-color: rgba(59,130,246,0.3) !important;
+          background-color: rgba(59,130,246,0.04) !important;
+        }
       `}</style>
     </>
   );

@@ -2,24 +2,71 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useSession, signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
 
-const navItems = [
+const mainNavItems = [
   { href: "/", label: "Overview", icon: OverviewIcon },
   { href: "/accounts", label: "Accounts", icon: AccountsIcon },
   { href: "/transactions", label: "Transactions", icon: TransactionsIcon },
   { href: "/statements", label: "Statements", icon: StatementsIcon },
   { href: "/bank-feeds", label: "Bank Feeds", icon: BankFeedsIcon },
   { href: "/notifications", label: "Insights", icon: InsightsIcon },
-  { href: "/currencies", label: "Currencies", icon: CurrenciesIcon },
-  { href: "/api-keys", label: "API Keys", icon: KeysIcon },
-  { href: "/mcp", label: "MCP Guide", icon: McpIcon },
-  { href: "/billing", label: "Billing", icon: BillingIcon },
+];
+
+const bottomNavItems = [
+  { href: "/settings", label: "Settings", icon: SettingsIcon },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
+
+  const renderNavItem = ({ href, label, icon: Icon }: typeof mainNavItems[number]) => {
+    const isActive = href === "/" ? pathname === "/" : pathname.startsWith(href);
+    return (
+      <li key={href} style={{ listStyle: "none" }}>
+        <Link
+          href={href}
+          className="flex items-center gap-3 relative"
+          style={{
+            padding: "11px 14px",
+            borderRadius: 12,
+            fontSize: 14,
+            fontWeight: isActive ? 600 : 500,
+            color: isActive ? "#3B82F6" : "rgba(0,0,0,0.55)",
+            backgroundColor: isActive ? "rgba(59,130,246,0.08)" : "transparent",
+            transition: "all 200ms cubic-bezier(0.16, 1, 0.3, 1)",
+          }}
+          onMouseEnter={(e) => {
+            if (!isActive) {
+              e.currentTarget.style.backgroundColor = "rgba(0,0,0,0.04)";
+              e.currentTarget.style.color = "#0A0A0A";
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!isActive) {
+              e.currentTarget.style.backgroundColor = "transparent";
+              e.currentTarget.style.color = "rgba(0,0,0,0.55)";
+            }
+          }}
+        >
+          {isActive && (
+            <span
+              className="absolute left-0 top-1/2 -translate-y-1/2"
+              style={{
+                width: 3,
+                height: 20,
+                borderRadius: "0 3px 3px 0",
+                backgroundColor: "#3B82F6",
+              }}
+            />
+          )}
+          <Icon active={isActive} />
+          {label}
+        </Link>
+      </li>
+    );
+  };
 
   return (
     <aside
@@ -45,58 +92,21 @@ export function Sidebar() {
         </Link>
       </div>
 
-      {/* Navigation */}
+      {/* Main navigation */}
       <nav className="flex-1" style={{ paddingLeft: 16, paddingRight: 16 }}>
         <div className="section-label" style={{ paddingLeft: 12, marginBottom: 12 }}>
           Navigation
         </div>
         <ul style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          {navItems.map(({ href, label, icon: Icon }) => {
-            const isActive = href === "/" ? pathname === "/" : pathname.startsWith(href);
-            return (
-              <li key={href} style={{ listStyle: "none" }}>
-                <Link
-                  href={href}
-                  className="flex items-center gap-3 relative"
-                  style={{
-                    padding: "11px 14px",
-                    borderRadius: 12,
-                    fontSize: 14,
-                    fontWeight: isActive ? 600 : 500,
-                    color: isActive ? "#3B82F6" : "rgba(0,0,0,0.55)",
-                    backgroundColor: isActive ? "rgba(59,130,246,0.1)" : "transparent",
-                    transition: "all 200ms cubic-bezier(0.16, 1, 0.3, 1)",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isActive) {
-                      e.currentTarget.style.backgroundColor = "rgba(0,0,0,0.04)";
-                      e.currentTarget.style.color = "#0A0A0A";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isActive) {
-                      e.currentTarget.style.backgroundColor = "transparent";
-                      e.currentTarget.style.color = "rgba(0,0,0,0.55)";
-                    }
-                  }}
-                >
-                  {isActive && (
-                    <span
-                      className="absolute left-0 top-1/2 -translate-y-1/2"
-                      style={{
-                        width: 3,
-                        height: 20,
-                        borderRadius: "0 3px 3px 0",
-                        backgroundColor: "#3B82F6",
-                      }}
-                    />
-                  )}
-                  <Icon active={isActive} />
-                  {label}
-                </Link>
-              </li>
-            );
-          })}
+          {mainNavItems.map(renderNavItem)}
+        </ul>
+
+        {/* Separator */}
+        <div style={{ margin: "16px 12px", borderTop: "1px solid rgba(0,0,0,0.08)" }} />
+
+        {/* Settings */}
+        <ul style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          {bottomNavItems.map(renderNavItem)}
         </ul>
       </nav>
 
@@ -110,7 +120,14 @@ export function Sidebar() {
         }}
       >
         {session?.user && (
-          <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
+          <div className="flex items-center gap-3" style={{ marginBottom: 12 }}>
+            {session.user.image && (
+              <img
+                src={session.user.image}
+                alt=""
+                style={{ width: 28, height: 28, borderRadius: "50%", border: "1px solid rgba(0,0,0,0.10)", flexShrink: 0 }}
+              />
+            )}
             <div style={{ minWidth: 0 }}>
               <div className="text-sm font-medium truncate" style={{ color: "#0A0A0A" }}>
                 {session.user.name}
@@ -119,20 +136,6 @@ export function Sidebar() {
                 {session.user.email}
               </div>
             </div>
-            <button
-              onClick={() => signOut({ callbackUrl: "/signin" })}
-              className="text-xs"
-              style={{
-                color: "rgba(0,0,0,0.36)",
-                padding: "4px 8px",
-                borderRadius: 6,
-                border: "1px solid rgba(0,0,0,0.10)",
-                cursor: "pointer",
-                flexShrink: 0,
-              }}
-            >
-              Sign out
-            </button>
           </div>
         )}
         <div className="text-xs" style={{ color: "rgba(0,0,0,0.28)" }}>
@@ -143,7 +146,7 @@ export function Sidebar() {
   );
 }
 
-// ── Icons (20px, refined strokes) ────────────────────────────────
+// ── Icons (20px, refined strokes) ────────────────────────────────────
 
 function OverviewIcon({ active }: { active: boolean }) {
   return (
@@ -187,26 +190,6 @@ function StatementsIcon({ active }: { active: boolean }) {
   );
 }
 
-function KeysIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke={active ? "#3B82F6" : "rgba(0,0,0,0.36)"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="7.5" cy="12.5" r="3.5" />
-      <path d="M10.5 9.5L15.5 4.5" />
-      <path d="M13.5 4.5h2v2" />
-    </svg>
-  );
-}
-
-function McpIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke={active ? "#3B82F6" : "rgba(0,0,0,0.36)"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5.5 5.5l-3.5 4.5 3.5 4.5" />
-      <path d="M14.5 5.5l3.5 4.5-3.5 4.5" />
-      <path d="M11 3l-2 14" />
-    </svg>
-  );
-}
-
 function BankFeedsIcon({ active }: { active: boolean }) {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke={active ? "#3B82F6" : "rgba(0,0,0,0.36)"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -224,31 +207,17 @@ function BankFeedsIcon({ active }: { active: boolean }) {
 function InsightsIcon({ active }: { active: boolean }) {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke={active ? "#3B82F6" : "rgba(0,0,0,0.36)"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" transform="translate(-2 0) scale(0.85)" />
-      <path d="M13.73 21a2 2 0 0 1-3.46 0" transform="translate(-2 -2) scale(0.85)" />
-      <circle cx="15" cy="5" r="3" fill={active ? "#3B82F6" : "rgba(0,0,0,0.36)"} stroke="none" />
+      <circle cx="10" cy="10" r="7" />
+      <path d="M10 6v4l2.5 2.5" />
     </svg>
   );
 }
 
-function CurrenciesIcon({ active }: { active: boolean }) {
+function SettingsIcon({ active }: { active: boolean }) {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke={active ? "#3B82F6" : "rgba(0,0,0,0.36)"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="8" cy="10" r="6" />
-      <path d="M12.5 5.5a6 6 0 0 1 0 9" />
-      <path d="M7 8h2.5" />
-      <path d="M7 12h2.5" />
-      <path d="M8.5 7v6" />
-    </svg>
-  );
-}
-
-function BillingIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke={active ? "#3B82F6" : "rgba(0,0,0,0.36)"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="3" width="16" height="14" rx="2" />
-      <path d="M2 8h16" />
-      <path d="M6 12h3" />
+      <circle cx="10" cy="10" r="2.5" />
+      <path d="M16.5 12.5a1.5 1.5 0 0 0 .3 1.65l.05.06a1.82 1.82 0 0 1-1.29 3.1 1.82 1.82 0 0 1-1.29-.53l-.06-.06a1.5 1.5 0 0 0-1.65-.3 1.5 1.5 0 0 0-.91 1.37V18a1.82 1.82 0 0 1-3.64 0v-.1a1.5 1.5 0 0 0-.98-1.37 1.5 1.5 0 0 0-1.65.3l-.06.06A1.82 1.82 0 1 1 2.65 14.3l.06-.05a1.5 1.5 0 0 0 .3-1.65 1.5 1.5 0 0 0-1.37-.91H1.5a1.82 1.82 0 0 1 0-3.64h.1A1.5 1.5 0 0 0 3 7.07a1.5 1.5 0 0 0-.3-1.65l-.06-.05A1.82 1.82 0 1 1 5.22 2.8l.05.06a1.5 1.5 0 0 0 1.65.3h.07a1.5 1.5 0 0 0 .91-1.37V1.5a1.82 1.82 0 0 1 3.64 0v.1a1.5 1.5 0 0 0 .91 1.37 1.5 1.5 0 0 0 1.65-.3l.06-.06a1.82 1.82 0 0 1 2.58 2.58l-.06.05a1.5 1.5 0 0 0-.3 1.65v.07a1.5 1.5 0 0 0 1.37.91h.14a1.82 1.82 0 0 1 0 3.64h-.1a1.5 1.5 0 0 0-1.37.91z" transform="scale(0.85) translate(1.8 1.8)" />
     </svg>
   );
 }

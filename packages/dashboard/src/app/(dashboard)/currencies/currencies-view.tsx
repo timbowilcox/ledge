@@ -35,7 +35,7 @@ export function CurrenciesView({ currencies, exchangeRates, error }: CurrenciesV
           <p style={{ color: "rgba(0,0,0,0.55)", marginBottom: 16 }}>
             Multi-currency is available on the Builder plan and above.
           </p>
-          <a href="/billing" className="btn-primary" style={{ display: "inline-block" }}>
+          <a href="/settings?tab=billing" className="btn-primary" style={{ display: "inline-block" }}>
             Upgrade Plan
           </a>
         </div>

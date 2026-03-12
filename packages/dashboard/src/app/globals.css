@@ -206,6 +206,12 @@ a {
   box-shadow: 0 0 0 3px rgba(59,130,246,0.08);
 }
 
+/* Monospace & tabular numerals */
+
+.font-mono {
+  font-variant-numeric: tabular-nums;
+}
+
 /* Tables */
 
 .table-header {

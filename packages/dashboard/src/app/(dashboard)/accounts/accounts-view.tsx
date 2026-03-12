@@ -55,10 +55,10 @@ export function AccountsView({ accounts }: { accounts: AccountWithBalance[] }) {
         <table className="w-full">
           <thead>
             <tr>
-              <th className="table-header" style={{ width: 120 }}>Code</th>
-              <th className="table-header">Account Name</th>
-              <th className="table-header" style={{ width: 100 }}>Type</th>
-              <th className="table-header text-right" style={{ width: 160 }}>Balance</th>
+              <th className="table-header" style={{ width: 120, position: "sticky", top: 0, backgroundColor: "#F7F7F6", zIndex: 1 }}>Code</th>
+              <th className="table-header" style={{ position: "sticky", top: 0, backgroundColor: "#F7F7F6", zIndex: 1 }}>Account Name</th>
+              <th className="table-header" style={{ width: 100, position: "sticky", top: 0, backgroundColor: "#F7F7F6", zIndex: 1 }}>Type</th>
+              <th className="table-header text-right" style={{ width: 160, position: "sticky", top: 0, backgroundColor: "#F7F7F6", zIndex: 1 }}>Balance</th>
             </tr>
           </thead>
           <tbody>
@@ -129,7 +129,7 @@ function GroupRows({
         </td>
         <td
           className="table-cell text-right font-mono text-sm font-medium"
-          style={{ color: groupTotal < 0 ? "#DC2626" : "#0A0A0A" }}
+          style={{ color: groupTotal < 0 ? "#EF4444" : "#0A0A0A", fontVariantNumeric: "tabular-nums" }}
         >
           {formatCurrency(Math.abs(groupTotal))}
         </td>
@@ -149,7 +149,7 @@ function GroupRows({
             </td>
             <td
               className="table-cell text-right font-mono text-sm"
-              style={{ color: account.balance < 0 ? "#DC2626" : "#0A0A0A" }}
+              style={{ color: account.balance < 0 ? "#EF4444" : "#0A0A0A", fontVariantNumeric: "tabular-nums" }}
             >
               {formatCurrency(Math.abs(account.balance))}
             </td>

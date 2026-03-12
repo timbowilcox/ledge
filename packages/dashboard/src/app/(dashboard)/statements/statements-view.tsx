@@ -12,9 +12,9 @@ import type { StatementResponse } from "@ledge/sdk";
 type Tab = "pnl" | "balance_sheet" | "cash_flow";
 
 const tabs: { key: Tab; label: string }[] = [
-  { key: "pnl", label: "Income Statement" },
+  { key: "pnl", label: "Profit & Loss Statement" },
   { key: "balance_sheet", label: "Balance Sheet" },
-  { key: "cash_flow", label: "Cash Flow" },
+  { key: "cash_flow", label: "Cash Flow Statement" },
 ];
 
 interface Props {
@@ -64,27 +64,38 @@ export function StatementsView({
         Statements
       </h1>
 
-      {/* Tab selector */}
-      <div className="flex items-center" style={{ gap: 6, marginBottom: 24 }}>
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            style={{
-              padding: "10px 18px",
-              borderRadius: 10,
-              fontSize: 14,
-              fontWeight: 500,
-              backgroundColor: activeTab === tab.key ? "rgba(59,130,246,0.1)" : "transparent",
-              color: activeTab === tab.key ? "#3B82F6" : "rgba(0,0,0,0.36)",
-              border: activeTab === tab.key ? "1px solid rgba(59,130,246,0.3)" : "1px solid transparent",
-              cursor: "pointer",
-              transition: "all 200ms cubic-bezier(0.16, 1, 0.3, 1)",
-            }}
-          >
-            {tab.label}
-          </button>
-        ))}
+      {/* Underline tab selector */}
+      <div
+        style={{
+          display: "flex",
+          gap: 0,
+          borderBottom: "1px solid rgba(0,0,0,0.10)",
+          marginBottom: 24,
+        }}
+      >
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              style={{
+                padding: "12px 20px",
+                fontSize: 14,
+                fontWeight: isActive ? 600 : 500,
+                color: isActive ? "#3B82F6" : "rgba(0,0,0,0.36)",
+                background: "none",
+                border: "none",
+                borderBottom: isActive ? "2px solid #3B82F6" : "2px solid transparent",
+                cursor: "pointer",
+                transition: "all 200ms cubic-bezier(0.16, 1, 0.3, 1)",
+                marginBottom: -1,
+              }}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Date range */}
@@ -150,8 +161,8 @@ export function StatementsView({
         <table className="w-full">
           <thead>
             <tr>
-              <th className="table-header">Account</th>
-              <th className="table-header text-right" style={{ width: 160 }}>Amount</th>
+              <th className="table-header" style={{ position: "sticky", top: 0, backgroundColor: "#F7F7F6", zIndex: 1 }}>Account</th>
+              <th className="table-header text-right" style={{ width: 160, position: "sticky", top: 0, backgroundColor: "#F7F7F6", zIndex: 1 }}>Amount</th>
             </tr>
           </thead>
           <tbody>
@@ -160,10 +171,14 @@ export function StatementsView({
             ))}
 
             {Object.entries(statement.totals).map(([key, value]) => (
-              <tr key={key}>
+              <tr key={key} style={{ backgroundColor: (key === "netIncome" || key === "netChange" || key === "totalAssets") ? "rgba(59,130,246,0.04)" : undefined }}>
                 <td
                   className="text-sm font-bold"
-                  style={{ padding: "14px 20px", borderTop: "1px solid rgba(0,0,0,0.10)" }}
+                  style={{
+                    padding: "14px 20px",
+                    borderTop: "2px solid rgba(0,0,0,0.12)",
+                    color: "#0A0A0A",
+                  }}
                 >
                   {formatTotalLabel(key)}
                 </td>
@@ -171,13 +186,11 @@ export function StatementsView({
                   className="text-right font-mono text-sm font-bold"
                   style={{
                     padding: "14px 20px",
-                    borderTop: "1px solid rgba(0,0,0,0.10)",
+                    borderTop: "2px solid rgba(0,0,0,0.12)",
+                    fontVariantNumeric: "tabular-nums",
                     color: key === "netIncome" || key === "netChange"
-                      ? value >= 0 ? "#3B82F6" : "#DC2626"
+                      ? value >= 0 ? "#16A34A" : "#DC2626"
                       : "#0A0A0A",
-                    backgroundColor: (key === "netIncome" || key === "netChange" || key === "totalAssets")
-                      ? "rgba(59,130,246,0.06)"
-                      : undefined,
                   }}
                 >
                   {key === "debtToEquity"
@@ -193,21 +206,57 @@ export function StatementsView({
   );
 }
 
+// ── Section category colour mapping ────────────────────────────────────
+
+function getSectionColor(name: string): string {
+  const lower = name.toLowerCase();
+  if (lower.includes("revenue") || lower.includes("income") || lower.includes("sales")) return "#16A34A";
+  if (lower.includes("expense") || lower.includes("cost")) return "#3B82F6";
+  if (lower.includes("asset")) return "#3B82F6";
+  if (lower.includes("liabilit")) return "#D97706";
+  if (lower.includes("equity")) return "#8B5CF6";
+  if (lower.includes("operating") || lower.includes("investing") || lower.includes("financing")) return "#3B82F6";
+  return "#64748B";
+}
+
 function SectionRows({ section }: { section: StatementResponse["sections"][number] }) {
+  const sectionColor = getSectionColor(section.name);
+
   return (
     <>
+      {/* Section header with colour bar */}
       <tr>
         <td
           colSpan={2}
           className="text-sm font-bold"
-          style={{ padding: "20px 20px 10px", color: "#3B82F6" }}
+          style={{
+            padding: "20px 20px 10px",
+            color: sectionColor,
+            position: "relative",
+          }}
         >
+          <span
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 14,
+              bottom: 4,
+              width: 3,
+              borderRadius: "0 2px 2px 0",
+              backgroundColor: sectionColor,
+            }}
+          />
           {section.name}
         </td>
       </tr>
 
-      {section.lines.map((line) => (
-        <tr key={line.accountCode + line.accountName} className="table-row">
+      {/* Line items with subtle striping */}
+      {section.lines.map((line, idx) => (
+        <tr
+          key={line.accountCode + line.accountName}
+          className="table-row"
+          style={{ backgroundColor: idx % 2 === 1 ? "rgba(0,0,0,0.015)" : undefined }}
+        >
           <td className="table-cell text-sm" style={{ paddingLeft: 36 }}>
             {line.accountCode && (
               <code className="font-mono text-xs" style={{ color: "#3B82F6", marginRight: 8 }}>
@@ -218,7 +267,10 @@ function SectionRows({ section }: { section: StatementResponse["sections"][numbe
           </td>
           <td
             className="table-cell text-right font-mono text-sm"
-            style={{ color: line.currentPeriod < 0 ? "#DC2626" : "#0A0A0A" }}
+            style={{
+              color: line.currentPeriod < 0 ? "#EF4444" : "#0A0A0A",
+              fontVariantNumeric: "tabular-nums",
+            }}
           >
             {line.currentPeriod < 0 ? "(" : ""}
             {formatCurrency(Math.abs(line.currentPeriod))}
@@ -227,13 +279,14 @@ function SectionRows({ section }: { section: StatementResponse["sections"][numbe
         </tr>
       ))}
 
+      {/* Section total */}
       <tr>
         <td
           className="text-sm font-medium"
           style={{
             paddingLeft: 36,
             padding: "10px 20px 10px 36px",
-            borderTop: "1px solid rgba(0,0,0,0.06)",
+            borderTop: "1px solid rgba(0,0,0,0.08)",
           }}
         >
           Total {section.name}
@@ -242,8 +295,9 @@ function SectionRows({ section }: { section: StatementResponse["sections"][numbe
           className="text-right font-mono text-sm font-medium"
           style={{
             padding: "10px 20px",
-            borderTop: "1px solid rgba(0,0,0,0.06)",
-            color: section.total < 0 ? "#DC2626" : "#0A0A0A",
+            borderTop: "1px solid rgba(0,0,0,0.08)",
+            color: section.total < 0 ? "#EF4444" : "#0A0A0A",
+            fontVariantNumeric: "tabular-nums",
           }}
         >
           {section.total < 0 ? "(" : ""}
@@ -257,7 +311,7 @@ function SectionRows({ section }: { section: StatementResponse["sections"][numbe
 
 function formatStatementTitle(type: string): string {
   const titles: Record<string, string> = {
-    income_statement: "Income Statement",
+    income_statement: "Profit & Loss Statement",
     balance_sheet: "Balance Sheet",
     cash_flow: "Cash Flow Statement",
   };
@@ -266,12 +320,21 @@ function formatStatementTitle(type: string): string {
 
 function formatTotalLabel(key: string): string {
   const labels: Record<string, string> = {
+    totalRevenue: "Total Revenue",
+    totalCogs: "Cost of Goods Sold",
     grossProfit: "Gross Profit",
+    totalOperatingExpenses: "Total Operating Expenses",
+    operatingIncome: "Operating Income",
     netIncome: "Net Income",
     totalAssets: "Total Assets",
+    totalLiabilities: "Total Liabilities",
+    totalEquity: "Total Equity",
     totalLiabilitiesAndEquity: "Total Liabilities & Equity",
     debtToEquity: "Debt-to-Equity Ratio",
     netChange: "Net Change in Cash",
+    totalOperating: "Cash from Operations",
+    totalInvesting: "Cash from Investing",
+    totalFinancing: "Cash from Financing",
   };
-  return labels[key] ?? key;
+  return labels[key] ?? key.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase()).trim();
 }

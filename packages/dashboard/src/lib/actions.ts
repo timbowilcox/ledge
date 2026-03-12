@@ -118,6 +118,10 @@ async function billingFetch(path: string, method = "GET"): Promise<Response> {
 export async function fetchBillingStatus(): Promise<BillingStatus> {
   const res = await billingFetch("/v1/billing/status");
   if (!res.ok) {
+    const body = await res.text().catch(() => "(unreadable)");
+    console.error(
+      `[billing] status failed: status=${res.status} body=${body}`,
+    );
     return {
       plan: "free",
       usage: { count: 0, limit: 500 },
@@ -146,14 +150,28 @@ export async function createCheckoutSession(priceId = "price_1T9ttSCyIk44TybILuV
     body: JSON.stringify({ price_id: priceId }),
     cache: "no-store",
   });
-  if (!res.ok) throw new Error("Failed to create checkout session");
+  if (!res.ok) {
+    const body = await res.text().catch(() => "(unreadable)");
+    const url = `${apiUrl}/v1/billing/checkout`;
+    const keyPreview = session.apiKey.slice(0, 10);
+    console.error(
+      `[billing] checkout failed: status=${res.status} url=${url} key=${keyPreview}... body=${body}`,
+    );
+    throw new Error(`Failed to create checkout session: ${res.status}`);
+  }
   const json = await res.json();
   return json.data.url;
 }
 
 export async function createPortalSession(): Promise<string> {
   const res = await billingFetch("/v1/billing/portal", "POST");
-  if (!res.ok) throw new Error("Failed to create portal session");
+  if (!res.ok) {
+    const body = await res.text().catch(() => "(unreadable)");
+    console.error(
+      `[billing] portal failed: status=${res.status} body=${body}`,
+    );
+    throw new Error(`Failed to create portal session: ${res.status}`);
+  }
   const json = await res.json();
   return json.data.url;
 }

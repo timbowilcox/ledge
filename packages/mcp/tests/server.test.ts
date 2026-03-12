@@ -60,22 +60,37 @@ function parseToolResult(result: { content: unknown[] }): unknown {
 // ---------------------------------------------------------------------------
 
 describe("Tool discovery", () => {
-  it("lists all 12 tools", async () => {
+  it("lists all 27 tools", async () => {
     const { tools } = await client.listTools();
     const names = tools.map((t) => t.name).sort();
     expect(names).toEqual([
       "complete_setup",
+      "confirm_bank_match",
       "confirm_matches",
+      "convert_amount",
       "create_account",
+      "enable_currency",
+      "generate_insights",
       "get_import_batch",
+      "get_notification",
       "get_statement",
       "get_usage",
       "import_file",
       "list_accounts",
+      "list_bank_accounts",
+      "list_bank_connections",
+      "list_bank_transactions",
+      "list_exchange_rates",
+      "list_notifications",
+      "map_bank_account",
       "post_transaction",
+      "revalue_accounts",
       "reverse_transaction",
       "search_transactions",
+      "set_exchange_rate",
       "setup_ledger",
+      "sync_bank_account",
+      "update_notification",
     ]);
   });
 });

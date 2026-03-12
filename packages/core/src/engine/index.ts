@@ -26,7 +26,23 @@ import type {
   User,
   Result,
   StatementResponse,
+  CurrencySetting,
+  ExchangeRate,
+  ExchangeRateSource,
+  ConvertAmountResult,
+  RevaluationResult,
+  Conversation,
+  ConversationMessage,
 } from "../types/index.js";
+import type {
+  BankConnection,
+  BankAccount,
+  BankTransaction,
+  BankSyncLog,
+  BankFeedProvider,
+  ProviderBankTransaction,
+} from "../bank-feeds/types.js";
+import { bankTransactionToParseRow } from "../bank-feeds/adapter.js";
 import { getTemplate } from "../templates/index.js";
 import type { AccountBalanceData, CashFlowAccountData } from "../statements/index.js";
 import { buildIncomeStatement, buildBalanceSheet, buildCashFlowStatement } from "../statements/index.js";
@@ -49,8 +65,34 @@ import {
   apiKeyNotFoundError,
   importNotFoundError,
   importParseError,
+  bankConnectionNotFoundError,
+  bankAccountNotFoundError,
+  bankFeedSyncInProgressError,
+  notificationNotFoundError,
+  exchangeRateNotFoundError,
+  conversationNotFoundError,
   createError,
 } from "../errors/index.js";
+import { RATE_PRECISION, getDecimalPlaces, convertAmount as convertAmountUtil } from "../currency-utils.js";
+import type {
+  Notification,
+  NotificationPreference,
+  NotificationType,
+  NotificationStatus,
+  CreateNotificationInput,
+} from "../intelligence/types.js";
+import {
+  analyzeMonthlySummary,
+  analyzeCashPosition,
+  detectAnomalies,
+  findUnclassifiedTransactions,
+} from "../intelligence/analyzer.js";
+import {
+  renderMonthlySummary,
+  renderCashPosition,
+  renderAnomalies,
+  renderUnclassified,
+} from "../intelligence/renderer.js";
 import { createLedgerSchema, createAccountSchema, postTransactionSchema, createImportSchema, confirmMatchesSchema } from "../schemas/index.js";
 import { generateId, nowUtc } from "./id.js";
 
@@ -98,6 +140,7 @@ interface AccountRow {
   type: string;
   normal_balance: string;
   is_system: number | boolean;
+  currency: string | null;
   metadata: string | Record<string, unknown> | null;
   status: string;
   created_at: string;
@@ -127,6 +170,9 @@ interface LineItemRow {
   account_id: string;
   amount: number;
   direction: string;
+  currency: string;
+  original_amount: number;
+  exchange_rate: number | null;
   memo: string | null;
   metadata: string | Record<string, unknown> | null;
   created_at: string;
@@ -217,6 +263,130 @@ interface UsagePeriodRow {
 }
 
 
+interface ConversationRow {
+  id: string;
+  user_id: string;
+  ledger_id: string;
+  title: string | null;
+  messages: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface BankConnectionRow {
+  id: string;
+  ledger_id: string;
+  provider: string;
+  provider_connection_id: string;
+  institution_id: string;
+  institution_name: string;
+  status: string;
+  consent_expires_at: string | null;
+  last_sync_at: string | null;
+  metadata: string | Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface BankAccountRow {
+  id: string;
+  connection_id: string;
+  ledger_id: string;
+  provider_account_id: string;
+  name: string;
+  account_number: string;
+  bsb: string | null;
+  type: string;
+  currency: string;
+  current_balance: number;
+  available_balance: number | null;
+  mapped_account_id: string | null;
+  last_sync_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface BankTransactionRow {
+  id: string;
+  bank_account_id: string;
+  ledger_id: string;
+  provider_transaction_id: string;
+  date: string;
+  amount: number;
+  type: string;
+  description: string;
+  reference: string | null;
+  category: string | null;
+  balance: number | null;
+  status: string;
+  matched_transaction_id: string | null;
+  match_confidence: number | null;
+  raw_data: string | Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+interface BankSyncLogRow {
+  id: string;
+  connection_id: string;
+  bank_account_id: string | null;
+  status: string;
+  transactions_fetched: number;
+  transactions_new: number;
+  transactions_matched: number;
+  error_message: string | null;
+  started_at: string;
+  completed_at: string | null;
+}
+
+interface NotificationRow {
+  id: string;
+  ledger_id: string;
+  user_id: string;
+  type: string;
+  severity: string;
+  title: string;
+  body: string;
+  data: string | Record<string, unknown>;
+  action_type: string | null;
+  action_data: string | Record<string, unknown> | null;
+  status: string;
+  created_at: string;
+  read_at: string | null;
+  actioned_at: string | null;
+}
+
+interface NotificationPreferenceRow {
+  id: string;
+  user_id: string;
+  ledger_id: string;
+  type: string;
+  enabled: number | boolean;
+  updated_at: string;
+}
+
+interface CurrencySettingRow {
+  id: string;
+  ledger_id: string;
+  currency_code: string;
+  decimal_places: number;
+  symbol: string;
+  enabled: number | boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+interface ExchangeRateRow {
+  id: string;
+  ledger_id: string;
+  from_currency: string;
+  to_currency: string;
+  rate: number;
+  effective_date: string;
+  source: string;
+  created_at: string;
+}
+
 /**
  * Safely parse a JSONB value from the database.
  * SQLite returns JSON as TEXT (string), PostgreSQL returns JSONB as a parsed JS object.
@@ -255,6 +425,7 @@ const toAccount = (row: AccountRow): Account => ({
   type: row.type as Account["type"],
   normalBalance: row.normal_balance as Account["normalBalance"],
   isSystem: !!row.is_system,
+  currency: row.currency ?? null,
   metadata: row.metadata ? parseJsonb(row.metadata) as Record<string, unknown> : null,
   status: row.status as Account["status"],
   createdAt: row.created_at,
@@ -284,6 +455,9 @@ const toLineItem = (row: LineItemRow): LineItem => ({
   accountId: row.account_id,
   amount: row.amount,
   direction: row.direction as LineItem["direction"],
+  currency: row.currency ?? "",
+  originalAmount: row.original_amount ?? row.amount,
+  exchangeRate: row.exchange_rate ?? null,
   memo: row.memo,
   metadata: row.metadata ? parseJsonb(row.metadata) as Record<string, unknown> : null,
   createdAt: row.created_at,
@@ -359,6 +533,130 @@ const toUser = (row: UserRow): User => ({
   updatedAt: row.updated_at,
 });
 
+const toConversation = (row: ConversationRow): Conversation => ({
+  id: row.id,
+  userId: row.user_id,
+  ledgerId: row.ledger_id,
+  title: row.title,
+  messages: parseJsonb<ConversationMessage[]>(row.messages),
+  createdAt: row.created_at,
+  updatedAt: row.updated_at,
+});
+
+const toBankConnection = (row: BankConnectionRow): BankConnection => ({
+  id: row.id,
+  ledgerId: row.ledger_id,
+  provider: row.provider,
+  providerConnectionId: row.provider_connection_id,
+  institutionId: row.institution_id,
+  institutionName: row.institution_name,
+  status: row.status as BankConnection["status"],
+  consentExpiresAt: row.consent_expires_at,
+  lastSyncAt: row.last_sync_at,
+  metadata: row.metadata ? parseJsonb(row.metadata) as Record<string, unknown> : null,
+  createdAt: row.created_at,
+  updatedAt: row.updated_at,
+});
+
+const toBankAccount = (row: BankAccountRow): BankAccount => ({
+  id: row.id,
+  connectionId: row.connection_id,
+  ledgerId: row.ledger_id,
+  providerAccountId: row.provider_account_id,
+  name: row.name,
+  accountNumber: row.account_number,
+  bsb: row.bsb,
+  type: row.type,
+  currency: row.currency,
+  currentBalance: row.current_balance,
+  availableBalance: row.available_balance,
+  mappedAccountId: row.mapped_account_id,
+  lastSyncAt: row.last_sync_at,
+  createdAt: row.created_at,
+  updatedAt: row.updated_at,
+});
+
+const toBankTransaction = (row: BankTransactionRow): BankTransaction => ({
+  id: row.id,
+  bankAccountId: row.bank_account_id,
+  ledgerId: row.ledger_id,
+  providerTransactionId: row.provider_transaction_id,
+  date: row.date,
+  amount: row.amount,
+  type: row.type as BankTransaction["type"],
+  description: row.description,
+  reference: row.reference,
+  category: row.category,
+  balance: row.balance,
+  status: row.status as BankTransaction["status"],
+  matchedTransactionId: row.matched_transaction_id,
+  matchConfidence: row.match_confidence,
+  rawData: row.raw_data ? parseJsonb(row.raw_data) as Record<string, unknown> : {},
+  createdAt: row.created_at,
+  updatedAt: row.updated_at,
+});
+
+const toBankSyncLog = (row: BankSyncLogRow): BankSyncLog => ({
+  id: row.id,
+  connectionId: row.connection_id,
+  bankAccountId: row.bank_account_id,
+  status: row.status as BankSyncLog["status"],
+  transactionsFetched: row.transactions_fetched,
+  transactionsNew: row.transactions_new,
+  transactionsMatched: row.transactions_matched,
+  errorMessage: row.error_message,
+  startedAt: row.started_at,
+  completedAt: row.completed_at,
+});
+
+const toNotification = (row: NotificationRow): Notification => ({
+  id: row.id,
+  ledgerId: row.ledger_id,
+  userId: row.user_id,
+  type: row.type as NotificationType,
+  severity: row.severity as Notification["severity"],
+  title: row.title,
+  body: row.body,
+  data: parseJsonb(row.data),
+  actionType: row.action_type,
+  actionData: row.action_data ? parseJsonb(row.action_data) : null,
+  status: row.status as NotificationStatus,
+  createdAt: row.created_at,
+  readAt: row.read_at,
+  actionedAt: row.actioned_at,
+});
+
+const toNotificationPreference = (row: NotificationPreferenceRow): NotificationPreference => ({
+  id: row.id,
+  userId: row.user_id,
+  ledgerId: row.ledger_id,
+  type: row.type as NotificationType,
+  enabled: row.enabled === 1 || row.enabled === true,
+  updatedAt: row.updated_at,
+});
+
+const toCurrencySetting = (row: CurrencySettingRow): CurrencySetting => ({
+  id: row.id,
+  ledgerId: row.ledger_id,
+  currencyCode: row.currency_code,
+  decimalPlaces: row.decimal_places,
+  symbol: row.symbol,
+  enabled: row.enabled === 1 || row.enabled === true,
+  createdAt: row.created_at,
+  updatedAt: row.updated_at,
+});
+
+const toExchangeRate = (row: ExchangeRateRow): ExchangeRate => ({
+  id: row.id,
+  ledgerId: row.ledger_id,
+  fromCurrency: row.from_currency,
+  toCurrency: row.to_currency,
+  rate: row.rate,
+  effectiveDate: row.effective_date,
+  source: row.source as ExchangeRateSource,
+  createdAt: row.created_at,
+});
+
 /** Hash a raw API key with SHA-256 */
 const hashApiKey = (rawKey: string): string =>
   createHash("sha256").update(rawKey).digest("hex");
@@ -390,6 +688,7 @@ export interface CreateAccountParams {
   readonly type: AccountType;
   readonly normalBalance?: NormalBalance;
   readonly parentCode?: string;
+  readonly currency?: string;
   readonly metadata?: Record<string, unknown>;
 }
 
@@ -530,9 +829,9 @@ export class LedgerEngine {
     const metadata = params.metadata ? JSON.stringify(params.metadata) : null;
 
     await this.db.run(
-      `INSERT INTO accounts (id, ledger_id, parent_id, code, name, type, normal_balance, is_system, metadata, status, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
-      [id, params.ledgerId, parentId, params.code, params.name, params.type, normalBalance, false, metadata, now, now]
+      `INSERT INTO accounts (id, ledger_id, parent_id, code, name, type, normal_balance, is_system, currency, metadata, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
+      [id, params.ledgerId, parentId, params.code, params.name, params.type, normalBalance, false, params.currency ?? null, metadata, now, now]
     );
 
     const row = await this.db.get<AccountRow>("SELECT * FROM accounts WHERE id = ?", [id]);
@@ -679,11 +978,14 @@ export class LedgerEngine {
         const lineId = generateId();
         lineIds.push(lineId);
         const lineMeta = line.metadata ? JSON.stringify(line.metadata) : null;
+        const lineCurrency = line.currency ?? ledger.currency;
+        const lineOriginalAmount = line.originalAmount ?? line.amount;
+        const lineExchangeRate = line.exchangeRate ?? null;
 
         await this.db.run(
-          `INSERT INTO line_items (id, transaction_id, account_id, amount, direction, memo, metadata, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [lineId, txnId, accountId, line.amount, line.direction, line.memo ?? null, lineMeta, now, now]
+          `INSERT INTO line_items (id, transaction_id, account_id, amount, direction, currency, original_amount, exchange_rate, memo, metadata, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [lineId, txnId, accountId, line.amount, line.direction, lineCurrency, lineOriginalAmount, lineExchangeRate, line.memo ?? null, lineMeta, now, now]
         );
       }
 
@@ -1705,6 +2007,1091 @@ export class LedgerEngine {
       "UPDATE usage_periods SET transaction_count = 0, updated_at = ? WHERE ledger_id = ? AND period_start = ?",
       [ts, ledgerId, periodStart]
     );
+  }
+
+  // -------------------------------------------------------------------------
+  // Bank Feeds — connections
+  // -------------------------------------------------------------------------
+
+  async createBankConnection(params: {
+    ledgerId: string;
+    provider: string;
+    providerConnectionId: string;
+    institutionId: string;
+    institutionName: string;
+  }): Promise<Result<BankConnection>> {
+    const id = generateId();
+    const ts = nowUtc();
+
+    await this.db.run(
+      `INSERT INTO bank_connections (id, ledger_id, provider, provider_connection_id, institution_id, institution_name, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
+      [id, params.ledgerId, params.provider, params.providerConnectionId, params.institutionId, params.institutionName, ts, ts]
+    );
+
+    const row = await this.db.get<BankConnectionRow>("SELECT * FROM bank_connections WHERE id = ?", [id]);
+    if (!row) return err(createError(ErrorCode.INTERNAL_ERROR, "Failed to create bank connection"));
+    return ok(toBankConnection(row));
+  }
+
+  async listBankConnections(ledgerId: string): Promise<Result<readonly BankConnection[]>> {
+    const rows = await this.db.all<BankConnectionRow>(
+      "SELECT * FROM bank_connections WHERE ledger_id = ? ORDER BY created_at DESC",
+      [ledgerId]
+    );
+    return ok(rows.map(toBankConnection));
+  }
+
+  async getBankConnection(connectionId: string): Promise<Result<BankConnection>> {
+    const row = await this.db.get<BankConnectionRow>(
+      "SELECT * FROM bank_connections WHERE id = ?",
+      [connectionId]
+    );
+    if (!row) return err(bankConnectionNotFoundError(connectionId));
+    return ok(toBankConnection(row));
+  }
+
+  async updateBankConnectionStatus(
+    connectionId: string,
+    status: BankConnection["status"],
+  ): Promise<Result<BankConnection>> {
+    const ts = nowUtc();
+    await this.db.run(
+      "UPDATE bank_connections SET status = ?, updated_at = ? WHERE id = ?",
+      [status, ts, connectionId]
+    );
+    return this.getBankConnection(connectionId);
+  }
+
+  async deleteBankConnection(connectionId: string): Promise<Result<void>> {
+    const row = await this.db.get<BankConnectionRow>(
+      "SELECT * FROM bank_connections WHERE id = ?",
+      [connectionId]
+    );
+    if (!row) return err(bankConnectionNotFoundError(connectionId));
+
+    await this.db.run("DELETE FROM bank_connections WHERE id = ?", [connectionId]);
+    return ok(undefined);
+  }
+
+  // -------------------------------------------------------------------------
+  // Bank Feeds — accounts
+  // -------------------------------------------------------------------------
+
+  async upsertBankAccount(params: {
+    connectionId: string;
+    ledgerId: string;
+    providerAccountId: string;
+    name: string;
+    accountNumber: string;
+    bsb: string | null;
+    type: string;
+    currency: string;
+    currentBalance: number;
+    availableBalance: number | null;
+  }): Promise<Result<BankAccount>> {
+    const ts = nowUtc();
+
+    // Check if already exists
+    const existing = await this.db.get<BankAccountRow>(
+      "SELECT * FROM bank_accounts WHERE connection_id = ? AND provider_account_id = ?",
+      [params.connectionId, params.providerAccountId]
+    );
+
+    if (existing) {
+      await this.db.run(
+        `UPDATE bank_accounts
+         SET name = ?, account_number = ?, bsb = ?, type = ?, currency = ?,
+             current_balance = ?, available_balance = ?, updated_at = ?
+         WHERE id = ?`,
+        [params.name, params.accountNumber, params.bsb, params.type, params.currency,
+         params.currentBalance, params.availableBalance, ts, existing.id]
+      );
+      const row = await this.db.get<BankAccountRow>("SELECT * FROM bank_accounts WHERE id = ?", [existing.id]);
+      return ok(toBankAccount(row!));
+    }
+
+    const id = generateId();
+    await this.db.run(
+      `INSERT INTO bank_accounts (id, connection_id, ledger_id, provider_account_id, name, account_number, bsb, type, currency, current_balance, available_balance, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, params.connectionId, params.ledgerId, params.providerAccountId, params.name,
+       params.accountNumber, params.bsb, params.type, params.currency,
+       params.currentBalance, params.availableBalance, ts, ts]
+    );
+
+    const row = await this.db.get<BankAccountRow>("SELECT * FROM bank_accounts WHERE id = ?", [id]);
+    if (!row) return err(createError(ErrorCode.INTERNAL_ERROR, "Failed to create bank account"));
+    return ok(toBankAccount(row));
+  }
+
+  async listBankAccounts(connectionId: string): Promise<Result<readonly BankAccount[]>> {
+    const rows = await this.db.all<BankAccountRow>(
+      "SELECT * FROM bank_accounts WHERE connection_id = ? ORDER BY name",
+      [connectionId]
+    );
+    return ok(rows.map(toBankAccount));
+  }
+
+  async getBankAccount(bankAccountId: string): Promise<Result<BankAccount>> {
+    const row = await this.db.get<BankAccountRow>(
+      "SELECT * FROM bank_accounts WHERE id = ?",
+      [bankAccountId]
+    );
+    if (!row) return err(bankAccountNotFoundError(bankAccountId));
+    return ok(toBankAccount(row));
+  }
+
+  async mapBankAccountToLedgerAccount(
+    bankAccountId: string,
+    ledgerAccountId: string,
+  ): Promise<Result<BankAccount>> {
+    const ts = nowUtc();
+    await this.db.run(
+      "UPDATE bank_accounts SET mapped_account_id = ?, updated_at = ? WHERE id = ?",
+      [ledgerAccountId, ts, bankAccountId]
+    );
+    return this.getBankAccount(bankAccountId);
+  }
+
+  // -------------------------------------------------------------------------
+  // Bank Feeds — transactions
+  // -------------------------------------------------------------------------
+
+  async upsertBankTransactions(
+    bankAccountId: string,
+    ledgerId: string,
+    providerTransactions: readonly ProviderBankTransaction[],
+  ): Promise<Result<{ created: number; updated: number }>> {
+    const ts = nowUtc();
+    let created = 0;
+    let updated = 0;
+
+    for (const ptxn of providerTransactions) {
+      const existing = await this.db.get<BankTransactionRow>(
+        "SELECT * FROM bank_transactions WHERE bank_account_id = ? AND provider_transaction_id = ?",
+        [bankAccountId, ptxn.providerTransactionId]
+      );
+
+      if (existing) {
+        await this.db.run(
+          `UPDATE bank_transactions
+           SET date = ?, amount = ?, type = ?, description = ?, reference = ?,
+               category = ?, balance = ?, raw_data = ?, updated_at = ?
+           WHERE id = ?`,
+          [ptxn.date, ptxn.amount, ptxn.type, ptxn.description, ptxn.reference,
+           ptxn.category, ptxn.balance, JSON.stringify(ptxn.rawData), ts, existing.id]
+        );
+        updated++;
+      } else {
+        const id = generateId();
+        await this.db.run(
+          `INSERT INTO bank_transactions (id, bank_account_id, ledger_id, provider_transaction_id, date, amount, type, description, reference, category, balance, status, raw_data, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)`,
+          [id, bankAccountId, ledgerId, ptxn.providerTransactionId, ptxn.date,
+           ptxn.amount, ptxn.type, ptxn.description, ptxn.reference, ptxn.category,
+           ptxn.balance, JSON.stringify(ptxn.rawData), ts, ts]
+        );
+        created++;
+      }
+    }
+
+    return ok({ created, updated });
+  }
+
+  async listBankTransactions(params: {
+    bankAccountId?: string;
+    ledgerId?: string;
+    status?: BankTransaction["status"];
+    limit?: number;
+    offset?: number;
+  }): Promise<Result<readonly BankTransaction[]>> {
+    const conditions: string[] = [];
+    const values: unknown[] = [];
+
+    if (params.bankAccountId) {
+      conditions.push("bank_account_id = ?");
+      values.push(params.bankAccountId);
+    }
+    if (params.ledgerId) {
+      conditions.push("ledger_id = ?");
+      values.push(params.ledgerId);
+    }
+    if (params.status) {
+      conditions.push("status = ?");
+      values.push(params.status);
+    }
+
+    const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+    const limit = params.limit ?? 50;
+    const offset = params.offset ?? 0;
+
+    const rows = await this.db.all<BankTransactionRow>(
+      `SELECT * FROM bank_transactions ${where} ORDER BY date DESC, created_at DESC LIMIT ? OFFSET ?`,
+      [...values, limit, offset]
+    );
+    return ok(rows.map(toBankTransaction));
+  }
+
+  async matchBankTransactions(
+    ledgerId: string,
+    bankAccountId: string,
+  ): Promise<Result<{ matched: number; suggested: number; unmatched: number }>> {
+    // Get pending bank transactions
+    const bankTxnRows = await this.db.all<BankTransactionRow>(
+      "SELECT * FROM bank_transactions WHERE bank_account_id = ? AND status = 'pending' ORDER BY date",
+      [bankAccountId]
+    );
+
+    if (bankTxnRows.length === 0) {
+      return ok({ matched: 0, suggested: 0, unmatched: 0 });
+    }
+
+    const bankTxns = bankTxnRows.map(toBankTransaction);
+
+    // Get existing ledger transactions for matching
+    const ledgerTxnRows = await this.db.all<TransactionRow>(
+      "SELECT * FROM transactions WHERE ledger_id = ? AND status = 'posted' ORDER BY date DESC LIMIT 1000",
+      [ledgerId]
+    );
+
+    const ledgerTxns: TransactionWithLines[] = [];
+    for (const txnRow of ledgerTxnRows) {
+      const lineRows = await this.db.all<LineItemRow>(
+        "SELECT * FROM line_items WHERE transaction_id = ?",
+        [txnRow.id]
+      );
+      ledgerTxns.push({
+        ...toTransaction(txnRow),
+        lines: lineRows.map(toLineItem),
+      } as TransactionWithLines);
+    }
+
+    // Convert bank transactions to ParsedRows and run the matcher
+    const parsedRows = bankTxns.map(bankTransactionToParseRow);
+    const matchResults = matchRows(parsedRows, ledgerTxns);
+
+    let matched = 0;
+    let suggested = 0;
+    let unmatched = 0;
+    const ts = nowUtc();
+
+    for (let i = 0; i < matchResults.length; i++) {
+      const result = matchResults[i]!;
+      const bankTxn = bankTxns[i]!;
+
+      if (result.matchStatus === "matched" && result.transactionId) {
+        await this.db.run(
+          `UPDATE bank_transactions SET status = 'matched', matched_transaction_id = ?, match_confidence = ?, updated_at = ? WHERE id = ?`,
+          [result.transactionId, result.confidence, ts, bankTxn.id]
+        );
+        matched++;
+      } else if (result.matchStatus === "suggested" && result.transactionId) {
+        await this.db.run(
+          `UPDATE bank_transactions SET matched_transaction_id = ?, match_confidence = ?, updated_at = ? WHERE id = ?`,
+          [result.transactionId, result.confidence, ts, bankTxn.id]
+        );
+        suggested++;
+      } else {
+        unmatched++;
+      }
+    }
+
+    return ok({ matched, suggested, unmatched });
+  }
+
+  async confirmBankTransactionMatch(
+    bankTransactionId: string,
+    action: "confirm" | "ignore",
+    overrideTransactionId?: string,
+  ): Promise<Result<BankTransaction>> {
+    const row = await this.db.get<BankTransactionRow>(
+      "SELECT * FROM bank_transactions WHERE id = ?",
+      [bankTransactionId]
+    );
+    if (!row) return err(createError(ErrorCode.INTERNAL_ERROR, "Bank transaction not found"));
+
+    const ts = nowUtc();
+
+    if (action === "ignore") {
+      await this.db.run(
+        "UPDATE bank_transactions SET status = 'ignored', updated_at = ? WHERE id = ?",
+        [ts, bankTransactionId]
+      );
+    } else if (action === "confirm") {
+      const txnId = overrideTransactionId ?? row.matched_transaction_id;
+      if (!txnId) {
+        return err(createError(ErrorCode.VALIDATION_ERROR, "No matched transaction to confirm. Provide overrideTransactionId."));
+      }
+      await this.db.run(
+        "UPDATE bank_transactions SET status = 'matched', matched_transaction_id = ?, updated_at = ? WHERE id = ?",
+        [txnId, ts, bankTransactionId]
+      );
+    }
+
+    const updated = await this.db.get<BankTransactionRow>(
+      "SELECT * FROM bank_transactions WHERE id = ?",
+      [bankTransactionId]
+    );
+    return ok(toBankTransaction(updated!));
+  }
+
+  // -------------------------------------------------------------------------
+  // Bank Feeds — sync
+  // -------------------------------------------------------------------------
+
+  async syncBankAccount(
+    provider: BankFeedProvider,
+    connectionId: string,
+    bankAccountId: string,
+    fromDate: string,
+    toDate: string,
+  ): Promise<Result<BankSyncLog>> {
+    // Check for running sync
+    const runningSync = await this.db.get<BankSyncLogRow>(
+      "SELECT * FROM bank_sync_log WHERE connection_id = ? AND status = 'running'",
+      [connectionId]
+    );
+    if (runningSync) return err(bankFeedSyncInProgressError(connectionId));
+
+    // Get connection and bank account
+    const connRow = await this.db.get<BankConnectionRow>(
+      "SELECT * FROM bank_connections WHERE id = ?",
+      [connectionId]
+    );
+    if (!connRow) return err(bankConnectionNotFoundError(connectionId));
+
+    const bankAcctRow = await this.db.get<BankAccountRow>(
+      "SELECT * FROM bank_accounts WHERE id = ?",
+      [bankAccountId]
+    );
+    if (!bankAcctRow) return err(bankAccountNotFoundError(bankAccountId));
+
+    // Create sync log entry
+    const syncId = generateId();
+    const ts = nowUtc();
+    await this.db.run(
+      `INSERT INTO bank_sync_log (id, connection_id, bank_account_id, status, started_at)
+       VALUES (?, ?, ?, 'running', ?)`,
+      [syncId, connectionId, bankAccountId, ts]
+    );
+
+    try {
+      // Fetch transactions from provider
+      const providerTxns = await provider.fetchTransactions({
+        connectionId: connRow.provider_connection_id,
+        accountId: bankAcctRow.provider_account_id,
+        fromDate,
+        toDate,
+      });
+
+      // Upsert into our database
+      const upsertResult = await this.upsertBankTransactions(
+        bankAccountId,
+        connRow.ledger_id,
+        providerTxns,
+      );
+      if (!upsertResult.ok) throw new Error("Failed to upsert bank transactions");
+
+      // Run matching
+      const matchResult = await this.matchBankTransactions(
+        connRow.ledger_id,
+        bankAccountId,
+      );
+
+      const completedAt = nowUtc();
+      await this.db.run(
+        `UPDATE bank_sync_log
+         SET status = 'completed',
+             transactions_fetched = ?,
+             transactions_new = ?,
+             transactions_matched = ?,
+             completed_at = ?
+         WHERE id = ?`,
+        [providerTxns.length, upsertResult.value.created,
+         matchResult.ok ? matchResult.value.matched : 0, completedAt, syncId]
+      );
+
+      // Update bank account and connection sync timestamps
+      await this.db.run(
+        "UPDATE bank_accounts SET last_sync_at = ?, updated_at = ? WHERE id = ?",
+        [completedAt, completedAt, bankAccountId]
+      );
+      await this.db.run(
+        "UPDATE bank_connections SET last_sync_at = ?, updated_at = ? WHERE id = ?",
+        [completedAt, completedAt, connectionId]
+      );
+
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      const completedAt = nowUtc();
+      await this.db.run(
+        `UPDATE bank_sync_log
+         SET status = 'failed', error_message = ?, completed_at = ?
+         WHERE id = ?`,
+        [errorMsg, completedAt, syncId]
+      );
+    }
+
+    const syncRow = await this.db.get<BankSyncLogRow>(
+      "SELECT * FROM bank_sync_log WHERE id = ?",
+      [syncId]
+    );
+    return ok(toBankSyncLog(syncRow!));
+  }
+
+  async listSyncLogs(
+    connectionId: string,
+    limit = 20,
+  ): Promise<Result<readonly BankSyncLog[]>> {
+    const rows = await this.db.all<BankSyncLogRow>(
+      "SELECT * FROM bank_sync_log WHERE connection_id = ? ORDER BY started_at DESC LIMIT ?",
+      [connectionId, limit]
+    );
+    return ok(rows.map(toBankSyncLog));
+  }
+
+  // -------------------------------------------------------------------------
+  // Intelligence — Notifications
+  // -------------------------------------------------------------------------
+
+  async createNotification(
+    input: CreateNotificationInput,
+  ): Promise<Result<Notification>> {
+    // Check user preferences — skip if this type is disabled
+    const pref = await this.db.get<NotificationPreferenceRow>(
+      "SELECT * FROM notification_preferences WHERE user_id = ? AND ledger_id = ? AND type = ?",
+      [input.userId, input.ledgerId, input.type]
+    );
+    if (pref && (pref.enabled === 0 || pref.enabled === false)) {
+      // Preference says disabled — silently skip
+      return err(createError(ErrorCode.FORBIDDEN, "Notification type disabled by user preference"));
+    }
+
+    const id = generateId();
+    const now = nowUtc();
+    const dataJson = JSON.stringify(input.data ?? {});
+    const actionDataJson = input.actionData ? JSON.stringify(input.actionData) : null;
+
+    await this.db.run(
+      `INSERT INTO notifications (id, ledger_id, user_id, type, severity, title, body, data, action_type, action_data, status, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unread', ?)`,
+      [id, input.ledgerId, input.userId, input.type, input.severity,
+       input.title, input.body, dataJson, input.actionType ?? null, actionDataJson, now]
+    );
+
+    const row = await this.db.get<NotificationRow>(
+      "SELECT * FROM notifications WHERE id = ?",
+      [id]
+    );
+    return ok(toNotification(row!));
+  }
+
+  async listNotifications(
+    ledgerId: string,
+    userId: string,
+    options: {
+      status?: NotificationStatus;
+      type?: NotificationType;
+      limit?: number;
+      cursor?: string;
+    } = {},
+  ): Promise<Result<{ notifications: readonly Notification[]; nextCursor: string | null }>> {
+    const limit = Math.min(options.limit ?? 50, 200);
+    const conditions: string[] = ["ledger_id = ?", "user_id = ?"];
+    const params: unknown[] = [ledgerId, userId];
+
+    if (options.status) {
+      conditions.push("status = ?");
+      params.push(options.status);
+    }
+    if (options.type) {
+      conditions.push("type = ?");
+      params.push(options.type);
+    }
+    if (options.cursor) {
+      conditions.push("created_at < ?");
+      params.push(options.cursor);
+    }
+
+    params.push(limit + 1);
+
+    const rows = await this.db.all<NotificationRow>(
+      `SELECT * FROM notifications
+       WHERE ${conditions.join(" AND ")}
+       ORDER BY created_at DESC
+       LIMIT ?`,
+      params
+    );
+
+    const hasMore = rows.length > limit;
+    const page = hasMore ? rows.slice(0, limit) : rows;
+    const nextCursor = hasMore ? page[page.length - 1]!.created_at : null;
+
+    return ok({ notifications: page.map(toNotification), nextCursor });
+  }
+
+  async getNotification(id: string): Promise<Result<Notification>> {
+    const row = await this.db.get<NotificationRow>(
+      "SELECT * FROM notifications WHERE id = ?",
+      [id]
+    );
+    if (!row) return err(notificationNotFoundError(id));
+    return ok(toNotification(row));
+  }
+
+  async updateNotificationStatus(
+    id: string,
+    status: NotificationStatus,
+  ): Promise<Result<Notification>> {
+    const existing = await this.db.get<NotificationRow>(
+      "SELECT * FROM notifications WHERE id = ?",
+      [id]
+    );
+    if (!existing) return err(notificationNotFoundError(id));
+
+    const now = nowUtc();
+    const readAt = status === "read" || status === "actioned" ? now : existing.read_at;
+    const actionedAt = status === "actioned" ? now : existing.actioned_at;
+
+    await this.db.run(
+      "UPDATE notifications SET status = ?, read_at = ?, actioned_at = ? WHERE id = ?",
+      [status, readAt, actionedAt, id]
+    );
+
+    const row = await this.db.get<NotificationRow>(
+      "SELECT * FROM notifications WHERE id = ?",
+      [id]
+    );
+    return ok(toNotification(row!));
+  }
+
+  async getNotificationPreferences(
+    userId: string,
+    ledgerId: string,
+  ): Promise<Result<readonly NotificationPreference[]>> {
+    const rows = await this.db.all<NotificationPreferenceRow>(
+      "SELECT * FROM notification_preferences WHERE user_id = ? AND ledger_id = ?",
+      [userId, ledgerId]
+    );
+    return ok(rows.map(toNotificationPreference));
+  }
+
+  async setNotificationPreference(
+    userId: string,
+    ledgerId: string,
+    type: NotificationType,
+    enabled: boolean,
+  ): Promise<Result<NotificationPreference>> {
+    const now = nowUtc();
+    const existing = await this.db.get<NotificationPreferenceRow>(
+      "SELECT * FROM notification_preferences WHERE user_id = ? AND ledger_id = ? AND type = ?",
+      [userId, ledgerId, type]
+    );
+
+    if (existing) {
+      await this.db.run(
+        "UPDATE notification_preferences SET enabled = ?, updated_at = ? WHERE id = ?",
+        [enabled ? 1 : 0, now, existing.id]
+      );
+    } else {
+      const id = generateId();
+      await this.db.run(
+        "INSERT INTO notification_preferences (id, user_id, ledger_id, type, enabled, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+        [id, userId, ledgerId, type, enabled ? 1 : 0, now]
+      );
+    }
+
+    const row = await this.db.get<NotificationPreferenceRow>(
+      "SELECT * FROM notification_preferences WHERE user_id = ? AND ledger_id = ? AND type = ?",
+      [userId, ledgerId, type]
+    );
+    return ok(toNotificationPreference(row!));
+  }
+
+  // -------------------------------------------------------------------------
+  // Intelligence — Insight Generation
+  // -------------------------------------------------------------------------
+
+  async generateInsights(
+    ledgerId: string,
+    userId: string,
+  ): Promise<Result<readonly Notification[]>> {
+    const created: Notification[] = [];
+
+    // 1. Monthly summary (previous month)
+    const now = new Date();
+    const prevMonth = now.getMonth() === 0 ? 12 : now.getMonth(); // getMonth is 0-based
+    const prevYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+
+    const summaryData = await analyzeMonthlySummary(this.db, ledgerId, prevYear, prevMonth);
+    if (summaryData) {
+      const rendered = renderMonthlySummary(summaryData);
+      const result = await this.createNotification({
+        ledgerId,
+        userId,
+        type: "monthly_summary",
+        severity: "info",
+        title: rendered.title,
+        body: rendered.body,
+        data: summaryData as unknown as Record<string, unknown>,
+      });
+      if (result.ok) created.push(result.value);
+    }
+
+    // 2. Cash position
+    const cashData = await analyzeCashPosition(this.db, ledgerId);
+    if (cashData) {
+      const rendered = renderCashPosition(cashData);
+      const result = await this.createNotification({
+        ledgerId,
+        userId,
+        type: "cash_position",
+        severity: rendered.severity,
+        title: rendered.title,
+        body: rendered.body,
+        data: cashData as unknown as Record<string, unknown>,
+      });
+      if (result.ok) created.push(result.value);
+    }
+
+    // 3. Anomalies
+    const anomalies = await detectAnomalies(this.db, ledgerId);
+    if (anomalies.length > 0) {
+      const rendered = renderAnomalies(anomalies);
+      const result = await this.createNotification({
+        ledgerId,
+        userId,
+        type: "anomaly",
+        severity: rendered.severity,
+        title: rendered.title,
+        body: rendered.body,
+        data: { anomalies } as unknown as Record<string, unknown>,
+      });
+      if (result.ok) created.push(result.value);
+    }
+
+    // 4. Unclassified transactions
+    const unclassified = await findUnclassifiedTransactions(this.db, ledgerId);
+    if (unclassified) {
+      const rendered = renderUnclassified(unclassified);
+      const result = await this.createNotification({
+        ledgerId,
+        userId,
+        type: "unclassified_transactions",
+        severity: rendered.severity,
+        title: rendered.title,
+        body: rendered.body,
+        data: unclassified as unknown as Record<string, unknown>,
+      });
+      if (result.ok) created.push(result.value);
+    }
+
+    return ok(created);
+  }
+
+  // -------------------------------------------------------------------------
+  // Multi-currency operations
+  // -------------------------------------------------------------------------
+
+  async enableCurrency(
+    ledgerId: string,
+    currencyCode: string,
+    decimalPlaces?: number,
+    symbol?: string,
+  ): Promise<Result<CurrencySetting>> {
+    const ledger = await this.db.get<LedgerRow>("SELECT * FROM ledgers WHERE id = ?", [ledgerId]);
+    if (!ledger) return err(ledgerNotFoundError(ledgerId));
+
+    const code = currencyCode.toUpperCase();
+    const decimals = decimalPlaces ?? getDecimalPlaces(code);
+    const sym = symbol ?? code;
+    const now = nowUtc();
+
+    // Check if already exists
+    const existing = await this.db.get<CurrencySettingRow>(
+      "SELECT * FROM currency_settings WHERE ledger_id = ? AND currency_code = ?",
+      [ledgerId, code]
+    );
+
+    if (existing) {
+      // Re-enable if disabled
+      if (!(existing.enabled === 1 || existing.enabled === true)) {
+        await this.db.run(
+          "UPDATE currency_settings SET enabled = ?, updated_at = ? WHERE id = ?",
+          [true, now, existing.id]
+        );
+      }
+      const row = (await this.db.get<CurrencySettingRow>("SELECT * FROM currency_settings WHERE id = ?", [existing.id]))!;
+      return ok(toCurrencySetting(row));
+    }
+
+    const id = generateId();
+    await this.db.run(
+      `INSERT INTO currency_settings (id, ledger_id, currency_code, decimal_places, symbol, enabled, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, ledgerId, code, decimals, sym, true, now, now]
+    );
+
+    const row = (await this.db.get<CurrencySettingRow>("SELECT * FROM currency_settings WHERE id = ?", [id]))!;
+    return ok(toCurrencySetting(row));
+  }
+
+  async listEnabledCurrencies(ledgerId: string): Promise<Result<CurrencySetting[]>> {
+    const ledger = await this.db.get<LedgerRow>("SELECT * FROM ledgers WHERE id = ?", [ledgerId]);
+    if (!ledger) return err(ledgerNotFoundError(ledgerId));
+
+    const rows = await this.db.all<CurrencySettingRow>(
+      "SELECT * FROM currency_settings WHERE ledger_id = ? AND enabled = ? ORDER BY currency_code",
+      [ledgerId, true]
+    );
+    return ok(rows.map(toCurrencySetting));
+  }
+
+  async setExchangeRate(
+    ledgerId: string,
+    fromCurrency: string,
+    toCurrency: string,
+    rate: number,
+    effectiveDate: string,
+    source: ExchangeRateSource = "manual",
+  ): Promise<Result<ExchangeRate>> {
+    const ledger = await this.db.get<LedgerRow>("SELECT * FROM ledgers WHERE id = ?", [ledgerId]);
+    if (!ledger) return err(ledgerNotFoundError(ledgerId));
+
+    const from = fromCurrency.toUpperCase();
+    const to = toCurrency.toUpperCase();
+    const now = nowUtc();
+
+    // Upsert: try to find existing for this date
+    const existing = await this.db.get<ExchangeRateRow>(
+      "SELECT * FROM exchange_rates WHERE ledger_id = ? AND from_currency = ? AND to_currency = ? AND effective_date = ?",
+      [ledgerId, from, to, effectiveDate]
+    );
+
+    if (existing) {
+      await this.db.run(
+        "UPDATE exchange_rates SET rate = ?, source = ? WHERE id = ?",
+        [rate, source, existing.id]
+      );
+      const row = (await this.db.get<ExchangeRateRow>("SELECT * FROM exchange_rates WHERE id = ?", [existing.id]))!;
+      return ok(toExchangeRate(row));
+    }
+
+    const id = generateId();
+    await this.db.run(
+      `INSERT INTO exchange_rates (id, ledger_id, from_currency, to_currency, rate, effective_date, source, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, ledgerId, from, to, rate, effectiveDate, source, now]
+    );
+
+    const row = (await this.db.get<ExchangeRateRow>("SELECT * FROM exchange_rates WHERE id = ?", [id]))!;
+    return ok(toExchangeRate(row));
+  }
+
+  async getExchangeRate(
+    ledgerId: string,
+    fromCurrency: string,
+    toCurrency: string,
+    date?: string,
+  ): Promise<Result<ExchangeRate>> {
+    const from = fromCurrency.toUpperCase();
+    const to = toCurrency.toUpperCase();
+    const asOf = date ?? new Date().toISOString().slice(0, 10);
+
+    // Find the most recent rate on or before the given date
+    const row = await this.db.get<ExchangeRateRow>(
+      `SELECT * FROM exchange_rates
+       WHERE ledger_id = ? AND from_currency = ? AND to_currency = ? AND effective_date <= ?
+       ORDER BY effective_date DESC
+       LIMIT 1`,
+      [ledgerId, from, to, asOf]
+    );
+
+    if (!row) return err(exchangeRateNotFoundError(from, to, asOf));
+    return ok(toExchangeRate(row));
+  }
+
+  async listExchangeRates(
+    ledgerId: string,
+    opts?: { fromCurrency?: string; toCurrency?: string; limit?: number; cursor?: string },
+  ): Promise<Result<{ rates: ExchangeRate[]; nextCursor: string | null }>> {
+    const ledger = await this.db.get<LedgerRow>("SELECT * FROM ledgers WHERE id = ?", [ledgerId]);
+    if (!ledger) return err(ledgerNotFoundError(ledgerId));
+
+    const limit = Math.min(opts?.limit ?? 50, 200);
+    const conditions: string[] = ["ledger_id = ?"];
+    const params: unknown[] = [ledgerId];
+
+    if (opts?.fromCurrency) {
+      conditions.push("from_currency = ?");
+      params.push(opts.fromCurrency.toUpperCase());
+    }
+    if (opts?.toCurrency) {
+      conditions.push("to_currency = ?");
+      params.push(opts.toCurrency.toUpperCase());
+    }
+    if (opts?.cursor) {
+      conditions.push("id < ?");
+      params.push(opts.cursor);
+    }
+
+    params.push(limit + 1);
+    const rows = await this.db.all<ExchangeRateRow>(
+      `SELECT * FROM exchange_rates WHERE ${conditions.join(" AND ")} ORDER BY effective_date DESC, id DESC LIMIT ?`,
+      params
+    );
+
+    const hasMore = rows.length > limit;
+    const slice = hasMore ? rows.slice(0, limit) : rows;
+    const lastItem = slice[slice.length - 1];
+    const nextCursor = hasMore && lastItem ? lastItem.id : null;
+
+    return ok({ rates: slice.map(toExchangeRate), nextCursor });
+  }
+
+  async convertAmount(
+    ledgerId: string,
+    fromCurrency: string,
+    toCurrency: string,
+    amount: number,
+    date?: string,
+  ): Promise<Result<ConvertAmountResult>> {
+    const from = fromCurrency.toUpperCase();
+    const to = toCurrency.toUpperCase();
+
+    if (from === to) {
+      return ok({
+        fromCurrency: from,
+        toCurrency: to,
+        originalAmount: amount,
+        convertedAmount: amount,
+        rate: RATE_PRECISION,
+        effectiveDate: date ?? new Date().toISOString().slice(0, 10),
+      });
+    }
+
+    const rateResult = await this.getExchangeRate(ledgerId, from, to, date);
+    if (!rateResult.ok) return err(rateResult.error);
+
+    const converted = convertAmountUtil(amount, rateResult.value.rate);
+    return ok({
+      fromCurrency: from,
+      toCurrency: to,
+      originalAmount: amount,
+      convertedAmount: converted,
+      rate: rateResult.value.rate,
+      effectiveDate: rateResult.value.effectiveDate,
+    });
+  }
+
+  async revalueAccounts(
+    ledgerId: string,
+    date: string,
+  ): Promise<Result<RevaluationResult[]>> {
+    const ledger = await this.db.get<LedgerRow>("SELECT * FROM ledgers WHERE id = ?", [ledgerId]);
+    if (!ledger) return err(ledgerNotFoundError(ledgerId));
+
+    // Find all accounts with a specific currency different from base
+    const foreignAccounts = await this.db.all<AccountRow>(
+      "SELECT * FROM accounts WHERE ledger_id = ? AND currency IS NOT NULL AND currency != ? AND status = 'active'",
+      [ledgerId, ledger.currency]
+    );
+
+    const results: RevaluationResult[] = [];
+
+    for (const acct of foreignAccounts) {
+      const account = toAccount(acct);
+      if (!account.currency) continue;
+
+      // Get current balance in base currency (sum of amount column)
+      const baseBalance = await this.computeBalance(acct.id, account.normalBalance);
+
+      // Get current balance in original currency (sum of original_amount column)
+      const origBalanceRow = await this.db.get<{ balance: number | string }>(
+        `SELECT COALESCE(
+           SUM(CASE WHEN direction = ? THEN original_amount ELSE 0 END) -
+           SUM(CASE WHEN direction = ? THEN original_amount ELSE 0 END), 0
+         ) AS balance FROM line_items WHERE account_id = ?`,
+        [account.normalBalance, account.normalBalance === "debit" ? "credit" : "debit", acct.id]
+      );
+      const origBalance = Number(origBalanceRow?.balance ?? 0);
+
+      // Get current exchange rate
+      const rateResult = await this.getExchangeRate(ledgerId, account.currency, ledger.currency, date);
+      if (!rateResult.ok) {
+        results.push({
+          accountId: acct.id,
+          accountCode: acct.code,
+          currency: account.currency,
+          originalBalance: origBalance,
+          revaluedBalance: baseBalance,
+          gainLoss: 0,
+          transactionId: null,
+        });
+        continue;
+      }
+
+      // Compute what the balance should be at current rate
+      const revaluedBase = convertAmountUtil(origBalance, rateResult.value.rate);
+      const gainLoss = revaluedBase - baseBalance;
+
+      let transactionId: string | null = null;
+
+      if (gainLoss !== 0) {
+        // Find or require an FX gain/loss account
+        const fxAccount = await this.db.get<AccountRow>(
+          "SELECT * FROM accounts WHERE ledger_id = ? AND code = 'FX-GAIN-LOSS' AND status = 'active'",
+          [ledgerId]
+        );
+
+        if (fxAccount) {
+          // Post an adjustment entry
+          const adjustmentLines: PostLineInput[] = gainLoss > 0
+            ? [
+                { accountCode: acct.code, amount: gainLoss, direction: "debit" as const },
+                { accountCode: "FX-GAIN-LOSS", amount: gainLoss, direction: "credit" as const },
+              ]
+            : [
+                { accountCode: "FX-GAIN-LOSS", amount: Math.abs(gainLoss), direction: "debit" as const },
+                { accountCode: acct.code, amount: Math.abs(gainLoss), direction: "credit" as const },
+              ];
+
+          const txnResult = await this.postTransaction({
+            ledgerId,
+            date,
+            memo: `FX revaluation: ${account.currency}/${ledger.currency} for account ${acct.code}`,
+            lines: adjustmentLines,
+            sourceType: "manual",
+            metadata: { type: "fx_revaluation", currency: account.currency, rate: rateResult.value.rate },
+          });
+
+          if (txnResult.ok) {
+            transactionId = txnResult.value.id;
+          }
+        }
+      }
+
+      results.push({
+        accountId: acct.id,
+        accountCode: acct.code,
+        currency: account.currency,
+        originalBalance: origBalance,
+        revaluedBalance: revaluedBase,
+        gainLoss,
+        transactionId,
+      });
+    }
+
+    return ok(results);
+  }
+
+  // -------------------------------------------------------------------------
+  // AI Conversations
+  // -------------------------------------------------------------------------
+
+  async createConversation(
+    userId: string,
+    ledgerId: string,
+    title?: string,
+  ): Promise<Result<Conversation>> {
+    const id = generateId();
+    const ts = nowUtc();
+
+    await this.db.run(
+      `INSERT INTO conversations (id, user_id, ledger_id, title, messages, created_at, updated_at)
+       VALUES (?, ?, ?, ?, '[]', ?, ?)`,
+      [id, userId, ledgerId, title ?? null, ts, ts],
+    );
+
+    return ok({
+      id,
+      userId,
+      ledgerId,
+      title: title ?? null,
+      messages: [],
+      createdAt: ts,
+      updatedAt: ts,
+    });
+  }
+
+  async getConversation(conversationId: string): Promise<Result<Conversation>> {
+    const row = await this.db.get<ConversationRow>(
+      "SELECT * FROM conversations WHERE id = ?",
+      [conversationId],
+    );
+    if (!row) return err(conversationNotFoundError(conversationId));
+    return ok(toConversation(row));
+  }
+
+  async listConversations(
+    userId: string,
+    ledgerId: string,
+    opts?: { cursor?: string; limit?: number },
+  ): Promise<Result<{ data: Conversation[]; nextCursor: string | null }>> {
+    const limit = Math.min(opts?.limit ?? 50, 200);
+    const params: unknown[] = [userId, ledgerId];
+    let where = "WHERE user_id = ? AND ledger_id = ?";
+
+    if (opts?.cursor) {
+      where += " AND created_at < ?";
+      params.push(opts.cursor);
+    }
+
+    params.push(limit + 1);
+
+    const rows = await this.db.all<ConversationRow>(
+      `SELECT * FROM conversations ${where} ORDER BY created_at DESC LIMIT ?`,
+      params,
+    );
+
+    const hasMore = rows.length > limit;
+    const data = (hasMore ? rows.slice(0, limit) : rows).map(toConversation);
+    const nextCursor = hasMore && data.length > 0 ? data[data.length - 1]!.createdAt : null;
+
+    return ok({ data, nextCursor });
+  }
+
+  async updateConversationMessages(
+    conversationId: string,
+    messages: readonly ConversationMessage[],
+    title?: string,
+  ): Promise<Result<Conversation>> {
+    const ts = nowUtc();
+    const messagesJson = JSON.stringify(messages);
+
+    const setClauses = ["messages = ?", "updated_at = ?"];
+    const params: unknown[] = [messagesJson, ts];
+
+    if (title !== undefined) {
+      setClauses.push("title = ?");
+      params.push(title);
+    }
+
+    params.push(conversationId);
+
+    await this.db.run(
+      `UPDATE conversations SET ${setClauses.join(", ")} WHERE id = ?`,
+      params,
+    );
+
+    const row = await this.db.get<ConversationRow>(
+      "SELECT * FROM conversations WHERE id = ?",
+      [conversationId],
+    );
+    if (!row) return err(conversationNotFoundError(conversationId));
+    return ok(toConversation(row));
+  }
+
+  async deleteConversation(conversationId: string): Promise<Result<void>> {
+    const row = await this.db.get<ConversationRow>(
+      "SELECT * FROM conversations WHERE id = ?",
+      [conversationId],
+    );
+    if (!row) return err(conversationNotFoundError(conversationId));
+
+    await this.db.run("DELETE FROM conversations WHERE id = ?", [conversationId]);
+    return ok(undefined);
   }
 
 }

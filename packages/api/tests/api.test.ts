@@ -33,6 +33,15 @@ const migrationSql = readFileSync(
   "utf-8"
 );
 
+const migration006Sql = readFileSync(
+  resolve(__dirname, "../../core/src/db/migrations/006_multi_currency.sqlite.sql"),
+  "utf-8"
+);
+const migration007Sql = readFileSync(
+  resolve(__dirname, "../../core/src/db/migrations/007_conversations.sqlite.sql"),
+  "utf-8"
+);
+
 const createTestDb = async (): Promise<Database> => {
   const db = await SqliteDatabase.create();
   const schemaWithoutPragmas = migrationSql
@@ -40,6 +49,8 @@ const createTestDb = async (): Promise<Database> => {
     .filter((line) => !line.trim().startsWith("PRAGMA"))
     .join("\n");
   db.exec(schemaWithoutPragmas);
+  db.exec(migration006Sql);
+  db.exec(migration007Sql);
   return db;
 };
 

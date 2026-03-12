@@ -24,6 +24,16 @@ export const ErrorCode = {
   API_KEY_NOT_FOUND: "API_KEY_NOT_FOUND",
   PLAN_LIMIT_REACHED: "PLAN_LIMIT_REACHED",
   PLAN_LIMIT_EXCEEDED: "PLAN_LIMIT_EXCEEDED",
+  BANK_CONNECTION_NOT_FOUND: "BANK_CONNECTION_NOT_FOUND",
+  BANK_ACCOUNT_NOT_FOUND: "BANK_ACCOUNT_NOT_FOUND",
+  BANK_FEED_PROVIDER_ERROR: "BANK_FEED_PROVIDER_ERROR",
+  BANK_FEED_SYNC_IN_PROGRESS: "BANK_FEED_SYNC_IN_PROGRESS",
+  BANK_FEED_NOT_CONFIGURED: "BANK_FEED_NOT_CONFIGURED",
+  NOTIFICATION_NOT_FOUND: "NOTIFICATION_NOT_FOUND",
+  EXCHANGE_RATE_NOT_FOUND: "EXCHANGE_RATE_NOT_FOUND",
+  CURRENCY_NOT_ENABLED: "CURRENCY_NOT_ENABLED",
+  CURRENCY_MISMATCH: "CURRENCY_MISMATCH",
+  CONVERSATION_NOT_FOUND: "CONVERSATION_NOT_FOUND",
   INTERNAL_ERROR: "INTERNAL_ERROR",
 } as const;
 
@@ -302,6 +312,113 @@ export const planLimitExceededError = (
     ]
   );
 
+export const bankConnectionNotFoundError = (id: string): LedgeError =>
+  createError(ErrorCode.BANK_CONNECTION_NOT_FOUND, `Bank connection not found: ${id}`, [
+    {
+      field: "connectionId",
+      actual: id,
+      suggestion:
+        "Verify the connection ID is correct. Use GET /v1/ledgers/:ledgerId/bank-feeds/connections to list connections.",
+    },
+  ]);
+
+export const bankAccountNotFoundError = (id: string): LedgeError =>
+  createError(ErrorCode.BANK_ACCOUNT_NOT_FOUND, `Bank account not found: ${id}`, [
+    {
+      field: "bankAccountId",
+      actual: id,
+      suggestion:
+        "Verify the bank account ID is correct. Use GET /v1/ledgers/:ledgerId/bank-feeds/connections/:connectionId/accounts to list accounts.",
+    },
+  ]);
+
+export const bankFeedProviderError = (provider: string, message: string): LedgeError =>
+  createError(ErrorCode.BANK_FEED_PROVIDER_ERROR, `Bank feed provider error (${provider}): ${message}`, [
+    {
+      field: "provider",
+      actual: provider,
+      suggestion: "Check your bank feed provider configuration and credentials. The external provider may be temporarily unavailable.",
+    },
+  ]);
+
+export const bankFeedSyncInProgressError = (connectionId: string): LedgeError =>
+  createError(ErrorCode.BANK_FEED_SYNC_IN_PROGRESS, `A sync is already in progress for connection ${connectionId}`, [
+    {
+      field: "connectionId",
+      actual: connectionId,
+      suggestion: "Wait for the current sync to complete before starting another. Check GET /v1/ledgers/:ledgerId/bank-feeds/sync-log for status.",
+    },
+  ]);
+
+export const bankFeedNotConfiguredError = (): LedgeError =>
+  createError(ErrorCode.BANK_FEED_NOT_CONFIGURED, "Bank feed provider is not configured", [
+    {
+      field: "provider",
+      suggestion: "Set BASIQ_API_KEY environment variable to enable bank feeds. Bank feeds require a Builder plan or higher.",
+    },
+  ]);
+
+export const notificationNotFoundError = (id: string): LedgeError =>
+  createError(ErrorCode.NOTIFICATION_NOT_FOUND, `Notification not found: ${id}`, [
+    {
+      field: "notificationId",
+      actual: id,
+      suggestion:
+        "Verify the notification ID is correct. Use GET /v1/ledgers/:ledgerId/notifications to list notifications.",
+    },
+  ]);
+
+export const exchangeRateNotFoundError = (
+  fromCurrency: string,
+  toCurrency: string,
+  date?: string,
+): LedgeError =>
+  createError(
+    ErrorCode.EXCHANGE_RATE_NOT_FOUND,
+    `No exchange rate found for ${fromCurrency}/${toCurrency}${date ? ` on or before ${date}` : ""}`,
+    [
+      {
+        field: "exchangeRate",
+        actual: `${fromCurrency}/${toCurrency}`,
+        suggestion:
+          "Set an exchange rate first using POST /v1/ledgers/:ledgerId/exchange-rates, or provide the rate directly on the line item.",
+      },
+    ]
+  );
+
+export const currencyNotEnabledError = (currencyCode: string): LedgeError =>
+  createError(
+    ErrorCode.CURRENCY_NOT_ENABLED,
+    `Currency ${currencyCode} is not enabled on this ledger`,
+    [
+      {
+        field: "currency",
+        actual: currencyCode,
+        suggestion:
+          "Enable the currency first using POST /v1/ledgers/:ledgerId/currencies with the currency code.",
+      },
+    ]
+  );
+
+export const currencyMismatchError = (
+  accountCode: string,
+  accountCurrency: string,
+  lineCurrency: string,
+): LedgeError =>
+  createError(
+    ErrorCode.CURRENCY_MISMATCH,
+    `Account ${accountCode} is restricted to ${accountCurrency} but line item uses ${lineCurrency}`,
+    [
+      {
+        field: "currency",
+        actual: lineCurrency,
+        expected: accountCurrency,
+        suggestion:
+          "Use the correct currency for this account, or use an account that accepts the desired currency.",
+      },
+    ]
+  );
+
 export const internalError = (
   message = "An unexpected error occurred"
 ): LedgeError =>
@@ -310,6 +427,16 @@ export const internalError = (
       field: "request",
       suggestion:
         "This is a server error. Retry the request, and if the problem persists, contact support with the requestId from this response.",
+    },
+  ]);
+
+export const conversationNotFoundError = (id: string): LedgeError =>
+  createError(ErrorCode.CONVERSATION_NOT_FOUND, `Conversation not found: ${id}`, [
+    {
+      field: "conversationId",
+      actual: id,
+      suggestion:
+        "Verify the conversation ID is correct. Use GET /v1/ledgers/:ledgerId/conversations to list conversations.",
     },
   ]);
 

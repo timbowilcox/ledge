@@ -13,6 +13,7 @@ import type {
   AccountWithBalance,
   StatementResponse,
   PaginatedResult,
+  Conversation,
 } from "@ledge/sdk";
 import type { ApiKeySafe, ApiKeyWithRaw } from "@ledge/sdk";
 
@@ -78,6 +79,37 @@ export async function createApiKey(name: string): Promise<ApiKeyWithRaw> {
 export async function revokeApiKey(keyId: string): Promise<ApiKeySafe> {
   const { client } = await getSessionClient();
   return client.apiKeys.revoke(keyId);
+}
+
+// --- Conversations ---------------------------------------------------------
+
+export async function fetchConversations(): Promise<readonly Conversation[]> {
+  const { client, ledgerId } = await getSessionClient();
+  try {
+    const result = await client.conversations.list(ledgerId);
+    return result.data;
+  } catch {
+    // If migration isn't applied yet, return empty
+    return [];
+  }
+}
+
+export async function createConversation(title?: string): Promise<Conversation | null> {
+  const { client, ledgerId } = await getSessionClient();
+  try {
+    return await client.conversations.create(ledgerId, title);
+  } catch {
+    return null;
+  }
+}
+
+export async function getConversation(id: string): Promise<Conversation | null> {
+  const { client, ledgerId } = await getSessionClient();
+  try {
+    return await client.conversations.get(ledgerId, id);
+  } catch {
+    return null;
+  }
 }
 
 // --- Template application -------------------------------------------------

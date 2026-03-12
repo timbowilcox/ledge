@@ -48,6 +48,7 @@ export interface Account {
   readonly type: AccountType;
   readonly normalBalance: NormalBalance;
   readonly isSystem: boolean;
+  readonly currency: string | null;
   readonly metadata: Record<string, unknown> | null;
   readonly status: AccountStatus;
   readonly createdAt: string;
@@ -77,6 +78,9 @@ export interface LineItem {
   readonly accountId: string;
   readonly amount: number;
   readonly direction: Direction;
+  readonly currency: string;
+  readonly originalAmount: number;
+  readonly exchangeRate: number | null;
   readonly memo: string | null;
   readonly metadata: Record<string, unknown> | null;
   readonly createdAt: string;
@@ -231,6 +235,9 @@ export interface PostLineInput {
   readonly direction: Direction;
   readonly memo?: string;
   readonly metadata?: Record<string, unknown>;
+  readonly currency?: string;
+  readonly originalAmount?: number;
+  readonly exchangeRate?: number;
 }
 
 export interface ReverseTransactionInput {
@@ -305,4 +312,78 @@ export interface PaginatedResult<T> {
 export interface PaginationParams {
   readonly cursor?: string;
   readonly limit?: number;
+}
+
+// ---------------------------------------------------------------------------
+// Multi-currency types
+// ---------------------------------------------------------------------------
+
+export type ExchangeRateSource = "manual" | "api" | "import";
+
+export interface CurrencySetting {
+  readonly id: string;
+  readonly ledgerId: string;
+  readonly currencyCode: string;
+  readonly decimalPlaces: number;
+  readonly symbol: string;
+  readonly enabled: boolean;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+export interface ExchangeRate {
+  readonly id: string;
+  readonly ledgerId: string;
+  readonly fromCurrency: string;
+  readonly toCurrency: string;
+  readonly rate: number;
+  readonly effectiveDate: string;
+  readonly source: ExchangeRateSource;
+  readonly createdAt: string;
+}
+
+export interface ConvertAmountResult {
+  readonly fromCurrency: string;
+  readonly toCurrency: string;
+  readonly originalAmount: number;
+  readonly convertedAmount: number;
+  readonly rate: number;
+  readonly effectiveDate: string;
+}
+
+export interface RevaluationResult {
+  readonly accountId: string;
+  readonly accountCode: string;
+  readonly currency: string;
+  readonly originalBalance: number;
+  readonly revaluedBalance: number;
+  readonly gainLoss: number;
+  readonly transactionId: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// AI Financial Assistant — conversations
+// ---------------------------------------------------------------------------
+
+export interface ToolCallRecord {
+  readonly toolName: string;
+  readonly input: unknown;
+  readonly output: unknown;
+}
+
+export interface ConversationMessage {
+  readonly role: "user" | "assistant";
+  readonly content: string;
+  readonly toolCalls?: readonly ToolCallRecord[];
+  readonly timestamp: string;
+}
+
+export interface Conversation {
+  readonly id: string;
+  readonly userId: string;
+  readonly ledgerId: string;
+  readonly title: string | null;
+  readonly messages: readonly ConversationMessage[];
+  readonly createdAt: string;
+  readonly updatedAt: string;
 }

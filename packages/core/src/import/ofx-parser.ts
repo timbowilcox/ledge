@@ -6,6 +6,7 @@
 // ---------------------------------------------------------------------------
 
 import type { ParsedRow } from "./types.js";
+import { toSmallestUnit } from "../currency-utils.js";
 
 // ---------------------------------------------------------------------------
 // Tag extraction
@@ -53,13 +54,13 @@ function normalizeOFXDate(raw: string): string {
  * OFX amounts are signed decimal strings (e.g., "-50.00", "1234.56").
  * Convert to integer cents.
  */
-function normalizeOFXAmount(raw: string): number {
+function normalizeOFXAmount(raw: string, currencyCode = "USD"): number {
   const cleaned = raw.trim().replace(/,/g, "");
   const value = parseFloat(cleaned);
   if (isNaN(value)) {
     throw new Error(`Cannot parse OFX amount: "${raw}"`);
   }
-  return Math.round(value * 100);
+  return toSmallestUnit(value, currencyCode);
 }
 
 // ---------------------------------------------------------------------------

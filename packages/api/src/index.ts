@@ -150,6 +150,38 @@ const applyPostgresMigrations = async (db: PostgresDatabase) => {
         }
       }
     }
+
+    // Apply bank feeds migration (004) if not yet applied
+    const bankConnectionsExists = await db.get<{ exists: boolean }>(
+      "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'bank_connections') as exists"
+    );
+    if (!bankConnectionsExists?.exists) {
+      const mgDir = findMigrationsDir();
+      if (mgDir) {
+        const bankFeedsMigration = join(mgDir, "004_bank_feeds.sql");
+        if (existsSync(bankFeedsMigration)) {
+          const sql = readFileSync(bankFeedsMigration, "utf-8");
+          await db.exec(sql);
+          console.log("Applied PostgreSQL migration: 004_bank_feeds.sql");
+        }
+      }
+    }
+
+    // Apply intelligence migration (005) if not yet applied
+    const notificationsExists = await db.get<{ exists: boolean }>(
+      "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'notifications') as exists"
+    );
+    if (!notificationsExists?.exists) {
+      const mgDir = findMigrationsDir();
+      if (mgDir) {
+        const intelligenceMigration = join(mgDir, "005_intelligence.sql");
+        if (existsSync(intelligenceMigration)) {
+          const sql = readFileSync(intelligenceMigration, "utf-8");
+          await db.exec(sql);
+          console.log("Applied PostgreSQL migration: 005_intelligence.sql");
+        }
+      }
+    }
     return;
   }
 
@@ -181,6 +213,22 @@ const applyPostgresMigrations = async (db: PostgresDatabase) => {
       console.log("Applied PostgreSQL migration: 003_billing.sql");
     }
 
+    // Apply bank feeds migration
+    const bankFeedsMigration = join(migrationsDir, "004_bank_feeds.sql");
+    if (existsSync(bankFeedsMigration)) {
+      const bankFeedsSql = readFileSync(bankFeedsMigration, "utf-8");
+      await db.exec(bankFeedsSql);
+      console.log("Applied PostgreSQL migration: 004_bank_feeds.sql");
+    }
+
+    // Apply intelligence migration
+    const intelligenceMigration = join(migrationsDir, "005_intelligence.sql");
+    if (existsSync(intelligenceMigration)) {
+      const intelligenceSql = readFileSync(intelligenceMigration, "utf-8");
+      await db.exec(intelligenceSql);
+      console.log("Applied PostgreSQL migration: 005_intelligence.sql");
+    }
+
     // Seed system user
     await ensureSystemUser(db);
   }
@@ -198,6 +246,8 @@ const applySqliteMigrations = async (db: SqliteDatabase) => {
     "001_initial_schema.sqlite.sql",
     "002_audit_action_updated.sqlite.sql",
     "003_billing.sqlite.sql",
+    "004_bank_feeds.sqlite.sql",
+    "005_intelligence.sqlite.sql",
   ];
 
   for (const file of migrationFiles) {

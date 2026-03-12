@@ -47,6 +47,14 @@ export async function initDatabase(): Promise<InitResult> {
   const migration002 = loadMigrationSql("002_audit_action_updated.sqlite.sql");
   await db.exec(migration002);
 
+  // Apply migration 006 — multi-currency columns and tables
+  const migration006 = loadMigrationSql("006_multi_currency.sqlite.sql");
+  await db.exec(migration006);
+
+  // Apply migration 007 — conversations table
+  const migration007 = loadMigrationSql("007_conversations.sqlite.sql");
+  await db.exec(migration007);
+
   // Seed system user
   await db.run(
     `INSERT INTO users (id, email, name, auth_provider, auth_provider_id)

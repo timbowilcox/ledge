@@ -59,6 +59,35 @@ export type {
   // Errors
   LedgeError,
   ErrorDetail,
+
+  // Bank feeds
+  BankConnection,
+  BankAccount,
+  BankTransaction,
+  BankSyncLog,
+  BankConnectionStatus,
+  BankTransactionStatus,
+  BankTransactionType,
+  BankSyncStatus,
+
+  // Intelligence / Notifications
+  Notification,
+  NotificationPreference,
+  NotificationType,
+  NotificationSeverity,
+  NotificationStatus,
+
+  // Multi-currency
+  CurrencySetting,
+  ExchangeRate,
+  ExchangeRateSource,
+  ConvertAmountResult,
+  RevaluationResult,
+
+  // AI Conversations
+  Conversation,
+  ConversationMessage,
+  ToolCallRecord,
 } from "@ledge/core";
 
 export type {
@@ -87,6 +116,20 @@ import type {
   User,
   StatementResponse,
   PaginatedResult,
+  BankConnection,
+  BankAccount,
+  BankTransaction,
+  BankSyncLog,
+  Notification,
+  NotificationPreference,
+  NotificationType,
+  NotificationStatus,
+  CurrencySetting,
+  ExchangeRate,
+  ConvertAmountResult,
+  RevaluationResult,
+  Conversation,
+  ConversationMessage,
 } from "@ledge/core";
 
 import type {
@@ -180,6 +223,10 @@ export class Ledge {
   readonly templates: TemplatesModule;
   readonly apiKeys: ApiKeysModule;
   readonly admin: AdminModule;
+  readonly bankFeeds: BankFeedsModule;
+  readonly notifications: NotificationsModule;
+  readonly currencies: CurrenciesModule;
+  readonly conversations: ConversationsModule;
 
   constructor(config: LedgeConfig) {
     this._apiKey = config.apiKey;
@@ -196,6 +243,10 @@ export class Ledge {
     this.templates = new TemplatesModule(this);
     this.apiKeys = new ApiKeysModule(this);
     this.admin = new AdminModule(this);
+    this.bankFeeds = new BankFeedsModule(this);
+    this.notifications = new NotificationsModule(this);
+    this.currencies = new CurrenciesModule(this);
+    this.conversations = new ConversationsModule(this);
   }
 
   // -------------------------------------------------------------------------
@@ -597,5 +648,263 @@ class ApiKeysModule {
   /** Revoke an API key. Requires admin auth. */
   async revoke(keyId: string): Promise<ApiKeySafe> {
     return this.c.request("DELETE", `/v1/api-keys/${keyId}`, { auth: "admin" });
+  }
+}
+
+// --- Bank Feeds ------------------------------------------------------------
+
+class BankFeedsModule {
+  constructor(private readonly c: Ledge) {}
+
+  /** List bank feed connections for a ledger. */
+  async listConnections(ledgerId: string): Promise<BankConnection[]> {
+    return this.c.request("GET", `/v1/ledgers/${ledgerId}/bank-feeds/connections`);
+  }
+
+  /** Get a specific bank feed connection. */
+  async getConnection(ledgerId: string, connectionId: string): Promise<BankConnection> {
+    return this.c.request("GET", `/v1/ledgers/${ledgerId}/bank-feeds/connections/${connectionId}`);
+  }
+
+  /** List bank accounts for a connection. */
+  async listAccounts(ledgerId: string, connectionId: string): Promise<BankAccount[]> {
+    return this.c.request(
+      "GET",
+      `/v1/ledgers/${ledgerId}/bank-feeds/connections/${connectionId}/accounts`,
+    );
+  }
+
+  /** Map a bank account to a ledger account. */
+  async mapAccount(
+    ledgerId: string,
+    bankAccountId: string,
+    accountId: string,
+  ): Promise<BankAccount> {
+    return this.c.request(
+      "POST",
+      `/v1/ledgers/${ledgerId}/bank-feeds/accounts/${bankAccountId}/map`,
+      { body: { accountId } },
+    );
+  }
+
+  /** Trigger a sync for a bank account. */
+  async sync(
+    ledgerId: string,
+    bankAccountId: string,
+    opts?: { fromDate?: string; toDate?: string },
+  ): Promise<BankSyncLog> {
+    return this.c.request(
+      "POST",
+      `/v1/ledgers/${ledgerId}/bank-feeds/accounts/${bankAccountId}/sync`,
+      { body: opts ?? {} },
+    );
+  }
+
+  /** Get sync history for a connection. */
+  async listSyncLogs(ledgerId: string, connectionId: string): Promise<BankSyncLog[]> {
+    const qs = buildQuery({ connectionId });
+    return this.c.request("GET", `/v1/ledgers/${ledgerId}/bank-feeds/sync-log${qs}`);
+  }
+
+  /** List bank transactions for a bank account. */
+  async listTransactions(
+    ledgerId: string,
+    bankAccountId: string,
+    opts?: { status?: string; limit?: number },
+  ): Promise<BankTransaction[]> {
+    const qs = buildQuery({ bankAccountId, status: opts?.status, limit: opts?.limit });
+    return this.c.request("GET", `/v1/ledgers/${ledgerId}/bank-feeds/transactions${qs}`);
+  }
+
+  /** Confirm or ignore a bank transaction match. */
+  async confirmMatch(
+    ledgerId: string,
+    bankTransactionId: string,
+    action: "confirm" | "ignore",
+    overrideTransactionId?: string,
+  ): Promise<BankTransaction> {
+    return this.c.request(
+      "POST",
+      `/v1/ledgers/${ledgerId}/bank-feeds/transactions/${bankTransactionId}/confirm`,
+      { body: { action, overrideTransactionId } },
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Notifications Module
+// ---------------------------------------------------------------------------
+
+class NotificationsModule {
+  constructor(private readonly c: Ledge) {}
+
+  /** List notifications for the authenticated user. */
+  async list(
+    ledgerId: string,
+    opts?: { status?: NotificationStatus; type?: NotificationType; limit?: number; cursor?: string },
+  ): Promise<PaginatedResult<Notification>> {
+    const qs = buildQuery({
+      status: opts?.status,
+      type: opts?.type,
+      limit: opts?.limit,
+      cursor: opts?.cursor,
+    });
+    return this.c.requestPaginated<Notification>(`/v1/ledgers/${ledgerId}/notifications${qs}`);
+  }
+
+  /** Get a specific notification. */
+  async get(ledgerId: string, notificationId: string): Promise<Notification> {
+    return this.c.request("GET", `/v1/ledgers/${ledgerId}/notifications/${notificationId}`);
+  }
+
+  /** Update notification status (read, dismissed, actioned). */
+  async updateStatus(
+    ledgerId: string,
+    notificationId: string,
+    status: NotificationStatus,
+  ): Promise<Notification> {
+    return this.c.request("PATCH", `/v1/ledgers/${ledgerId}/notifications/${notificationId}`, {
+      body: { status },
+    });
+  }
+
+  /** Trigger insight generation (monthly summary, cash position, anomalies, unclassified). */
+  async generateInsights(
+    ledgerId: string,
+  ): Promise<{ generated: number; notifications: Notification[] }> {
+    return this.c.request("POST", `/v1/ledgers/${ledgerId}/notifications/generate`);
+  }
+
+  /** Get notification preferences for the authenticated user. */
+  async getPreferences(ledgerId: string): Promise<NotificationPreference[]> {
+    return this.c.request("GET", `/v1/ledgers/${ledgerId}/notifications/preferences`);
+  }
+
+  /** Set a notification preference (enable/disable a type). */
+  async setPreference(
+    ledgerId: string,
+    type: NotificationType,
+    enabled: boolean,
+  ): Promise<NotificationPreference> {
+    return this.c.request("PUT", `/v1/ledgers/${ledgerId}/notifications/preferences/${type}`, {
+      body: { enabled },
+    });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Currencies Module
+// ---------------------------------------------------------------------------
+
+class CurrenciesModule {
+  constructor(private readonly c: Ledge) {}
+
+  /** List enabled currencies for a ledger. */
+  async list(ledgerId: string): Promise<CurrencySetting[]> {
+    return this.c.request("GET", `/v1/ledgers/${ledgerId}/currencies`);
+  }
+
+  /** Enable a currency on a ledger. */
+  async enable(
+    ledgerId: string,
+    input: { currencyCode: string; decimalPlaces?: number; symbol?: string },
+  ): Promise<CurrencySetting> {
+    return this.c.request("POST", `/v1/ledgers/${ledgerId}/currencies`, { body: input });
+  }
+
+  /** List exchange rates for a ledger. */
+  async listRates(
+    ledgerId: string,
+    opts?: { fromCurrency?: string; toCurrency?: string; limit?: number; cursor?: string },
+  ): Promise<PaginatedResult<ExchangeRate>> {
+    const qs = buildQuery({
+      fromCurrency: opts?.fromCurrency,
+      toCurrency: opts?.toCurrency,
+      limit: opts?.limit,
+      cursor: opts?.cursor,
+    });
+    return this.c.requestPaginated<ExchangeRate>(`/v1/ledgers/${ledgerId}/currencies/exchange-rates${qs}`);
+  }
+
+  /** Set an exchange rate between two currencies. */
+  async setRate(
+    ledgerId: string,
+    input: {
+      fromCurrency: string;
+      toCurrency: string;
+      rate: number;
+      effectiveDate: string;
+      source?: "manual" | "api" | "import";
+    },
+  ): Promise<ExchangeRate> {
+    return this.c.request("POST", `/v1/ledgers/${ledgerId}/currencies/exchange-rates`, { body: input });
+  }
+
+  /** Convert an amount between currencies using stored exchange rates. */
+  async convert(
+    ledgerId: string,
+    input: { fromCurrency: string; toCurrency: string; amount: number; date?: string },
+  ): Promise<ConvertAmountResult> {
+    const qs = buildQuery({
+      fromCurrency: input.fromCurrency,
+      toCurrency: input.toCurrency,
+      amount: input.amount,
+      date: input.date,
+    });
+    return this.c.request("GET", `/v1/ledgers/${ledgerId}/currencies/exchange-rates/convert${qs}`);
+  }
+
+  /** Revalue foreign-currency accounts at current exchange rates. */
+  async revalue(
+    ledgerId: string,
+    date: string,
+  ): Promise<RevaluationResult[]> {
+    return this.c.request("POST", `/v1/ledgers/${ledgerId}/currencies/revalue`, { body: { date } });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Conversations Module
+// ---------------------------------------------------------------------------
+
+class ConversationsModule {
+  constructor(private readonly c: Ledge) {}
+
+  /** List conversations for the authenticated user in a ledger. */
+  async list(
+    ledgerId: string,
+    opts?: ListOptions,
+  ): Promise<PaginatedResult<Conversation>> {
+    const qs = buildQuery({ cursor: opts?.cursor, limit: opts?.limit });
+    return this.c.requestPaginated<Conversation>(`/v1/ledgers/${ledgerId}/conversations${qs}`);
+  }
+
+  /** Create a new conversation. */
+  async create(ledgerId: string, title?: string): Promise<Conversation> {
+    return this.c.request("POST", `/v1/ledgers/${ledgerId}/conversations`, {
+      body: title ? { title } : {},
+    });
+  }
+
+  /** Get a conversation by ID. */
+  async get(ledgerId: string, conversationId: string): Promise<Conversation> {
+    return this.c.request("GET", `/v1/ledgers/${ledgerId}/conversations/${conversationId}`);
+  }
+
+  /** Update conversation messages. */
+  async update(
+    ledgerId: string,
+    conversationId: string,
+    messages: readonly ConversationMessage[],
+    title?: string,
+  ): Promise<Conversation> {
+    return this.c.request("PUT", `/v1/ledgers/${ledgerId}/conversations/${conversationId}`, {
+      body: { messages, title },
+    });
+  }
+
+  /** Delete a conversation. */
+  async delete(ledgerId: string, conversationId: string): Promise<void> {
+    return this.c.request("DELETE", `/v1/ledgers/${ledgerId}/conversations/${conversationId}`);
   }
 }

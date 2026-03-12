@@ -65,6 +65,7 @@ export const createAccountSchema = z.object({
   type: accountType,
   normalBalance: normalBalance.optional(),
   parentCode: z.string().optional(),
+  currency: currencyCode.optional(),
   metadata: z.record(z.unknown()).optional(),
 });
 
@@ -88,6 +89,9 @@ export const postLineSchema = z.object({
   direction: direction,
   memo: z.string().optional(),
   metadata: z.record(z.unknown()).optional(),
+  currency: currencyCode.optional(),
+  originalAmount: positiveInt.optional(),
+  exchangeRate: z.number().int().positive().optional(),
 });
 
 export const postTransactionSchema = z.object({
@@ -203,3 +207,42 @@ export const apiErrorSchema = z.object({
   details: z.array(errorDetailSchema).optional(),
   requestId: z.string().optional(),
 });
+
+// ---------------------------------------------------------------------------
+// Multi-currency
+// ---------------------------------------------------------------------------
+
+export const exchangeRateSource = z.enum(["manual", "api", "import"]);
+
+export const enableCurrencySchema = z.object({
+  currencyCode: currencyCode,
+  decimalPlaces: z.number().int().min(0).max(4).optional(),
+  symbol: z.string().min(1).max(10).optional(),
+});
+
+export type EnableCurrencyInput = z.infer<typeof enableCurrencySchema>;
+
+export const setExchangeRateSchema = z.object({
+  fromCurrency: currencyCode,
+  toCurrency: currencyCode,
+  rate: z.number().int().positive(),
+  effectiveDate: isoDate,
+  source: exchangeRateSource.default("manual"),
+});
+
+export type SetExchangeRateInput = z.infer<typeof setExchangeRateSchema>;
+
+export const convertAmountSchema = z.object({
+  fromCurrency: currencyCode,
+  toCurrency: currencyCode,
+  amount: positiveInt,
+  date: isoDate.optional(),
+});
+
+export type ConvertAmountInput = z.infer<typeof convertAmountSchema>;
+
+export const revalueAccountsSchema = z.object({
+  date: isoDate,
+});
+
+export type RevalueAccountsInput = z.infer<typeof revalueAccountsSchema>;

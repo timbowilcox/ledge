@@ -9,6 +9,9 @@ const navItems = [
   { href: "/accounts", label: "Accounts", icon: AccountsIcon },
   { href: "/transactions", label: "Transactions", icon: TransactionsIcon },
   { href: "/statements", label: "Statements", icon: StatementsIcon },
+  { href: "/bank-feeds", label: "Bank Feeds", icon: BankFeedsIcon },
+  { href: "/notifications", label: "Insights", icon: InsightsIcon },
+  { href: "/currencies", label: "Currencies", icon: CurrenciesIcon },
   { href: "/api-keys", label: "API Keys", icon: KeysIcon },
   { href: "/mcp", label: "MCP Guide", icon: McpIcon },
   { href: "/billing", label: "Billing", icon: BillingIcon },
@@ -200,6 +203,42 @@ function McpIcon({ active }: { active: boolean }) {
       <path d="M5.5 5.5l-3.5 4.5 3.5 4.5" />
       <path d="M14.5 5.5l3.5 4.5-3.5 4.5" />
       <path d="M11 3l-2 14" />
+    </svg>
+  );
+}
+
+function BankFeedsIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke={active ? "#3B82F6" : "rgba(0,0,0,0.36)"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 4h14" />
+      <path d="M4 4v12" />
+      <path d="M16 4v12" />
+      <path d="M3 16h14" />
+      <path d="M3 8h14" />
+      <path d="M7 8v8" />
+      <path d="M13 8v8" />
+    </svg>
+  );
+}
+
+function InsightsIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke={active ? "#3B82F6" : "rgba(0,0,0,0.36)"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" transform="translate(-2 0) scale(0.85)" />
+      <path d="M13.73 21a2 2 0 0 1-3.46 0" transform="translate(-2 -2) scale(0.85)" />
+      <circle cx="15" cy="5" r="3" fill={active ? "#3B82F6" : "rgba(0,0,0,0.36)"} stroke="none" />
+    </svg>
+  );
+}
+
+function CurrenciesIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke={active ? "#3B82F6" : "rgba(0,0,0,0.36)"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="8" cy="10" r="6" />
+      <path d="M12.5 5.5a6 6 0 0 1 0 9" />
+      <path d="M7 8h2.5" />
+      <path d="M7 12h2.5" />
+      <path d="M8.5 7v6" />
     </svg>
   );
 }

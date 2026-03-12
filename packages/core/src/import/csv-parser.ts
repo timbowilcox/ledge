@@ -7,6 +7,7 @@
 // ---------------------------------------------------------------------------
 
 import type { ParsedRow } from "./types.js";
+import { toSmallestUnit } from "../currency-utils.js";
 
 // ---------------------------------------------------------------------------
 // Low-level CSV tokenizer
@@ -161,7 +162,7 @@ export function normalizeDate(raw: string): string {
  * Handles: currency symbols ($, €, £), commas, parenthesized negatives,
  * and plain decimal numbers.
  */
-export function normalizeAmount(raw: string): number {
+export function normalizeAmount(raw: string, currencyCode = "USD"): number {
   let cleaned = raw.trim();
 
   // Handle parenthesized negatives: (1234.56) → -1234.56
@@ -181,7 +182,7 @@ export function normalizeAmount(raw: string): number {
     throw new Error(`Cannot parse amount: "${raw}"`);
   }
 
-  return Math.round(value * 100);
+  return toSmallestUnit(value, currencyCode);
 }
 
 // ---------------------------------------------------------------------------

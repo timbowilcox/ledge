@@ -233,13 +233,17 @@ const applyPostgresMigrations = async (db: PostgresDatabase) => {
   ];
 
   // ── 4. Apply each unapplied migration in order ──
+  let applied = 0;
+  let skipped = 0;
+  let failed = 0;
+
   for (const migName of pgMigrations) {
     try {
       const alreadyApplied = await db.get<{ name: string }>(
         "SELECT name FROM _migrations WHERE name = $1",
         [migName],
       );
-      if (alreadyApplied) continue;
+      if (alreadyApplied) { skipped++; continue; }
 
       // Special case: 002 is enum-only, no SQL file for PG
       if (migName === "002_audit_action_updated.sql") {
@@ -251,12 +255,14 @@ const applyPostgresMigrations = async (db: PostgresDatabase) => {
           [migName],
         );
         console.log(`Applied PostgreSQL migration: ${migName}`);
+        applied++;
         continue;
       }
 
       const migPath = join(migrationsDir, migName);
       if (!existsSync(migPath)) {
         console.warn(`Migration file not found, skipping: ${migName}`);
+        skipped++;
         continue;
       }
 
@@ -268,10 +274,14 @@ const applyPostgresMigrations = async (db: PostgresDatabase) => {
         [migName],
       );
       console.log(`Applied PostgreSQL migration: ${migName}`);
+      applied++;
     } catch (err) {
       console.error(`Migration ${migName} failed (continuing):`, err);
+      failed++;
     }
   }
+
+  console.log(`Migrations: ${applied} applied, ${skipped} skipped, ${failed} failed`);
 
   // ── 5. Ensure system user exists ──
   try {

@@ -39,23 +39,19 @@ export function SettingsView({ ledger, billing, initialKeys, currencies, exchang
 
   return (
     <div>
-      <h1
-        className="font-bold"
-        style={{ fontSize: 24, color: "#0A0A0A", marginBottom: 8, fontFamily: "var(--font-family-display)" }}
-      >
-        Settings
-      </h1>
-      <p className="text-sm" style={{ color: "rgba(0,0,0,0.55)", marginBottom: 28 }}>
-        Manage your ledger configuration, API keys, and billing.
-      </p>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+        <h1 style={{ fontSize: 20, fontWeight: 600, color: "#0A0A0A" }}>
+          Settings
+        </h1>
+      </div>
 
-      {/* Horizontal tab bar */}
+      {/* Underline tab bar */}
       <div
         style={{
           display: "flex",
           gap: 0,
-          borderBottom: "1px solid rgba(0,0,0,0.10)",
-          marginBottom: 32,
+          borderBottom: "1px solid #E5E5E5",
+          marginBottom: 24,
         }}
       >
         {TABS.map((tab) => {
@@ -68,15 +64,15 @@ export function SettingsView({ ledger, billing, initialKeys, currencies, exchang
                 window.history.replaceState(null, "", "/settings?tab=" + tab.key);
               }}
               style={{
-                padding: "12px 20px",
-                fontSize: 14,
+                padding: "8px 16px",
+                fontSize: 13,
                 fontWeight: isActive ? 600 : 500,
-                color: isActive ? "#3B82F6" : "rgba(0,0,0,0.45)",
+                color: isActive ? "#0066FF" : "#999999",
                 background: "none",
                 border: "none",
-                borderBottom: isActive ? "2px solid #3B82F6" : "2px solid transparent",
+                borderBottom: isActive ? "2px solid #0066FF" : "2px solid transparent",
                 cursor: "pointer",
-                transition: "all 200ms cubic-bezier(0.16, 1, 0.3, 1)",
+                transition: "all 150ms ease",
                 marginBottom: -1,
               }}
             >
@@ -112,12 +108,12 @@ function GeneralTab({ ledger }: { ledger: Props["ledger"] }) {
                 <img
                   src={session.user.image}
                   alt=""
-                  style={{ width: 40, height: 40, borderRadius: "50%", border: "1px solid rgba(0,0,0,0.10)" }}
+                  style={{ width: 40, height: 40, borderRadius: "50%", border: "1px solid #E5E5E5" }}
                 />
               )}
               <div>
-                <div className="text-sm font-medium" style={{ color: "#0A0A0A" }}>{session.user.name}</div>
-                <div className="text-xs" style={{ color: "rgba(0,0,0,0.36)" }}>{session.user.email}</div>
+                <div style={{ fontSize: 13, fontWeight: 500, color: "#0A0A0A" }}>{session.user.name}</div>
+                <div style={{ fontSize: 12, color: "#999999" }}>{session.user.email}</div>
               </div>
             </div>
           </div>
@@ -142,10 +138,10 @@ function GeneralTab({ ledger }: { ledger: Props["ledger"] }) {
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-xs" style={{ color: "rgba(0,0,0,0.36)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>
+      <div style={{ fontSize: 12, color: "#999999", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 500 }}>
         {label}
       </div>
-      <div className="text-sm font-medium" style={{ color: "#0A0A0A" }}>{value}</div>
+      <div style={{ fontSize: 13, fontWeight: 500, color: "#0A0A0A" }}>{value}</div>
     </div>
   );
 }
@@ -160,21 +156,20 @@ function CurrenciesTab({ currencies, exchangeRates }: { currencies: any[]; excha
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       {/* Enabled currencies */}
       <div className="card" style={{ padding: 0 }}>
-        <div style={{ padding: "20px 24px", borderBottom: "1px solid rgba(0,0,0,0.06)" }}>
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid #E5E5E5" }}>
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-semibold" style={{ color: "#0A0A0A" }}>Enabled Currencies</h2>
-              <p className="text-xs" style={{ color: "rgba(0,0,0,0.36)", marginTop: 2 }}>Currencies available for transactions</p>
+              <h2 style={{ fontSize: 14, fontWeight: 600, color: "#0A0A0A" }}>Enabled Currencies</h2>
+              <p style={{ fontSize: 12, color: "#999999", marginTop: 2 }}>Currencies available for transactions</p>
             </div>
-            <span className="badge badge-blue">{currencies.length}</span>
+            <span style={{ fontSize: 12, color: "#999999", fontWeight: 500 }}>{currencies.length}</span>
           </div>
         </div>
 
         {currencies.length === 0 ? (
-          <div style={{ padding: 40, textAlign: "center" }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>💱</div>
-            <p className="text-sm font-medium" style={{ color: "#0A0A0A", marginBottom: 4 }}>No additional currencies</p>
-            <p className="text-xs" style={{ color: "rgba(0,0,0,0.36)" }}>Enable currencies via the API or MCP.</p>
+          <div style={{ padding: 48, textAlign: "center" }}>
+            <p style={{ fontSize: 14, fontWeight: 500, color: "#0A0A0A", marginBottom: 4 }}>No additional currencies</p>
+            <p style={{ fontSize: 13, color: "#999999" }}>Enable currencies via the API or MCP.</p>
           </div>
         ) : (
           <table className="w-full">
@@ -190,11 +185,11 @@ function CurrenciesTab({ currencies, exchangeRates }: { currencies: any[]; excha
             <tbody>
               {currencies.map((c: any) => (
                 <tr key={c.id} className="table-row">
-                  <td className="table-cell font-mono text-sm font-semibold" style={{ color: "#3B82F6" }}>{c.currencyCode}</td>
-                  <td className="table-cell text-sm">{c.symbol}</td>
-                  <td className="table-cell text-sm">{c.decimalPlaces}</td>
+                  <td className="table-cell font-mono" style={{ fontSize: 13, fontWeight: 600, color: "#0A0A0A" }}>{c.currencyCode}</td>
+                  <td className="table-cell" style={{ fontSize: 13 }}>{c.symbol}</td>
+                  <td className="table-cell" style={{ fontSize: 13 }}>{c.decimalPlaces}</td>
                   <td className="table-cell"><span className={"badge " + (c.enabled ? "badge-green" : "badge-red")}>{c.enabled ? "Active" : "Disabled"}</span></td>
-                  <td className="table-cell text-sm">{fmtDate(c.createdAt)}</td>
+                  <td className="table-cell" style={{ fontSize: 13 }}>{fmtDate(c.createdAt)}</td>
                 </tr>
               ))}
             </tbody>
@@ -204,21 +199,20 @@ function CurrenciesTab({ currencies, exchangeRates }: { currencies: any[]; excha
 
       {/* Exchange rates */}
       <div className="card" style={{ padding: 0 }}>
-        <div style={{ padding: "20px 24px", borderBottom: "1px solid rgba(0,0,0,0.06)" }}>
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid #E5E5E5" }}>
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-semibold" style={{ color: "#0A0A0A" }}>Exchange Rates</h2>
-              <p className="text-xs" style={{ color: "rgba(0,0,0,0.36)", marginTop: 2 }}>Stored rates for currency conversion</p>
+              <h2 style={{ fontSize: 14, fontWeight: 600, color: "#0A0A0A" }}>Exchange Rates</h2>
+              <p style={{ fontSize: 12, color: "#999999", marginTop: 2 }}>Stored rates for currency conversion</p>
             </div>
-            <span className="badge badge-blue">{exchangeRates.length}</span>
+            <span style={{ fontSize: 12, color: "#999999", fontWeight: 500 }}>{exchangeRates.length}</span>
           </div>
         </div>
 
         {exchangeRates.length === 0 ? (
-          <div style={{ padding: 40, textAlign: "center" }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>📊</div>
-            <p className="text-sm font-medium" style={{ color: "#0A0A0A", marginBottom: 4 }}>No exchange rates</p>
-            <p className="text-xs" style={{ color: "rgba(0,0,0,0.36)" }}>Set rates via the API or MCP.</p>
+          <div style={{ padding: 48, textAlign: "center" }}>
+            <p style={{ fontSize: 14, fontWeight: 500, color: "#0A0A0A", marginBottom: 4 }}>No exchange rates</p>
+            <p style={{ fontSize: 13, color: "#999999" }}>Set rates via the API or MCP.</p>
           </div>
         ) : (
           <table className="w-full">
@@ -234,10 +228,10 @@ function CurrenciesTab({ currencies, exchangeRates }: { currencies: any[]; excha
             <tbody>
               {exchangeRates.map((r: any) => (
                 <tr key={r.id} className="table-row">
-                  <td className="table-cell font-mono text-sm font-semibold">{r.fromCurrency}</td>
-                  <td className="table-cell font-mono text-sm font-semibold">{r.toCurrency}</td>
-                  <td className="table-cell text-right font-mono text-sm" style={{ fontVariantNumeric: "tabular-nums" }}>{fmtRate(r.rate)}</td>
-                  <td className="table-cell text-sm">{fmtDate(r.effectiveDate)}</td>
+                  <td className="table-cell font-mono" style={{ fontSize: 13, fontWeight: 600 }}>{r.fromCurrency}</td>
+                  <td className="table-cell font-mono" style={{ fontSize: 13, fontWeight: 600 }}>{r.toCurrency}</td>
+                  <td className="table-cell text-right font-mono" style={{ fontSize: 13, fontVariantNumeric: "tabular-nums" }}>{fmtRate(r.rate)}</td>
+                  <td className="table-cell" style={{ fontSize: 13 }}>{fmtDate(r.effectiveDate)}</td>
                   <td className="table-cell"><span className="badge badge-blue">{r.source}</span></td>
                 </tr>
               ))}
@@ -286,7 +280,7 @@ function ApiKeysTab({ initialKeys }: { initialKeys: ApiKeySafe[] }) {
       <div>
         <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
           <div className="section-label">API Keys</div>
-          <button className="btn-primary text-sm" style={{ padding: "8px 16px" }} onClick={() => setShowCreateModal(true)}>
+          <button className="btn-primary" style={{ fontSize: 13 }} onClick={() => setShowCreateModal(true)}>
             Create new key
           </button>
         </div>
@@ -305,10 +299,10 @@ function ApiKeysTab({ initialKeys }: { initialKeys: ApiKeySafe[] }) {
             <tbody>
               {keys.map((key) => (
                 <tr key={key.id} className="table-row">
-                  <td className="table-cell text-sm font-medium">{key.name}</td>
-                  <td className="table-cell font-mono text-xs" style={{ color: "#3B82F6" }}>{key.prefix}...</td>
-                  <td className="table-cell text-sm">{formatDate(key.createdAt)}</td>
-                  <td className="table-cell text-sm">{key.lastUsedAt ? formatDate(key.lastUsedAt) : "Never"}</td>
+                  <td className="table-cell" style={{ fontSize: 13, fontWeight: 500 }}>{key.name}</td>
+                  <td className="table-cell font-mono" style={{ fontSize: 12, color: "#0066FF" }}>{key.prefix}...</td>
+                  <td className="table-cell" style={{ fontSize: 13 }}>{formatDate(key.createdAt)}</td>
+                  <td className="table-cell" style={{ fontSize: 13 }}>{key.lastUsedAt ? formatDate(key.lastUsedAt) : "Never"}</td>
                   <td className="table-cell text-right">
                     <span className={"badge " + (key.status === "active" ? "badge-green" : "badge-red")}>{key.status}</span>
                   </td>
@@ -316,12 +310,12 @@ function ApiKeysTab({ initialKeys }: { initialKeys: ApiKeySafe[] }) {
                     {key.status === "active" && (
                       confirmRevoke === key.id ? (
                         <span className="flex items-center justify-end gap-2">
-                          <span className="text-xs" style={{ color: "#DC2626" }}>Confirm?</span>
-                          <button className="text-xs font-medium" style={{ color: "#DC2626", background: "none", border: "none", cursor: "pointer" }} onClick={() => handleRevoke(key.id)}>Yes</button>
-                          <button className="btn-ghost text-xs" onClick={() => setConfirmRevoke(null)}>No</button>
+                          <span style={{ fontSize: 12, color: "#DC2626" }}>Confirm?</span>
+                          <button style={{ fontSize: 12, fontWeight: 500, color: "#DC2626", background: "none", border: "none", cursor: "pointer" }} onClick={() => handleRevoke(key.id)}>Yes</button>
+                          <button className="btn-ghost" style={{ fontSize: 12 }} onClick={() => setConfirmRevoke(null)}>No</button>
                         </span>
                       ) : (
-                        <button className="btn-ghost text-xs" onClick={() => setConfirmRevoke(key.id)}>Revoke</button>
+                        <button className="btn-ghost" style={{ fontSize: 12 }} onClick={() => setConfirmRevoke(key.id)}>Revoke</button>
                       )
                     )}
                   </td>
@@ -329,7 +323,7 @@ function ApiKeysTab({ initialKeys }: { initialKeys: ApiKeySafe[] }) {
               ))}
               {keys.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="table-cell text-center text-sm" style={{ color: "rgba(0,0,0,0.36)", padding: 48 }}>
+                  <td colSpan={6} className="table-cell text-center" style={{ fontSize: 13, color: "#999999", padding: 48 }}>
                     No API keys yet
                   </td>
                 </tr>
@@ -344,22 +338,22 @@ function ApiKeysTab({ initialKeys }: { initialKeys: ApiKeySafe[] }) {
         <button
           onClick={() => setMcpExpanded(!mcpExpanded)}
           className="flex items-center justify-between w-full"
-          style={{ padding: "20px 24px", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
+          style={{ padding: "16px 20px", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
         >
           <div>
-            <div className="text-sm font-semibold" style={{ color: "#0A0A0A" }}>MCP Connection Guide</div>
-            <div className="text-xs" style={{ color: "rgba(0,0,0,0.36)", marginTop: 2 }}>Connect Ledge to Claude Code or Cursor</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#0A0A0A" }}>MCP Connection Guide</div>
+            <div style={{ fontSize: 12, color: "#999999", marginTop: 2 }}>Connect Ledge to Claude Code or Cursor</div>
           </div>
           <svg
-            width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="rgba(0,0,0,0.36)" strokeWidth="1.5"
-            style={{ transform: mcpExpanded ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 200ms" }}
+            width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#999999" strokeWidth="1.5"
+            style={{ transform: mcpExpanded ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 150ms ease" }}
           >
             <path d="M4 6l4 4 4-4" />
           </svg>
         </button>
 
         {mcpExpanded && (
-          <div style={{ padding: "0 24px 24px", borderTop: "1px solid rgba(0,0,0,0.06)" }}>
+          <div style={{ padding: "0 20px 20px", borderTop: "1px solid #E5E5E5" }}>
             <McpGuideContent />
           </div>
         )}
@@ -372,10 +366,21 @@ function ApiKeysTab({ initialKeys }: { initialKeys: ApiKeySafe[] }) {
           style={{ backgroundColor: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)" }}
           onClick={() => { if (!createdKey) setShowCreateModal(false); }}
         >
-          <div className="card" style={{ width: 500, padding: 36, transform: "translateY(-20px)" }} onClick={(e) => e.stopPropagation()}>
+          <div
+            style={{
+              width: 480,
+              padding: 32,
+              backgroundColor: "#FFFFFF",
+              borderRadius: 8,
+              border: "1px solid #E5E5E5",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+              transform: "translateY(-20px)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
             {!createdKey ? (
               <>
-                <h2 className="font-bold" style={{ fontSize: 20, marginBottom: 20, fontFamily: "var(--font-family-display)" }}>Create API Key</h2>
+                <h2 style={{ fontSize: 16, fontWeight: 600, color: "#0A0A0A", marginBottom: 20 }}>Create API Key</h2>
                 <input
                   type="text"
                   className="input"
@@ -395,15 +400,15 @@ function ApiKeysTab({ initialKeys }: { initialKeys: ApiKeySafe[] }) {
               </>
             ) : (
               <>
-                <h2 className="font-bold" style={{ fontSize: 20, marginBottom: 8, fontFamily: "var(--font-family-display)" }}>Key Created</h2>
-                <p className="text-sm" style={{ color: "#D97706", marginBottom: 20 }}>
+                <h2 style={{ fontSize: 16, fontWeight: 600, color: "#0A0A0A", marginBottom: 8 }}>Key Created</h2>
+                <p style={{ fontSize: 13, color: "#D97706", marginBottom: 20 }}>
                   Copy this key now. You won&apos;t be able to see it again.
                 </p>
                 <div
                   className="flex items-center justify-between"
-                  style={{ borderRadius: 14, padding: 16, marginBottom: 20, gap: 12, backgroundColor: "#F7F7F6", border: "1px solid rgba(0,0,0,0.10)" }}
+                  style={{ borderRadius: 8, padding: 16, marginBottom: 20, gap: 12, backgroundColor: "#FAFAFA", border: "1px solid #E5E5E5" }}
                 >
-                  <code className="text-sm font-mono" style={{ color: "#3B82F6", wordBreak: "break-all" }}>{createdKey}</code>
+                  <code className="font-mono" style={{ fontSize: 13, color: "#0066FF", wordBreak: "break-all" }}>{createdKey}</code>
                   <CopyButton text={createdKey} />
                 </div>
                 <div className="flex justify-end">
@@ -462,20 +467,22 @@ function McpGuideContent() {
 
   return (
     <div style={{ paddingTop: 20 }}>
-      <div className="flex" style={{ gap: 6, marginBottom: 20 }}>
+      <div className="flex" style={{ gap: 4, marginBottom: 20 }}>
         {(["claude-code", "cursor"] as const).map((key) => (
           <button
             key={key}
             onClick={() => setActiveTool(key)}
             style={{
-              padding: "8px 14px",
-              borderRadius: 8,
+              padding: "0 12px",
+              height: 32,
+              borderRadius: 6,
               fontSize: 13,
               fontWeight: 500,
-              backgroundColor: activeTool === key ? "rgba(59,130,246,0.1)" : "transparent",
-              color: activeTool === key ? "#3B82F6" : "rgba(0,0,0,0.36)",
-              border: activeTool === key ? "1px solid rgba(59,130,246,0.3)" : "1px solid transparent",
+              backgroundColor: activeTool === key ? "#F0F6FF" : "transparent",
+              color: activeTool === key ? "#0066FF" : "#999999",
+              border: activeTool === key ? "1px solid rgba(0,102,255,0.2)" : "1px solid transparent",
               cursor: "pointer",
+              transition: "all 150ms ease",
             }}
           >
             {configs[key].label}
@@ -484,20 +491,20 @@ function McpGuideContent() {
       </div>
 
       <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
-        <div className="text-xs font-medium" style={{ color: "rgba(0,0,0,0.36)" }}>
-          <code className="font-mono" style={{ color: "#3B82F6" }}>{cfg.file}</code>
+        <div style={{ fontSize: 12, color: "#999999", fontWeight: 500 }}>
+          <code className="font-mono" style={{ color: "#0066FF" }}>{cfg.file}</code>
         </div>
         <CopyButton text={cfg.config} label="Copy" />
       </div>
       <div
         style={{
-          borderRadius: 12,
+          borderRadius: 8,
           padding: 16,
-          backgroundColor: "#F3F3F1",
-          border: "1px solid rgba(0,0,0,0.10)",
+          backgroundColor: "#FAFAFA",
+          border: "1px solid #E5E5E5",
         }}
       >
-        <pre className="font-mono text-xs overflow-x-auto" style={{ color: "rgba(0,0,0,0.55)", lineHeight: 1.7 }}>
+        <pre className="font-mono overflow-x-auto" style={{ fontSize: 12, color: "#666666", lineHeight: 1.7 }}>
           {cfg.config}
         </pre>
       </div>
@@ -514,7 +521,7 @@ function BillingTab({ billing }: { billing: BillingStatus }) {
   const isFree = billing.plan === "free";
   const limit = billing.usage.limit ?? Infinity;
   const pct = limit === Infinity ? 0 : Math.min((billing.usage.count / limit) * 100, 100);
-  const barColor = pct >= 100 ? "#DC2626" : pct >= 80 ? "#D97706" : "#3B82F6";
+  const barColor = pct >= 100 ? "#DC2626" : pct >= 80 ? "#D97706" : "#0066FF";
 
   const handleUpgrade = () => {
     setRedirecting(true);
@@ -551,49 +558,49 @@ function BillingTab({ billing }: { billing: BillingStatus }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <div className="grid grid-cols-2" style={{ gap: 20 }}>
+      <div className="grid grid-cols-2" style={{ gap: 16 }}>
         {/* Current Plan */}
         <div className="card">
-          <div className="section-label" style={{ marginBottom: 14 }}>Current Plan</div>
+          <div className="section-label" style={{ marginBottom: 12 }}>Current Plan</div>
           <div className="flex items-center gap-3" style={{ marginBottom: 12 }}>
-            <span className="font-bold" style={{ fontSize: 28, color: "#0A0A0A", letterSpacing: "-0.02em", fontFamily: "var(--font-family-display)" }}>
+            <span className="font-mono" style={{ fontSize: 28, fontWeight: 600, color: "#0A0A0A", letterSpacing: "-0.02em" }}>
               {planLabel(billing.plan)}
             </span>
             <span className={"badge " + (isFree ? "badge-blue" : "badge-green")}>{planPrice(billing.plan)}</span>
           </div>
-          <p className="text-sm" style={{ color: "rgba(0,0,0,0.55)", lineHeight: 1.6 }}>
+          <p style={{ fontSize: 13, color: "#666666", lineHeight: 1.6 }}>
             {isFree ? "500 transactions per month." : "Unlimited transactions. All features unlocked."}
           </p>
         </div>
 
         {/* Usage */}
         <div className="card">
-          <div className="section-label" style={{ marginBottom: 14 }}>Monthly Usage</div>
-          <div className="flex items-baseline gap-2" style={{ marginBottom: 14 }}>
-            <span className="font-bold font-mono" style={{ fontSize: 28, color: pct >= 100 ? "#DC2626" : "#0A0A0A", letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }}>
+          <div className="section-label" style={{ marginBottom: 12 }}>Monthly Usage</div>
+          <div className="flex items-baseline gap-2" style={{ marginBottom: 12 }}>
+            <span className="font-mono" style={{ fontSize: 28, fontWeight: 600, color: pct >= 100 ? "#DC2626" : "#0A0A0A", letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }}>
               {billing.usage.count.toLocaleString()}
             </span>
-            <span className="text-sm" style={{ color: "rgba(0,0,0,0.36)" }}>
+            <span style={{ fontSize: 13, color: "#999999" }}>
               {billing.usage.limit != null ? `/ ${billing.usage.limit.toLocaleString()} transactions` : "transactions (unlimited)"}
             </span>
           </div>
           {billing.usage.limit != null && (
-            <div style={{ width: "100%", height: 8, borderRadius: 4, backgroundColor: "rgba(0,0,0,0.06)", overflow: "hidden", marginBottom: 12 }}>
-              <div style={{ width: pct + "%", height: "100%", borderRadius: 4, backgroundColor: barColor, transition: "width 600ms cubic-bezier(0.16, 1, 0.3, 1)" }} />
+            <div style={{ width: "100%", height: 6, borderRadius: 3, backgroundColor: "#E5E5E5", overflow: "hidden", marginBottom: 12 }}>
+              <div style={{ width: pct + "%", height: "100%", borderRadius: 3, backgroundColor: barColor, transition: "width 600ms ease" }} />
             </div>
           )}
-          <div className="text-xs" style={{ color: "rgba(0,0,0,0.36)" }}>Resets on {fmtDate(billing.nextResetDate)}</div>
+          <div style={{ fontSize: 12, color: "#999999" }}>Resets on {fmtDate(billing.nextResetDate)}</div>
         </div>
       </div>
 
       {/* Pending notice */}
       {billing.pendingTransactions > 0 && (
-        <div style={{ borderRadius: 18, padding: "20px 24px", backgroundColor: "rgba(217,119,6,0.06)", border: "1px solid rgba(217,119,6,0.15)" }}>
+        <div style={{ borderRadius: 8, padding: "16px 20px", backgroundColor: "#FFFBEB", border: "1px solid #FDE68A" }}>
           <div className="flex items-center gap-3">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#D97706" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="#D97706" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="10" cy="10" r="8" /><path d="M10 6.5v4" /><circle cx="10" cy="13.5" r="0.5" fill="#D97706" />
             </svg>
-            <span className="text-sm font-medium" style={{ color: "#92400E" }}>
+            <span style={{ fontSize: 13, fontWeight: 500, color: "#92400E" }}>
               {billing.pendingTransactions} transaction{billing.pendingTransactions !== 1 ? "s" : ""} queued
             </span>
           </div>
@@ -604,26 +611,26 @@ function BillingTab({ billing }: { billing: BillingStatus }) {
       <div className="card">
         {isFree ? (
           <div>
-            <div className="section-label" style={{ marginBottom: 14 }}>Upgrade</div>
-            <p className="text-sm" style={{ color: "rgba(0,0,0,0.55)", lineHeight: 1.6, marginBottom: 20 }}>
+            <div className="section-label" style={{ marginBottom: 12 }}>Upgrade</div>
+            <p style={{ fontSize: 13, color: "#666666", lineHeight: 1.6, marginBottom: 20 }}>
               Get unlimited transactions, instant posting, and bank feed integration.
             </p>
-            <button className="btn-primary" style={{ padding: "12px 28px", fontSize: 14 }} onClick={handleUpgrade} disabled={isPending || redirecting}>
+            <button className="btn-primary" onClick={handleUpgrade} disabled={isPending || redirecting}>
               {redirecting ? "Redirecting to Stripe..." : "Upgrade to Builder \u2014 $19/month"}
             </button>
           </div>
         ) : (
           <div>
-            <div className="section-label" style={{ marginBottom: 14 }}>Manage Subscription</div>
-            <p className="text-sm" style={{ color: "rgba(0,0,0,0.55)", lineHeight: 1.6, marginBottom: 8 }}>
+            <div className="section-label" style={{ marginBottom: 12 }}>Manage Subscription</div>
+            <p style={{ fontSize: 13, color: "#666666", lineHeight: 1.6, marginBottom: 8 }}>
               Update payment method, view invoices, or cancel your subscription.
             </p>
             {billing.periodEnd && (
-              <p className="text-xs" style={{ color: "rgba(0,0,0,0.36)", marginBottom: 20 }}>
+              <p style={{ fontSize: 12, color: "#999999", marginBottom: 20 }}>
                 Current period: {fmtDate(billing.periodStart)} {"\u2014"} {fmtDate(billing.periodEnd)}
               </p>
             )}
-            <button className="btn-secondary" style={{ padding: "12px 28px", fontSize: 14 }} onClick={handleManage} disabled={isPending || redirecting}>
+            <button className="btn-secondary" onClick={handleManage} disabled={isPending || redirecting}>
               {redirecting ? "Redirecting to Stripe..." : "Manage Subscription"}
             </button>
           </div>

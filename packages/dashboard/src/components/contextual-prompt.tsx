@@ -15,17 +15,16 @@ export function ContextualPrompt({ placeholder }: { placeholder: string }) {
         gap: 8,
         padding: "7px 14px",
         borderRadius: 8,
-        border: "1px solid rgba(0,0,0,0.10)",
+        border: "1px solid #E5E5E5",
         backgroundColor: "transparent",
         cursor: "pointer",
         fontSize: 13,
-        color: "rgba(0,0,0,0.36)",
-        fontFamily: "var(--font-family-body)",
+        color: "#999999",
         fontWeight: 400,
-        transition: "all 200ms cubic-bezier(0.16, 1, 0.3, 1)",
+        transition: "all 150ms ease",
       }}
     >
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.28)" strokeWidth="2" strokeLinecap="round">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#999999" strokeWidth="2" strokeLinecap="round">
         <circle cx="11" cy="11" r="8" />
         <line x1="21" y1="21" x2="16.65" y2="16.65" />
       </svg>

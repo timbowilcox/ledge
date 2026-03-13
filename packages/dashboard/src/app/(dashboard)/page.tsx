@@ -46,15 +46,14 @@ export default async function OverviewPage() {
   return (
     <div>
       {/* Greeting */}
-      <div style={{ marginBottom: 32, display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+      <div style={{ marginBottom: 24, display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
         <div>
           <h1
-            className="font-semibold"
-            style={{ fontSize: 28, color: "#0A0A0A", fontFamily: "var(--font-heading)", marginBottom: 8 }}
+            style={{ fontSize: 20, fontWeight: 600, color: "#0A0A0A", marginBottom: 4 }}
           >
             {getGreeting()}, {firstName}
           </h1>
-          <p className="text-sm" style={{ color: "rgba(0,0,0,0.45)" }}>
+          <p style={{ fontSize: 13, color: "#999999" }}>
             {ledger.name} &middot; {ledger.currency} &middot; {ledger.accountingBasis}
           </p>
         </div>
@@ -62,29 +61,29 @@ export default async function OverviewPage() {
       </div>
 
       {/* Metric cards */}
-      <div className="grid grid-cols-4" style={{ gap: 20, marginBottom: 32 }}>
-        <MetricCard label="Accounts" value={formatNumber(accountCount)} variant="default" />
-        <MetricCard label="Total Assets" value={formatCurrency(totalAssets)} mono variant="blue" />
-        <MetricCard label="Revenue" value={formatCurrency(totalRevenue)} mono variant="green" />
-        <MetricCard label="Expenses" value={formatCurrency(totalExpenses)} mono variant="red" />
+      <div className="grid grid-cols-4" style={{ gap: 16, marginBottom: 32 }}>
+        <MetricCard label="Accounts" value={formatNumber(accountCount)} />
+        <MetricCard label="Total Assets" value={formatCurrency(totalAssets)} />
+        <MetricCard label="Revenue" value={formatCurrency(totalRevenue)} />
+        <MetricCard label="Expenses" value={formatCurrency(totalExpenses)} />
       </div>
 
       {/* Quick actions */}
       <div style={{ marginBottom: 32 }}>
-        <div className="section-label" style={{ marginBottom: 12 }}>Quick Actions</div>
+        <div className="section-label" style={{ marginBottom: 8 }}>Quick Actions</div>
         <div className="flex" style={{ gap: 12 }}>
           <QuickAction
-            icon={<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#3B82F6" strokeWidth="1.5" strokeLinecap="round"><path d="M8 3v10M3 8h10" /></svg>}
+            icon={<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#0066FF" strokeWidth="1.5" strokeLinecap="round"><path d="M8 3v10M3 8h10" /></svg>}
             label="Post transaction"
             href="/transactions"
           />
           <QuickAction
-            icon={<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#3B82F6" strokeWidth="1.5" strokeLinecap="round"><path d="M2 13V5M5.5 13V7.5M9 13V3M12.5 13V9" /></svg>}
+            icon={<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#0066FF" strokeWidth="1.5" strokeLinecap="round"><path d="M2 13V5M5.5 13V7.5M9 13V3M12.5 13V9" /></svg>}
             label="Generate statement"
             href="/statements"
           />
           <QuickAction
-            icon={<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#3B82F6" strokeWidth="1.5" strokeLinecap="round"><path d="M2 3h12M3 3v10M13 3v10M2 13h12M2 6.5h12" /></svg>}
+            icon={<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#0066FF" strokeWidth="1.5" strokeLinecap="round"><path d="M2 3h12M3 3v10M13 3v10M2 13h12M2 6.5h12" /></svg>}
             label="Connect bank account"
             href="/bank-feeds"
           />
@@ -95,10 +94,10 @@ export default async function OverviewPage() {
       <div className="card" style={{ padding: 0 }}>
         <div
           className="flex items-center justify-between"
-          style={{ padding: "20px 24px" }}
+          style={{ padding: "16px 20px" }}
         >
           <span className="section-label">Recent Transactions</span>
-          <Link href="/transactions" className="btn-ghost text-xs">
+          <Link href="/transactions" className="btn-ghost" style={{ fontSize: 12, height: 28, padding: "0 8px" }}>
             View all &rarr;
           </Link>
         </div>
@@ -106,10 +105,10 @@ export default async function OverviewPage() {
         <table className="w-full">
           <thead>
             <tr>
-              <th className="table-header" style={{ position: "sticky", top: 0, backgroundColor: "#F7F7F6", zIndex: 1 }}>Date</th>
-              <th className="table-header" style={{ position: "sticky", top: 0, backgroundColor: "#F7F7F6", zIndex: 1 }}>Description</th>
-              <th className="table-header text-right" style={{ position: "sticky", top: 0, backgroundColor: "#F7F7F6", zIndex: 1 }}>Amount</th>
-              <th className="table-header text-right" style={{ position: "sticky", top: 0, backgroundColor: "#F7F7F6", zIndex: 1 }}>Status</th>
+              <th className="table-header" style={{ position: "sticky", top: 0, zIndex: 1 }}>Date</th>
+              <th className="table-header" style={{ position: "sticky", top: 0, zIndex: 1 }}>Description</th>
+              <th className="table-header text-right" style={{ position: "sticky", top: 0, zIndex: 1 }}>Amount</th>
+              <th className="table-header text-right" style={{ position: "sticky", top: 0, zIndex: 1 }}>Status</th>
             </tr>
           </thead>
           <tbody>
@@ -119,9 +118,9 @@ export default async function OverviewPage() {
                 .reduce((sum, l) => sum + l.amount, 0);
               return (
                 <tr key={tx.id} className="table-row">
-                  <td className="table-cell font-mono text-sm" style={{ color: "#64748b" }}>{formatDate(tx.date)}</td>
-                  <td className="table-cell text-sm" style={{ color: "#0f172a", fontWeight: 500 }}>{tx.memo}</td>
-                  <td className="table-cell text-right font-mono text-sm" style={{ fontVariantNumeric: "tabular-nums" }}>
+                  <td className="table-cell font-mono" style={{ fontSize: 13, color: "#666666" }}>{formatDate(tx.date)}</td>
+                  <td className="table-cell" style={{ fontSize: 13, color: "#0A0A0A", fontWeight: 500 }}>{tx.memo}</td>
+                  <td className="table-cell text-right font-mono" style={{ fontSize: 13 }}>
                     {formatCurrency(totalDebit)}
                   </td>
                   <td className="table-cell text-right">
@@ -136,7 +135,7 @@ export default async function OverviewPage() {
               <tr>
                 <td colSpan={4} className="table-cell text-center" style={{ padding: 48 }}>
                   <EmptyState
-                    icon={<svg width="40" height="40" viewBox="0 0 40 40" fill="none" stroke="rgba(0,0,0,0.15)" strokeWidth="1.5" strokeLinecap="round"><path d="M6 11h28M6 20h28M6 29h18" /></svg>}
+                    icon={<svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="#D4D4D4" strokeWidth="1.5" strokeLinecap="round"><path d="M8 14h32M8 24h32M8 34h20" /></svg>}
                     title="No transactions yet"
                     description="Post your first transaction to see it here."
                     actionLabel="Post transaction"
@@ -155,31 +154,14 @@ export default async function OverviewPage() {
 function MetricCard({
   label,
   value,
-  mono = false,
-  variant = "default",
 }: {
   label: string;
   value: string;
-  mono?: boolean;
-  variant?: "default" | "blue" | "green" | "red";
 }) {
-  const colors = {
-    default: { bg: "#f8fafc", value: "#0f172a", spark: "#94a3b8" },
-    blue: { bg: "#eff6ff", value: "#2563eb", spark: "#3b82f6" },
-    green: { bg: "#ecfdf5", value: "#059669", spark: "#10b981" },
-    red: { bg: "#fef2f2", value: "#dc2626", spark: "#f87171" },
-  };
-  const { bg: bgColor, value: valueColor, spark: sparkColor } = colors[variant];
   return (
-    <div className="stat-card" style={{ backgroundColor: bgColor }}>
+    <div className="stat-card">
       <div className="stat-card-label">{label}</div>
-      <div
-        className={"stat-card-value " + (mono ? "font-mono" : "")}
-        style={{ color: valueColor }}
-      >
-        {value}
-      </div>
-      <div className="stat-sparkline" style={{ backgroundColor: sparkColor, width: "60%" }} />
+      <div className="stat-card-value">{value}</div>
     </div>
   );
 }
@@ -190,16 +172,17 @@ function QuickAction({ icon, label, href }: { icon: React.ReactNode; label: stri
       href={href}
       className="flex items-center gap-3 quick-action"
       style={{
-        padding: "12px 20px",
-        borderRadius: 16,
-        border: "none",
-        backgroundColor: "#f8fafc",
+        padding: "8px 16px",
+        borderRadius: 8,
+        border: "1px solid #E5E5E5",
+        backgroundColor: "#FFFFFF",
         fontSize: 13,
         fontWeight: 500,
         color: "#0A0A0A",
+        height: 40,
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: 8, backgroundColor: "rgba(59,130,246,0.08)" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 28, height: 28, borderRadius: 6, backgroundColor: "#F0F6FF" }}>
         {icon}
       </div>
       {label}
@@ -209,12 +192,12 @@ function QuickAction({ icon, label, href }: { icon: React.ReactNode; label: stri
 
 function EmptyState({ icon, title, description, actionLabel, actionHref }: { icon: React.ReactNode; title: string; description: string; actionLabel?: string; actionHref?: string }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, maxWidth: 320, margin: "0 auto" }}>
       <div style={{ marginBottom: 8 }}>{icon}</div>
-      <div className="text-sm font-medium" style={{ color: "#0A0A0A" }}>{title}</div>
-      <div className="text-xs" style={{ color: "rgba(0,0,0,0.36)", maxWidth: 280 }}>{description}</div>
+      <div style={{ fontSize: 14, fontWeight: 500, color: "#0A0A0A" }}>{title}</div>
+      <div style={{ fontSize: 13, color: "#999999" }}>{description}</div>
       {actionLabel && actionHref && (
-        <Link href={actionHref} className="btn-primary text-xs" style={{ marginTop: 12, padding: "8px 16px" }}>
+        <Link href={actionHref} className="btn-primary" style={{ marginTop: 12 }}>
           {actionLabel}
         </Link>
       )}

@@ -13,10 +13,6 @@ const typeLabels: Record<string, string> = {
   asset: "Asset", liability: "Liability", equity: "Equity", revenue: "Revenue", expense: "Expense",
 };
 
-const typeColors: Record<string, string> = {
-  asset: "#3B82F6", liability: "#D97706", equity: "#8B5CF6", revenue: "#059669", expense: "#64748B",
-};
-
 export function AccountsView({ accounts }: { accounts: AccountWithBalance[] }) {
   const [expanded, setExpanded] = useState<Set<string>>(
     new Set(["asset", "liability", "equity", "revenue", "expense"])
@@ -45,11 +41,8 @@ export function AccountsView({ accounts }: { accounts: AccountWithBalance[] }) {
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
-        <h1
-          className="font-semibold"
-          style={{ fontSize: 28, color: "#0A0A0A", fontFamily: "var(--font-heading)" }}
-        >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+        <h1 style={{ fontSize: 20, fontWeight: 600, color: "#0A0A0A" }}>
           Account Tree
         </h1>
         <ContextualPrompt placeholder="Ask about account balances..." />
@@ -59,9 +52,9 @@ export function AccountsView({ accounts }: { accounts: AccountWithBalance[] }) {
         <table className="w-full">
           <thead>
             <tr>
-              <th className="table-header" style={{ width: 120, position: "sticky", top: 0, backgroundColor: "#F7F7F6", zIndex: 1 }}>Code</th>
-              <th className="table-header" style={{ position: "sticky", top: 0, backgroundColor: "#F7F7F6", zIndex: 1 }}>Account Name</th>
-              <th className="table-header text-right" style={{ width: 160, position: "sticky", top: 0, backgroundColor: "#F7F7F6", zIndex: 1 }}>Balance</th>
+              <th className="table-header" style={{ width: 120, position: "sticky", top: 0, zIndex: 1 }}>Code</th>
+              <th className="table-header" style={{ position: "sticky", top: 0, zIndex: 1 }}>Account Name</th>
+              <th className="table-header text-right" style={{ width: 160, position: "sticky", top: 0, zIndex: 1 }}>Balance</th>
             </tr>
           </thead>
           <tbody>
@@ -105,48 +98,48 @@ function GroupRows({
       <tr
         className="cursor-pointer table-row"
         onClick={onToggle}
-        style={{ backgroundColor: "rgba(0,0,0,0.02)" }}
+        style={{ backgroundColor: "#FAFAFA" }}
       >
         <td className="table-cell" colSpan={2}>
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             <svg
               width="14" height="14" viewBox="0 0 14 14"
-              fill="none" stroke="rgba(0,0,0,0.36)" strokeWidth="1.5"
+              fill="none" stroke="#999999" strokeWidth="1.5"
               style={{
                 transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
-                transition: "transform 200ms cubic-bezier(0.16, 1, 0.3, 1)",
+                transition: "transform 150ms ease",
               }}
             >
               <path d="M5 3l4 4-4 4" />
             </svg>
-            <span className="text-sm font-semibold" style={{ color: typeColors[type] ?? "#0f172a" }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "#0A0A0A" }}>
               {(typeLabels[type] ?? type).replace(/y$/,"ie")+"s"}
             </span>
-            <span className="text-xs" style={{ color: "rgba(0,0,0,0.28)" }}>
+            <span style={{ fontSize: 12, color: "#999999" }}>
               ({accounts.length})
             </span>
           </div>
         </td>
         <td
-          className="table-cell text-right font-mono text-sm font-medium"
-          style={{ color: groupTotal < 0 ? "#EF4444" : "#0f172a", fontVariantNumeric: "tabular-nums" }}
+          className="table-cell text-right font-mono"
+          style={{ fontSize: 13, fontWeight: 500, color: groupTotal < 0 ? "#DC2626" : "#0A0A0A" }}
         >
           {formatCurrency(Math.abs(groupTotal))}
         </td>
       </tr>
 
       {isExpanded &&
-        accounts.map((account, idx) => (
-          <tr key={account.id} className="table-row" style={{ backgroundColor: idx % 2 === 1 ? "#f8fafc" : undefined }}>
+        accounts.map((account) => (
+          <tr key={account.id} className="table-row">
             <td className="table-cell" style={{ paddingLeft: 44 }}>
-              <code className="text-xs font-mono" style={{ color: "#94a3b8" }}>
+              <code className="font-mono" style={{ fontSize: 12, color: "#999999" }}>
                 {account.code}
               </code>
             </td>
-            <td className="table-cell text-sm" style={{ color: "#0f172a" }}>{account.name}</td>
+            <td className="table-cell" style={{ fontSize: 13, color: "#0A0A0A" }}>{account.name}</td>
             <td
-              className="table-cell text-right font-mono text-sm"
-              style={{ color: account.balance < 0 ? "#EF4444" : "#0f172a", fontVariantNumeric: "tabular-nums" }}
+              className="table-cell text-right font-mono"
+              style={{ fontSize: 13, color: account.balance < 0 ? "#DC2626" : "#0A0A0A" }}
             >
               {formatCurrency(Math.abs(account.balance))}
             </td>

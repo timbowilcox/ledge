@@ -41,42 +41,40 @@ export function TransactionsView({ initialData, accountMap }: Props) {
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
-        <h1
-          className="font-semibold"
-          style={{ fontSize: 28, color: "#0A0A0A", fontFamily: "var(--font-heading)" }}
-        >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+        <h1 style={{ fontSize: 20, fontWeight: 600, color: "#0A0A0A" }}>
           Transactions
         </h1>
         <ContextualPrompt placeholder="Search or ask about transactions..." />
       </div>
 
       {/* Search and filters */}
-      <div className="flex items-center" style={{ gap: 16, marginBottom: 24 }}>
+      <div className="flex items-center" style={{ gap: 12, marginBottom: 24 }}>
         <input
           type="text"
           className="input"
-          style={{ maxWidth: 340 }}
+          style={{ maxWidth: 320 }}
           placeholder="Search transactions..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-        <div className="flex" style={{ gap: 6 }}>
+        <div className="flex" style={{ gap: 4 }}>
           {(["all", "posted", "reversed"] as const).map((s) => (
             <button
               key={s}
               onClick={() => setFilter(s)}
               className="capitalize"
               style={{
-                padding: "8px 14px",
-                borderRadius: 10,
+                padding: "0 12px",
+                height: 32,
+                borderRadius: 6,
                 fontSize: 13,
                 fontWeight: 500,
-                backgroundColor: filter === s ? "rgba(59,130,246,0.1)" : "transparent",
-                color: filter === s ? "#3B82F6" : "rgba(0,0,0,0.36)",
-                border: filter === s ? "1px solid rgba(59,130,246,0.3)" : "1px solid transparent",
+                backgroundColor: filter === s ? "#F0F6FF" : "transparent",
+                color: filter === s ? "#0066FF" : "#999999",
+                border: filter === s ? "1px solid rgba(0,102,255,0.2)" : "1px solid transparent",
                 cursor: "pointer",
-                transition: "all 200ms cubic-bezier(0.16, 1, 0.3, 1)",
+                transition: "all 150ms ease",
               }}
             >
               {s}
@@ -90,10 +88,10 @@ export function TransactionsView({ initialData, accountMap }: Props) {
         <table className="w-full">
           <thead>
             <tr>
-              <th className="table-header" style={{ width: 120, position: "sticky", top: 0, backgroundColor: "#F7F7F6", zIndex: 1 }}>Date</th>
-              <th className="table-header" style={{ position: "sticky", top: 0, backgroundColor: "#F7F7F6", zIndex: 1 }}>Description</th>
-              <th className="table-header text-right" style={{ width: 140, position: "sticky", top: 0, backgroundColor: "#F7F7F6", zIndex: 1 }}>Amount</th>
-              <th className="table-header text-right" style={{ width: 100, position: "sticky", top: 0, backgroundColor: "#F7F7F6", zIndex: 1 }}>Status</th>
+              <th className="table-header" style={{ width: 120, position: "sticky", top: 0, zIndex: 1 }}>Date</th>
+              <th className="table-header" style={{ position: "sticky", top: 0, zIndex: 1 }}>Description</th>
+              <th className="table-header text-right" style={{ width: 140, position: "sticky", top: 0, zIndex: 1 }}>Amount</th>
+              <th className="table-header text-right" style={{ width: 100, position: "sticky", top: 0, zIndex: 1 }}>Status</th>
             </tr>
           </thead>
           <tbody>
@@ -110,14 +108,14 @@ export function TransactionsView({ initialData, accountMap }: Props) {
             {filtered.length === 0 && (
               <tr>
                 <td colSpan={4} className="table-cell text-center" style={{ padding: 48 }}>
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, maxWidth: 320, margin: "0 auto" }}>
                     <div style={{ marginBottom: 8 }}>
-                      <svg width="40" height="40" viewBox="0 0 40 40" fill="none" stroke="rgba(0,0,0,0.15)" strokeWidth="1.5" strokeLinecap="round">
-                        <path d="M6 11h28M6 20h28M6 29h18" />
+                      <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="#D4D4D4" strokeWidth="1.5" strokeLinecap="round">
+                        <path d="M8 14h32M8 24h32M8 34h20" />
                       </svg>
                     </div>
-                    <div className="text-sm font-medium" style={{ color: "#0A0A0A" }}>No transactions found</div>
-                    <div className="text-xs" style={{ color: "rgba(0,0,0,0.36)", maxWidth: 280 }}>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: "#0A0A0A" }}>No transactions found</div>
+                    <div style={{ fontSize: 13, color: "#999999" }}>
                       {search || filter !== "all" ? "Try adjusting your search or filters." : "Post your first transaction to see it here."}
                     </div>
                   </div>
@@ -130,10 +128,10 @@ export function TransactionsView({ initialData, accountMap }: Props) {
 
       {/* Pagination */}
       {data.nextCursor && (
-        <div className="flex justify-end" style={{ marginTop: 20 }}>
+        <div className="flex justify-end" style={{ marginTop: 16 }}>
           <button
-            className="btn-secondary text-xs"
-            style={{ padding: "8px 16px" }}
+            className="btn-secondary"
+            style={{ fontSize: 12 }}
             onClick={loadNext}
             disabled={isPending}
           >
@@ -161,9 +159,9 @@ function TransactionRow({
   return (
     <>
       <tr className="table-row cursor-pointer" onClick={onToggle}>
-        <td className="table-cell font-mono text-sm" style={{ color: "#64748b" }}>{formatDate(tx.date)}</td>
-        <td className="table-cell text-sm" style={{ color: "#0f172a", fontWeight: 500 }}>{tx.memo}</td>
-        <td className="table-cell text-right font-mono text-sm" style={{ fontVariantNumeric: "tabular-nums", color: amount < 0 ? "#EF4444" : undefined }}>
+        <td className="table-cell font-mono" style={{ fontSize: 13, color: "#666666" }}>{formatDate(tx.date)}</td>
+        <td className="table-cell" style={{ fontSize: 13, color: "#0A0A0A", fontWeight: 500 }}>{tx.memo}</td>
+        <td className="table-cell text-right font-mono" style={{ fontSize: 13, color: amount < 0 ? "#DC2626" : undefined }}>
           {formatCurrency(amount)}
         </td>
         <td className="table-cell text-right">
@@ -179,17 +177,17 @@ function TransactionRow({
             <div
               style={{
                 margin: "0 16px 12px",
-                borderRadius: 14,
-                backgroundColor: "#F7F7F6",
-                border: "1px solid rgba(0,0,0,0.06)",
+                borderRadius: 8,
+                backgroundColor: "#FAFAFA",
+                border: "1px solid #E5E5E5",
               }}
             >
               <table className="w-full">
                 <thead>
                   <tr>
-                    <th className="table-header text-xs" style={{ paddingTop: 12, paddingBottom: 12 }}>Account</th>
-                    <th className="table-header text-xs text-right" style={{ paddingTop: 12, paddingBottom: 12, width: 120 }}>Debit</th>
-                    <th className="table-header text-xs text-right" style={{ paddingTop: 12, paddingBottom: 12, width: 120 }}>Credit</th>
+                    <th className="table-header" style={{ fontSize: 12, paddingTop: 12, paddingBottom: 12 }}>Account</th>
+                    <th className="table-header text-right" style={{ fontSize: 12, paddingTop: 12, paddingBottom: 12, width: 120 }}>Debit</th>
+                    <th className="table-header text-right" style={{ fontSize: 12, paddingTop: 12, paddingBottom: 12, width: 120 }}>Credit</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -197,18 +195,18 @@ function TransactionRow({
                     const acct = accountMap[line.accountId];
                     return (
                       <tr key={i}>
-                        <td className="table-cell text-sm" style={{ paddingTop: 10, paddingBottom: 10 }}>
+                        <td className="table-cell" style={{ fontSize: 13, paddingTop: 8, paddingBottom: 8 }}>
                           {acct && (
-                            <code className="font-mono text-xs" style={{ color: "#94a3b8", marginRight: 8 }}>
+                            <code className="font-mono" style={{ fontSize: 12, color: "#999999", marginRight: 8 }}>
                               {acct.code}
                             </code>
                           )}
-                          <span >{acct?.name ?? line.accountId}</span>
+                          <span>{acct?.name ?? line.accountId}</span>
                         </td>
-                        <td className="table-cell text-right font-mono text-sm" style={{ paddingTop: 10, paddingBottom: 10, fontVariantNumeric: "tabular-nums" }}>
+                        <td className="table-cell text-right font-mono" style={{ fontSize: 13, paddingTop: 8, paddingBottom: 8 }}>
                           {line.direction === "debit" ? formatCurrency(line.amount) : ""}
                         </td>
-                        <td className="table-cell text-right font-mono text-sm" style={{ paddingTop: 10, paddingBottom: 10, fontVariantNumeric: "tabular-nums" }}>
+                        <td className="table-cell text-right font-mono" style={{ fontSize: 13, paddingTop: 8, paddingBottom: 8 }}>
                           {line.direction === "credit" ? formatCurrency(line.amount) : ""}
                         </td>
                       </tr>

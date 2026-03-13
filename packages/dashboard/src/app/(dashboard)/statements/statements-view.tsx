@@ -13,9 +13,9 @@ import { ContextualPrompt } from "@/components/contextual-prompt";
 type Tab = "pnl" | "balance_sheet" | "cash_flow";
 
 const tabs: { key: Tab; label: string }[] = [
-  { key: "pnl", label: "Profit & Loss Statement" },
+  { key: "pnl", label: "Profit & Loss" },
   { key: "balance_sheet", label: "Balance Sheet" },
-  { key: "cash_flow", label: "Cash Flow Statement" },
+  { key: "cash_flow", label: "Cash Flow" },
 ];
 
 interface Props {
@@ -58,11 +58,8 @@ export function StatementsView({
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
-        <h1
-          className="font-semibold"
-          style={{ fontSize: 28, color: "#0A0A0A", fontFamily: "var(--font-heading)" }}
-        >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+        <h1 style={{ fontSize: 20, fontWeight: 600, color: "#0A0A0A" }}>
           Statements
         </h1>
         <ContextualPrompt placeholder="Generate or ask about statements..." />
@@ -73,7 +70,7 @@ export function StatementsView({
         style={{
           display: "flex",
           gap: 0,
-          borderBottom: "1px solid rgba(0,0,0,0.10)",
+          borderBottom: "1px solid #E5E5E5",
           marginBottom: 24,
         }}
       >
@@ -84,15 +81,15 @@ export function StatementsView({
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               style={{
-                padding: "12px 20px",
-                fontSize: 14,
+                padding: "8px 16px",
+                fontSize: 13,
                 fontWeight: isActive ? 600 : 500,
-                color: isActive ? "#3B82F6" : "rgba(0,0,0,0.36)",
+                color: isActive ? "#0066FF" : "#999999",
                 background: "none",
                 border: "none",
-                borderBottom: isActive ? "2px solid #3B82F6" : "2px solid transparent",
+                borderBottom: isActive ? "2px solid #0066FF" : "2px solid transparent",
                 cursor: "pointer",
-                transition: "all 200ms cubic-bezier(0.16, 1, 0.3, 1)",
+                transition: "all 150ms ease",
                 marginBottom: -1,
               }}
             >
@@ -103,29 +100,29 @@ export function StatementsView({
       </div>
 
       {/* Date range */}
-      <div className="flex items-center" style={{ gap: 16, marginBottom: 24 }}>
+      <div className="flex items-center" style={{ gap: 12, marginBottom: 24 }}>
         <div>
-          <label className="section-label block" style={{ marginBottom: 8 }}>Start</label>
+          <label className="section-label block" style={{ marginBottom: 4 }}>Start</label>
           <input
             type="date"
-            className="input text-sm"
-            style={{ width: 170 }}
+            className="input"
+            style={{ width: 160 }}
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
           />
         </div>
         <div>
-          <label className="section-label block" style={{ marginBottom: 8 }}>End</label>
+          <label className="section-label block" style={{ marginBottom: 4 }}>End</label>
           <input
             type="date"
-            className="input text-sm"
-            style={{ width: 170 }}
+            className="input"
+            style={{ width: 160 }}
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
           />
         </div>
         <div style={{ alignSelf: "flex-end" }}>
-          <button className="btn-primary text-sm" onClick={refresh} disabled={isPending}>
+          <button className="btn-primary" onClick={refresh} disabled={isPending}>
             {isPending ? "Loading..." : "Refresh"}
           </button>
         </div>
@@ -134,28 +131,25 @@ export function StatementsView({
       {/* Plain-language summary */}
       <div
         style={{
-          borderRadius: 18,
-          padding: 24,
+          borderRadius: 8,
+          padding: 20,
           marginBottom: 24,
-          backgroundColor: "rgba(59,130,246,0.06)",
-          border: "1px solid rgba(59,130,246,0.1)",
+          backgroundColor: "#FFFFFF",
+          border: "1px solid #E5E5E5",
         }}
       >
-        <p className="text-sm" style={{ color: "rgba(0,0,0,0.55)", lineHeight: 1.7 }}>
+        <p style={{ fontSize: 13, color: "#666666", lineHeight: 1.7 }}>
           {statement.plainLanguageSummary}
         </p>
       </div>
 
       {/* Statement table */}
       <div className="card" style={{ padding: 0 }}>
-        <div style={{ padding: "20px 24px" }}>
-          <h2
-            className="font-semibold"
-            style={{ fontSize: 18, fontFamily: "var(--font-heading)" }}
-          >
+        <div style={{ padding: "16px 20px" }}>
+          <h2 style={{ fontSize: 16, fontWeight: 600 }}>
             {formatStatementTitle(statement.statementType)}
           </h2>
-          <span className="text-xs" style={{ color: "rgba(0,0,0,0.36)" }}>
+          <span style={{ fontSize: 12, color: "#999999" }}>
             {activeTab === "balance_sheet"
               ? "As of " + endDate
               : startDate + " to " + endDate}
@@ -165,8 +159,8 @@ export function StatementsView({
         <table className="w-full">
           <thead>
             <tr>
-              <th className="table-header" style={{ position: "sticky", top: 0, backgroundColor: "#F7F7F6", zIndex: 1 }}>Account</th>
-              <th className="table-header text-right" style={{ width: 160, position: "sticky", top: 0, backgroundColor: "#F7F7F6", zIndex: 1 }}>Amount</th>
+              <th className="table-header" style={{ position: "sticky", top: 0, zIndex: 1 }}>Account</th>
+              <th className="table-header text-right" style={{ width: 160, position: "sticky", top: 0, zIndex: 1 }}>Amount</th>
             </tr>
           </thead>
           <tbody>
@@ -177,24 +171,26 @@ export function StatementsView({
             {Object.entries(statement.totals).map(([key, value]) => {
               const isGrand = key === "netIncome" || key === "netChange" || key === "grossProfit";
               return (
-                <tr key={key} className={isGrand ? "grand-total-row" : ""} style={!isGrand ? { backgroundColor: "#f8fafc" } : undefined}>
+                <tr key={key} className={isGrand ? "grand-total-row" : ""} style={!isGrand ? { backgroundColor: "#FAFAFA" } : undefined}>
                   <td
-                    className="text-sm font-semibold"
                     style={{
-                      padding: "14px 20px",
-                      borderTop: "2px solid rgba(0,0,0,0.12)",
-                      color: isGrand ? "white" : "#0f172a",
+                      padding: "12px 20px",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      borderTop: "1px solid #E5E5E5",
+                      color: isGrand ? "white" : "#0A0A0A",
                     }}
                   >
                     {formatTotalLabel(key)}
                   </td>
                   <td
-                    className="text-right font-mono text-sm font-semibold"
+                    className="font-mono text-right"
                     style={{
-                      padding: "14px 20px",
-                      borderTop: "2px solid rgba(0,0,0,0.12)",
-                      fontVariantNumeric: "tabular-nums",
-                      color: isGrand ? "white" : "#0f172a",
+                      padding: "12px 20px",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      borderTop: "1px solid #E5E5E5",
+                      color: isGrand ? "white" : "#0A0A0A",
                     }}
                   >
                     {key === "debtToEquity"
@@ -211,72 +207,45 @@ export function StatementsView({
   );
 }
 
-// ── Section category colour mapping ────────────────────────────────────
-
-function getSectionColor(name: string): string {
-  const lower = name.toLowerCase();
-  if (lower.includes("revenue") || lower.includes("income") || lower.includes("sales")) return "#16A34A";
-  if (lower.includes("expense") || lower.includes("cost")) return "#3B82F6";
-  if (lower.includes("asset")) return "#3B82F6";
-  if (lower.includes("liabilit")) return "#D97706";
-  if (lower.includes("equity")) return "#8B5CF6";
-  if (lower.includes("operating") || lower.includes("investing") || lower.includes("financing")) return "#3B82F6";
-  return "#64748B";
-}
-
 function SectionRows({ section }: { section: StatementResponse["sections"][number] }) {
-  const sectionColor = getSectionColor(section.name);
-
   return (
     <>
-      {/* Section header with colour bar */}
+      {/* Section header */}
       <tr>
         <td
           colSpan={2}
-          className="text-sm font-bold"
           style={{
-            padding: "20px 20px 10px",
-            color: sectionColor,
-            position: "relative",
+            padding: "16px 20px 8px",
+            fontSize: 12,
+            fontWeight: 500,
+            color: "#999999",
             textTransform: "uppercase",
             letterSpacing: "0.05em",
           }}
         >
-          <span
-            style={{
-              position: "absolute",
-              left: 0,
-              top: 14,
-              bottom: 4,
-              width: 3,
-              borderRadius: "0 2px 2px 0",
-              backgroundColor: sectionColor,
-            }}
-          />
           {section.name}
         </td>
       </tr>
 
-      {/* Line items with subtle striping */}
-      {section.lines.map((line, idx) => (
+      {/* Line items */}
+      {section.lines.map((line) => (
         <tr
           key={line.accountCode + line.accountName}
           className="table-row"
-          style={{ backgroundColor: idx % 2 === 1 ? "rgba(0,0,0,0.015)" : undefined }}
         >
-          <td className="table-cell text-sm" style={{ paddingLeft: 36 }}>
+          <td className="table-cell" style={{ paddingLeft: 32, fontSize: 13 }}>
             {line.accountCode && (
-              <code className="font-mono text-xs" style={{ color: "#94a3b8", marginRight: 8 }}>
+              <code className="font-mono" style={{ fontSize: 12, color: "#666666", marginRight: 8 }}>
                 {line.accountCode}
               </code>
             )}
-            <span style={{ color: "rgba(0,0,0,0.55)" }}>{line.accountName}</span>
+            <span style={{ color: "#666666" }}>{line.accountName}</span>
           </td>
           <td
-            className="table-cell text-right font-mono text-sm"
+            className="table-cell text-right font-mono"
             style={{
-              color: line.currentPeriod < 0 ? "#EF4444" : "#0A0A0A",
-              fontVariantNumeric: "tabular-nums",
+              fontSize: 13,
+              color: line.currentPeriod < 0 ? "#DC2626" : "#0A0A0A",
             }}
           >
             {line.currentPeriod < 0 ? "(" : ""}
@@ -287,24 +256,26 @@ function SectionRows({ section }: { section: StatementResponse["sections"][numbe
       ))}
 
       {/* Section total */}
-      <tr style={{ backgroundColor: "#f8fafc" }}>
+      <tr style={{ backgroundColor: "#FAFAFA" }}>
         <td
-          className="text-sm font-semibold"
           style={{
-            paddingLeft: 36,
-            padding: "10px 20px 10px 36px",
-            borderTop: "1px solid rgba(0,0,0,0.08)",
+            paddingLeft: 32,
+            padding: "10px 20px 10px 32px",
+            borderTop: "1px solid #E5E5E5",
+            fontSize: 13,
+            fontWeight: 600,
           }}
         >
           Total {section.name}
         </td>
         <td
-          className="text-right font-mono text-sm font-semibold"
+          className="text-right font-mono"
           style={{
             padding: "10px 20px",
-            borderTop: "1px solid rgba(0,0,0,0.08)",
-            color: section.total < 0 ? "#EF4444" : "#0f172a",
-            fontVariantNumeric: "tabular-nums",
+            borderTop: "1px solid #E5E5E5",
+            fontSize: 13,
+            fontWeight: 600,
+            color: section.total < 0 ? "#DC2626" : "#0A0A0A",
           }}
         >
           {section.total < 0 ? "(" : ""}

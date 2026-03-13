@@ -14,10 +14,10 @@ export default function DashboardLayout({
         <main
           className="flex-1"
           style={{
-            marginLeft: 260,
-            padding: "40px 48px",
+            marginLeft: 240,
+            padding: "32px 32px",
             maxWidth: 1200,
-            backgroundColor: "#f8fafc",
+            backgroundColor: "#FAFAFA",
             minHeight: "100vh",
           }}
         >

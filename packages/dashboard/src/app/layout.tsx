@@ -1,22 +1,8 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, Inter } from "next/font/google";
+import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 import { Providers } from "@/components/providers";
-
-const heading = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
-  variable: "--font-heading",
-  display: "swap",
-});
-
-const body = Inter({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-body",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "Ledge — Accounting for Builders",
@@ -29,7 +15,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${heading.variable} ${body.variable} ${GeistMono.variable}`}>
+    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <body style={{ WebkitFontSmoothing: "antialiased" }}>
         <Providers>{children}</Providers>
       </body>

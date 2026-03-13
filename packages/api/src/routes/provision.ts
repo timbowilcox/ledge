@@ -10,7 +10,7 @@ import type { Env } from "../lib/context.js";
 import { adminAuth } from "../middleware/auth.js";
 import { errorResponse, success } from "../lib/responses.js";
 import type { Ledger } from "@ledge/core";
-import { createDefaultEmailPreferences } from "@ledge/core";
+import { createDefaultEmailPreferences, createOnboardingState, getOnboardingState } from "@ledge/core";
 
 export const provisionRoutes = new Hono<Env>();
 
@@ -60,12 +60,17 @@ provisionRoutes.post("/provision", adminAuth, async (c) => {
     }
   }
 
-  // 1b. Auto-create email preferences for new users
+  // 1b. Auto-create email preferences and onboarding state for new users
   if (isNew) {
     try {
       await createDefaultEmailPreferences(engine.getDb(), user.id);
     } catch (err) {
       console.error("Failed to create default email preferences:", err);
+    }
+    try {
+      await createOnboardingState(engine.getDb(), user.id);
+    } catch (err) {
+      console.error("Failed to create onboarding state:", err);
     }
   }
 
@@ -115,6 +120,13 @@ provisionRoutes.post("/provision", adminAuth, async (c) => {
   });
   if (!keyResult.ok) return errorResponse(c, keyResult.error);
 
+  // Check if user needs onboarding (new user with no completed onboarding)
+  let needsOnboarding = false;
+  if (needsTemplate) {
+    const onboardingState = await getOnboardingState(engine.getDb(), user.id);
+    needsOnboarding = !onboardingState?.completedAt;
+  }
+
   return success(c, {
     user,
     ledger,
@@ -129,6 +141,7 @@ provisionRoutes.post("/provision", adminAuth, async (c) => {
       createdAt: keyResult.value.apiKey.createdAt,
     },
     needsTemplate,
+    needsOnboarding,
     isNew,
   });
 });

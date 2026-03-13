@@ -15,6 +15,7 @@ interface ProvisionResult {
   ledgerId: string;
   apiKey: string;
   needsTemplate: boolean;
+  needsOnboarding: boolean;
   isNew: boolean;
 }
 
@@ -46,6 +47,7 @@ export async function provisionUser(input: ProvisionInput): Promise<ProvisionRes
       ledger: { id: string };
       apiKey: { rawKey: string };
       needsTemplate: boolean;
+      needsOnboarding: boolean;
       isNew: boolean;
     };
   };
@@ -55,6 +57,7 @@ export async function provisionUser(input: ProvisionInput): Promise<ProvisionRes
     ledgerId: json.data.ledger.id,
     apiKey: json.data.apiKey.rawKey,
     needsTemplate: json.data.needsTemplate,
+    needsOnboarding: json.data.needsOnboarding ?? json.data.needsTemplate,
     isNew: json.data.isNew,
   };
 }

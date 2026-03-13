@@ -5,6 +5,8 @@ import Link from "next/link";
 import type { TransactionWithLines, AccountWithBalance } from "@ledge/sdk";
 import { ContextualPrompt } from "@/components/contextual-prompt";
 import { PostTransactionButton } from "@/components/post-transaction-button";
+import { ProgressChecklist } from "@/components/progress-checklist";
+import { FirstClassificationModal } from "@/components/first-classification-modal";
 
 export const dynamic = "force-dynamic";
 
@@ -60,6 +62,12 @@ export default async function OverviewPage() {
         </div>
         <ContextualPrompt placeholder="Ask about your financial overview..." />
       </div>
+
+      {/* Progress checklist — shown for new users */}
+      <ProgressChecklist />
+
+      {/* First classification modal — shown after bank sync */}
+      <FirstClassificationModal ledgerId={ledgerId} currency={ledger.currency} />
 
       {/* Metric cards */}
       <div className="grid grid-cols-4" style={{ gap: 16, marginBottom: 32 }}>

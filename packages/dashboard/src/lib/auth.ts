@@ -9,6 +9,7 @@ declare module "next-auth" {
     ledgerId: string;
     userId: string;
     needsTemplate: boolean;
+    needsOnboarding: boolean;
   }
 }
 
@@ -60,6 +61,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           token.ledgerId = result.ledgerId;
           token.userId = result.userId;
           token.needsTemplate = result.needsTemplate;
+          token.needsOnboarding = result.needsOnboarding;
         } catch (err) {
           console.error("[auth] Provision failed:", err);
         }
@@ -73,6 +75,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       session.ledgerId = (t.ledgerId as string) ?? "";
       session.userId = (t.userId as string) ?? "";
       session.needsTemplate = (t.needsTemplate as boolean) ?? false;
+      session.needsOnboarding = (t.needsOnboarding as boolean) ?? false;
       return session;
     },
   },

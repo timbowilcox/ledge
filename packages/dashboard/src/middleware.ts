@@ -23,6 +23,17 @@ export default auth((req) => {
     return NextResponse.redirect(signInUrl);
   }
 
+  // Allow the onboarding route, email-action API, and templates route through
+  if (pathname.startsWith("/onboarding") || pathname.startsWith("/api/email-action") || pathname.startsWith("/templates")) {
+    return NextResponse.next();
+  }
+
+  // Redirect users who need onboarding to the onboarding flow
+  const session = req.auth as { needsOnboarding?: boolean };
+  if (session.needsOnboarding && pathname !== "/onboarding") {
+    return NextResponse.redirect(new URL("/onboarding", req.nextUrl.origin));
+  }
+
   return NextResponse.next();
 });
 

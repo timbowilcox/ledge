@@ -9,13 +9,19 @@ export const dynamic = "force-dynamic";
 export default async function SettingsPage() {
   const { client, ledgerId } = await getSessionClient();
 
-  const [ledger, billing, apiKeys, currencies, exchangeRates] = await Promise.all([
+  const [ledger, billing, apiKeys, currenciesRaw, exchangeRatesRaw] = await Promise.all([
     client.ledgers.get(ledgerId),
     fetchBillingStatus(),
     fetchApiKeys(),
     client.currencies.list(ledgerId).catch(() => []),
-    client.currencies.listRates(ledgerId).catch(() => []),
+    client.currencies.listRates(ledgerId).catch(() => ({ data: [], nextCursor: null })),
   ]);
+
+  // currencies.list() returns CurrencySetting[] via request() unwrap;
+  // listRates() returns PaginatedResult<ExchangeRate> { data, nextCursor }.
+  // Defensive: handle unexpected shapes from either endpoint.
+  const currencies = Array.isArray(currenciesRaw) ? currenciesRaw : (currenciesRaw as any)?.data ?? [];
+  const exchangeRates = Array.isArray(exchangeRatesRaw) ? exchangeRatesRaw : (exchangeRatesRaw as any)?.data ?? [];
 
   let fiscalYearStart = 1;
   let closedThrough: string | null = null;

@@ -1,0 +1,89 @@
+# ---------------------------------------------------------------------------
+# Ledge MCP Server — HTTP/SSE deployment image
+#
+# Connects to the same PostgreSQL database as the API.
+# Deploy as a separate Railway service at mcp.useledge.ai.
+#
+# Required env vars:
+#   DATABASE_URL          — PostgreSQL connection string (same as API)
+#   PORT                  — HTTP port (default: 3005)
+#   LEDGE_MCP_TRANSPORT   — Must be "http" for deployed mode
+#
+# Optional env vars:
+#   BASIQ_API_KEY         — Basiq bank feed provider key
+# ---------------------------------------------------------------------------
+
+# ---- Stage 1: Install & Build -------------------------------------------------
+FROM node:20-slim AS builder
+
+RUN corepack enable && corepack prepare pnpm@10.31.0 --activate
+
+WORKDIR /build
+
+# Copy workspace config first (cacheable layer)
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml turbo.json tsconfig.json ./
+
+# Copy only the packages needed for MCP (core + mcp)
+COPY packages/core/package.json packages/core/tsconfig.json packages/core/
+COPY packages/mcp/package.json  packages/mcp/tsconfig.json  packages/mcp/
+
+# Install dependencies (frozen lockfile for reproducibility)
+RUN pnpm install --frozen-lockfile --filter=@ledge/core --filter=@ledge/mcp
+
+# Copy source files
+COPY packages/core/src packages/core/src
+COPY packages/mcp/src  packages/mcp/src
+
+# Build core first, then mcp (dependency order)
+RUN pnpm --filter=@ledge/core build && pnpm --filter=@ledge/mcp build
+
+# ---- Stage 2: Prune to production deps only -----------------------------------
+FROM node:20-slim AS pruner
+
+RUN corepack enable && corepack prepare pnpm@10.31.0 --activate
+
+WORKDIR /app
+
+COPY --from=builder /build/package.json /build/pnpm-workspace.yaml /build/pnpm-lock.yaml ./
+COPY --from=builder /build/packages/core/package.json packages/core/
+COPY --from=builder /build/packages/mcp/package.json  packages/mcp/
+
+RUN pnpm install --frozen-lockfile --prod --filter=@ledge/core --filter=@ledge/mcp
+
+# ---- Stage 3: Runtime ----------------------------------------------------------
+FROM node:20-slim AS runtime
+
+LABEL org.opencontainers.image.title="Ledge MCP Server" \
+      org.opencontainers.image.description="MCP server with SSE transport for Ledge accounting engine" \
+      org.opencontainers.image.vendor="getledge" \
+      org.opencontainers.image.url="https://getledge.dev"
+
+# Create non-root user
+RUN groupadd --gid 1001 ledge && \
+    useradd  --uid 1001 --gid ledge --shell /bin/false --create-home ledge
+
+WORKDIR /app
+
+# Copy production node_modules
+COPY --from=pruner /app/node_modules               node_modules
+COPY --from=pruner /app/packages/core/node_modules  packages/core/node_modules
+COPY --from=pruner /app/packages/mcp/node_modules   packages/mcp/node_modules
+
+# Copy compiled output
+COPY --from=builder /build/packages/core/dist       packages/core/dist
+COPY --from=builder /build/packages/core/package.json packages/core/
+COPY --from=builder /build/packages/mcp/dist        packages/mcp/dist
+COPY --from=builder /build/packages/mcp/package.json  packages/mcp/
+
+USER ledge
+
+ENV NODE_ENV=production \
+    PORT=3005 \
+    LEDGE_MCP_TRANSPORT=http
+
+EXPOSE 3005
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD node -e "fetch('http://localhost:3005/health').then(r=>{if(!r.ok)throw 1}).catch(()=>process.exit(1))"
+
+CMD ["node", "packages/mcp/dist/index.js"]

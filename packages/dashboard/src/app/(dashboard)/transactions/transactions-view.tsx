@@ -5,6 +5,7 @@ import { formatCurrency, formatDate } from "@/lib/format";
 import { fetchTransactions } from "@/lib/actions";
 import type { TransactionWithLines, PaginatedResult, AccountWithBalance } from "@ledge/sdk";
 import { ContextualPrompt } from "@/components/contextual-prompt";
+import { usePostTransaction } from "@/components/post-transaction-provider";
 
 interface Props {
   initialData: PaginatedResult<TransactionWithLines>;
@@ -20,6 +21,7 @@ export function TransactionsView({ initialData, accountMap }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [cursors, setCursors] = useState<string[]>([]);
+  const { open: openPostTransaction } = usePostTransaction();
 
   const filtered = data.data.filter((tx) => {
     if (filter !== "all" && tx.status !== filter) return false;
@@ -45,7 +47,15 @@ export function TransactionsView({ initialData, accountMap }: Props) {
         <h1 style={{ fontSize: 20, fontWeight: 600, color: "#0A0A0A" }}>
           Transactions
         </h1>
-        <ContextualPrompt placeholder="Search or ask about transactions..." />
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <ContextualPrompt placeholder="Search or ask about transactions..." />
+          <button className="btn-primary" onClick={openPostTransaction} style={{ gap: 6, display: "inline-flex", alignItems: "center" }}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+              <path d="M7 2v10M2 7h10" />
+            </svg>
+            Post transaction
+          </button>
+        </div>
       </div>
 
       {/* Search and filters */}
@@ -115,9 +125,18 @@ export function TransactionsView({ initialData, accountMap }: Props) {
                       </svg>
                     </div>
                     <div style={{ fontSize: 14, fontWeight: 500, color: "#0A0A0A" }}>No transactions found</div>
-                    <div style={{ fontSize: 13, color: "#999999" }}>
+                    <div style={{ fontSize: 13, color: "#999999", marginBottom: 4 }}>
                       {search || filter !== "all" ? "Try adjusting your search or filters." : "Post your first transaction to see it here."}
                     </div>
+                    {!search && filter === "all" && (
+                      <button
+                        className="btn-primary"
+                        onClick={openPostTransaction}
+                        style={{ marginTop: 8 }}
+                      >
+                        Post transaction
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>

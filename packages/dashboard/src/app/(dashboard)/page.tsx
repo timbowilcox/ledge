@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import Link from "next/link";
 import type { TransactionWithLines, AccountWithBalance } from "@ledge/sdk";
 import { ContextualPrompt } from "@/components/contextual-prompt";
+import { PostTransactionButton } from "@/components/post-transaction-button";
 
 export const dynamic = "force-dynamic";
 
@@ -72,10 +73,9 @@ export default async function OverviewPage() {
       <div style={{ marginBottom: 32 }}>
         <div className="section-label" style={{ marginBottom: 8 }}>Quick Actions</div>
         <div className="flex" style={{ gap: 12 }}>
-          <QuickAction
+          <QuickActionButton
             icon={<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#0066FF" strokeWidth="1.5" strokeLinecap="round"><path d="M8 3v10M3 8h10" /></svg>}
             label="Post transaction"
-            href="/transactions"
           />
           <QuickAction
             icon={<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#0066FF" strokeWidth="1.5" strokeLinecap="round"><path d="M2 13V5M5.5 13V7.5M9 13V3M12.5 13V9" /></svg>}
@@ -138,8 +138,7 @@ export default async function OverviewPage() {
                     icon={<svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="#D4D4D4" strokeWidth="1.5" strokeLinecap="round"><path d="M8 14h32M8 24h32M8 34h20" /></svg>}
                     title="No transactions yet"
                     description="Post your first transaction to see it here."
-                    actionLabel="Post transaction"
-                    actionHref="/transactions"
+                    useModal
                   />
                 </td>
               </tr>
@@ -190,17 +189,45 @@ function QuickAction({ icon, label, href }: { icon: React.ReactNode; label: stri
   );
 }
 
-function EmptyState({ icon, title, description, actionLabel, actionHref }: { icon: React.ReactNode; title: string; description: string; actionLabel?: string; actionHref?: string }) {
+function QuickActionButton({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <PostTransactionButton
+      className="flex items-center gap-3 quick-action"
+      style={{
+        padding: "8px 16px",
+        borderRadius: 8,
+        border: "1px solid #E5E5E5",
+        backgroundColor: "#FFFFFF",
+        fontSize: 13,
+        fontWeight: 500,
+        color: "#0A0A0A",
+        height: 40,
+        cursor: "pointer",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 28, height: 28, borderRadius: 6, backgroundColor: "#F0F6FF" }}>
+        {icon}
+      </div>
+      {label}
+    </PostTransactionButton>
+  );
+}
+
+function EmptyState({ icon, title, description, actionLabel, actionHref, useModal }: { icon: React.ReactNode; title: string; description: string; actionLabel?: string; actionHref?: string; useModal?: boolean }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, maxWidth: 320, margin: "0 auto" }}>
       <div style={{ marginBottom: 8 }}>{icon}</div>
       <div style={{ fontSize: 14, fontWeight: 500, color: "#0A0A0A" }}>{title}</div>
       <div style={{ fontSize: 13, color: "#999999" }}>{description}</div>
-      {actionLabel && actionHref && (
+      {useModal ? (
+        <PostTransactionButton className="btn-primary" style={{ marginTop: 12, cursor: "pointer" }}>
+          Post transaction
+        </PostTransactionButton>
+      ) : actionLabel && actionHref ? (
         <Link href={actionHref} className="btn-primary" style={{ marginTop: 12 }}>
           {actionLabel}
         </Link>
-      )}
+      ) : null}
     </div>
   );
 }

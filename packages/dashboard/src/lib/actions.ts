@@ -14,6 +14,7 @@ import type {
   StatementResponse,
   PaginatedResult,
   Conversation,
+  PostTransactionParams,
 } from "@ledge/sdk";
 import type { ApiKeySafe, ApiKeyWithRaw } from "@ledge/sdk";
 
@@ -110,6 +111,18 @@ export async function getConversation(id: string): Promise<Conversation | null> 
   } catch {
     return null;
   }
+}
+
+// --- Post Transaction ------------------------------------------------------
+
+export async function postTransaction(
+  input: PostTransactionParams,
+): Promise<TransactionWithLines> {
+  const { client, ledgerId } = await getSessionClient();
+  return client.transactions.post(ledgerId, {
+    ...input,
+    sourceType: "manual",
+  });
 }
 
 // --- Template application -------------------------------------------------

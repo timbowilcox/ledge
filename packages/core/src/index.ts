@@ -10,6 +10,7 @@ export * from "./templates/index.js";
 export * from "./statements/index.js";
 export * from "./import/index.js";
 export * from "./bank-feeds/index.js";
+export * from "./classification/index.js";
 export * from "./intelligence/index.js";
 export * from "./currency-utils.js";
 export type { Database, Row, RunResult } from "./db/database.js";

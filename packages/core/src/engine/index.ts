@@ -94,6 +94,17 @@ import {
   renderUnclassified,
 } from "../intelligence/renderer.js";
 import { createLedgerSchema, createAccountSchema, postTransactionSchema, createImportSchema, confirmMatchesSchema } from "../schemas/index.js";
+import { createAliasService } from "../classification/aliases.js";
+import { createRulesService } from "../classification/rules.js";
+import { createClassificationEngine } from "../classification/engine.js";
+import type {
+  ClassificationRule,
+  ClassificationResult,
+  CreateClassificationRuleInput,
+  UpdateClassificationRuleInput,
+  ListClassificationRulesOptions,
+  MerchantAlias,
+} from "../classification/types.js";
 import { generateId, nowUtc } from "./id.js";
 
 // ---------------------------------------------------------------------------
@@ -321,6 +332,8 @@ interface BankTransactionRow {
   status: string;
   matched_transaction_id: string | null;
   match_confidence: number | null;
+  is_personal: number | boolean;
+  suggested_account_id: string | null;
   raw_data: string | Record<string, unknown>;
   created_at: string;
   updated_at: string;
@@ -591,6 +604,8 @@ const toBankTransaction = (row: BankTransactionRow): BankTransaction => ({
   status: row.status as BankTransaction["status"],
   matchedTransactionId: row.matched_transaction_id,
   matchConfidence: row.match_confidence,
+  isPersonal: row.is_personal === 1 || row.is_personal === true,
+  suggestedAccountId: row.suggested_account_id,
   rawData: row.raw_data ? parseJsonb(row.raw_data) as Record<string, unknown> : {},
   createdAt: row.created_at,
   updatedAt: row.updated_at,
@@ -2412,6 +2427,9 @@ export class LedgerEngine {
          matchResult.ok ? matchResult.value.matched : 0, completedAt, syncId]
       );
 
+      // Run classification on newly synced transactions
+      await this.classifyPendingBankTransactions(connRow.ledger_id);
+
       // Update bank account and connection sync timestamps
       await this.db.run(
         "UPDATE bank_accounts SET last_sync_at = ?, updated_at = ? WHERE id = ?",
@@ -3092,6 +3110,180 @@ export class LedgerEngine {
 
     await this.db.run("DELETE FROM conversations WHERE id = ?", [conversationId]);
     return ok(undefined);
+  }
+
+  // -------------------------------------------------------------------------
+  // Classification Rules Engine
+  // -------------------------------------------------------------------------
+
+  private getAliasService() {
+    return createAliasService(this.db);
+  }
+
+  private getRulesService() {
+    return createRulesService(this.db);
+  }
+
+  private getClassificationEngine() {
+    return createClassificationEngine(this.db, this.getAliasService());
+  }
+
+  // --- Rules CRUD ---
+
+  async createClassificationRule(input: CreateClassificationRuleInput): Promise<Result<ClassificationRule>> {
+    return this.getRulesService().createRule(input);
+  }
+
+  async listClassificationRules(
+    ledgerId: string,
+    opts?: ListClassificationRulesOptions,
+  ): Promise<Result<readonly ClassificationRule[]>> {
+    return this.getRulesService().listRules(ledgerId, opts);
+  }
+
+  async getClassificationRule(ruleId: string): Promise<Result<ClassificationRule>> {
+    return this.getRulesService().getRule(ruleId);
+  }
+
+  async updateClassificationRule(
+    ruleId: string,
+    input: UpdateClassificationRuleInput,
+  ): Promise<Result<ClassificationRule>> {
+    return this.getRulesService().updateRule(ruleId, input);
+  }
+
+  async deleteClassificationRule(ruleId: string): Promise<Result<void>> {
+    return this.getRulesService().deleteRule(ruleId);
+  }
+
+  // --- Classification pipeline ---
+
+  async classifyTransaction(
+    ledgerId: string,
+    transaction: { description: string; category?: string | null; amount?: number },
+  ): Promise<Result<ClassificationResult | null>> {
+    const result = await this.getClassificationEngine().classify(ledgerId, transaction);
+    return ok(result);
+  }
+
+  /**
+   * Run the classification pipeline on all pending (unmatched) bank
+   * transactions for a given ledger. Called after bank feed sync.
+   *
+   * For each unmatched transaction:
+   *   - confidence >= 0.95 → status = 'matched'
+   *   - confidence >= 0.60 → status = 'suggested' (kept as pending for review)
+   *   - Sets is_personal and suggested_account_id
+   */
+  async classifyPendingBankTransactions(
+    ledgerId: string,
+  ): Promise<Result<{ classified: number; suggested: number; unclassified: number }>> {
+    const engine = this.getClassificationEngine();
+    const ts = nowUtc();
+
+    // Get all pending bank transactions for this ledger
+    const rows = await this.db.all<BankTransactionRow>(
+      "SELECT * FROM bank_transactions WHERE ledger_id = ? AND status = 'pending' ORDER BY date",
+      [ledgerId],
+    );
+
+    let classified = 0;
+    let suggested = 0;
+    let unclassified = 0;
+
+    for (const row of rows) {
+      const result = await engine.classify(ledgerId, {
+        description: row.description,
+        category: row.category,
+        amount: row.amount,
+      });
+
+      if (!result) {
+        unclassified++;
+        continue;
+      }
+
+      if (result.confidence >= 0.95) {
+        await this.db.run(
+          `UPDATE bank_transactions
+           SET status = 'matched', suggested_account_id = ?, is_personal = ?,
+               match_confidence = ?, updated_at = ?
+           WHERE id = ?`,
+          [result.accountId, result.isPersonal ? 1 : 0, result.confidence, ts, row.id],
+        );
+        classified++;
+      } else if (result.confidence >= 0.60) {
+        // Mark as suggested — keep status as pending but set the suggestion
+        await this.db.run(
+          `UPDATE bank_transactions
+           SET suggested_account_id = ?, is_personal = ?,
+               match_confidence = ?, updated_at = ?
+           WHERE id = ?`,
+          [result.accountId, result.isPersonal ? 1 : 0, result.confidence, ts, row.id],
+        );
+        suggested++;
+      } else {
+        unclassified++;
+      }
+    }
+
+    return ok({ classified, suggested, unclassified });
+  }
+
+  // --- Manual classification with auto-rule generation ---
+
+  async classifyBankTransaction(
+    bankTransactionId: string,
+    accountId: string,
+    isPersonal: boolean,
+  ): Promise<Result<BankTransaction>> {
+    const row = await this.db.get<BankTransactionRow>(
+      "SELECT * FROM bank_transactions WHERE id = ?",
+      [bankTransactionId],
+    );
+    if (!row) {
+      return err(createError(ErrorCode.INTERNAL_ERROR, "Bank transaction not found"));
+    }
+
+    const ts = nowUtc();
+
+    // Update the bank transaction
+    await this.db.run(
+      `UPDATE bank_transactions
+       SET status = 'matched', suggested_account_id = ?, is_personal = ?,
+           match_confidence = 1.0, updated_at = ?
+       WHERE id = ?`,
+      [accountId, isPersonal ? 1 : 0, ts, bankTransactionId],
+    );
+
+    // Try to auto-generate a rule
+    await this.getRulesService().autoGenerateRule(
+      row.ledger_id,
+      row.description,
+      accountId,
+      isPersonal,
+    );
+
+    const updated = await this.db.get<BankTransactionRow>(
+      "SELECT * FROM bank_transactions WHERE id = ?",
+      [bankTransactionId],
+    );
+    return ok(toBankTransaction(updated!));
+  }
+
+  // --- Merchant aliases ---
+
+  async listMerchantAliases(): Promise<Result<readonly MerchantAlias[]>> {
+    const aliases = await this.getAliasService().listAliases();
+    return ok(aliases);
+  }
+
+  async addMerchantAlias(
+    canonicalName: string,
+    alias: string,
+  ): Promise<Result<MerchantAlias>> {
+    const result = await this.getAliasService().addAlias(canonicalName, alias);
+    return ok(result);
   }
 
 }

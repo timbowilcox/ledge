@@ -59,6 +59,8 @@ export interface BankTransaction {
   readonly status: BankTransactionStatus;
   readonly matchedTransactionId: string | null;
   readonly matchConfidence: number | null;
+  readonly isPersonal: boolean;
+  readonly suggestedAccountId: string | null;
   readonly rawData: Record<string, unknown>;
   readonly createdAt: string;
   readonly updatedAt: string;

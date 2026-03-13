@@ -60,15 +60,18 @@ function parseToolResult(result: { content: unknown[] }): unknown {
 // ---------------------------------------------------------------------------
 
 describe("Tool discovery", () => {
-  it("lists all 27 tools", async () => {
+  it("lists all 32 tools", async () => {
     const { tools } = await client.listTools();
     const names = tools.map((t) => t.name).sort();
     expect(names).toEqual([
+      "classify_bank_transaction",
+      "classify_transaction",
       "complete_setup",
       "confirm_bank_match",
       "confirm_matches",
       "convert_amount",
       "create_account",
+      "create_classification_rule",
       "enable_currency",
       "generate_insights",
       "get_import_batch",
@@ -80,7 +83,9 @@ describe("Tool discovery", () => {
       "list_bank_accounts",
       "list_bank_connections",
       "list_bank_transactions",
+      "list_classification_rules",
       "list_exchange_rates",
+      "list_merchant_aliases",
       "list_notifications",
       "map_bank_account",
       "post_transaction",

@@ -17,6 +17,7 @@ import { registerBankFeedTools } from "./tools/bank-feeds.js";
 import { registerNotificationTools } from "./tools/notifications.js";
 import { registerUsageTool } from "./tools/usage.js";
 import { registerCurrencyTools } from "./tools/currencies.js";
+import { registerClassificationTools } from "./tools/classification.js";
 import { registerResources } from "./resources/index.js";
 import { registerPrompts } from "./prompts/index.js";
 
@@ -48,6 +49,7 @@ export function createMcpServer(
   registerNotificationTools(server, engine, systemUserId);
   registerUsageTool(server, db);
   registerCurrencyTools(server, engine, systemUserId);
+  registerClassificationTools(server, engine);
 
   // Resources
   registerResources(server, engine);

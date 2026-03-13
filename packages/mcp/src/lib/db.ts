@@ -94,12 +94,16 @@ async function initSqlite(): Promise<InitResult> {
 
 /** Ensure the system user exists for MCP operations. */
 async function ensureSystemUser(db: Database): Promise<void> {
-  const existing = await db.get("SELECT id FROM users WHERE id = ?", [SYSTEM_USER_ID]);
-  if (!existing) {
-    await db.run(
-      "INSERT INTO users (id, email, name, auth_provider, auth_provider_id) VALUES (?, ?, ?, ?, ?)",
-      [SYSTEM_USER_ID, "system@ledge.local", "System", "system", "system"],
-    );
+  // Use ON CONFLICT DO NOTHING to avoid crashing when the API server
+  // (which shares the same PostgreSQL database) has already created
+  // the system user. A SELECT-first approach has a TOCTOU race condition.
+  const result = await db.run(
+    `INSERT INTO users (id, email, name, auth_provider, auth_provider_id)
+     VALUES (?, ?, ?, ?, ?)
+     ON CONFLICT (auth_provider, auth_provider_id) DO NOTHING`,
+    [SYSTEM_USER_ID, "system@ledge.local", "System", "system", "system"],
+  );
+  if (result.changes > 0) {
     console.log("[mcp] Created system user for MCP operations");
   }
 }

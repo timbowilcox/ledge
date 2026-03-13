@@ -13,6 +13,7 @@ export * from "./bank-feeds/index.js";
 export * from "./classification/index.js";
 export * from "./intelligence/index.js";
 export * from "./currency-utils.js";
+export * from "./email/index.js";
 export type { Database, Row, RunResult } from "./db/database.js";
 export { SqliteDatabase } from "./db/sqlite.js";
 export { PostgresDatabase } from "./db/postgres.js";

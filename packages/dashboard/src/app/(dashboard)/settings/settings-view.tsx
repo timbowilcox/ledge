@@ -4,14 +4,15 @@ import { useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { formatDate } from "@/lib/format";
-import { createApiKey, revokeApiKey, fetchApiKeys, createCheckoutSession, createPortalSession } from "@/lib/actions";
+import { createApiKey, revokeApiKey, fetchApiKeys, createCheckoutSession, createPortalSession, fetchEmailPreferences, updateEmailPreferences } from "@/lib/actions";
+import type { EmailPreferences } from "@/lib/actions";
 import { CopyButton } from "@/components/copy-button";
 import type { ApiKeySafe } from "@ledge/sdk";
 import type { BillingStatus } from "@/lib/actions";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-type SettingsTab = "general" | "currencies" | "api-keys" | "billing";
+type SettingsTab = "general" | "currencies" | "api-keys" | "billing" | "email";
 
 interface Props {
   ledger: { name: string; currency: string; accountingBasis: string; templateId: string | null; createdAt: string };
@@ -28,6 +29,7 @@ const TABS: { key: SettingsTab; label: string }[] = [
   { key: "currencies", label: "Currencies" },
   { key: "api-keys", label: "API Keys" },
   { key: "billing", label: "Billing" },
+  { key: "email", label: "Email" },
 ];
 
 // ── Main component ─────────────────────────────────────────────────────────
@@ -87,6 +89,7 @@ export function SettingsView({ ledger, billing, initialKeys, currencies, exchang
       {activeTab === "currencies" && <CurrenciesTab currencies={currencies} exchangeRates={exchangeRates} />}
       {activeTab === "api-keys" && <ApiKeysTab initialKeys={initialKeys} />}
       {activeTab === "billing" && <BillingTab billing={billing} />}
+      {activeTab === "email" && <EmailTab />}
     </div>
   );
 }
@@ -636,6 +639,215 @@ function BillingTab({ billing }: { billing: BillingStatus }) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ── Email Tab ───────────────────────────────────────────────────────────────
+
+const TIMEZONES = [
+  "UTC",
+  "America/New_York",
+  "America/Chicago",
+  "America/Denver",
+  "America/Los_Angeles",
+  "America/Anchorage",
+  "Pacific/Honolulu",
+  "Europe/London",
+  "Europe/Berlin",
+  "Europe/Paris",
+  "Asia/Tokyo",
+  "Asia/Shanghai",
+  "Asia/Kolkata",
+  "Asia/Dubai",
+  "Australia/Sydney",
+  "Australia/Perth",
+  "Pacific/Auckland",
+];
+
+const DAYS_OF_WEEK = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+
+function EmailTab() {
+  const [prefs, setPrefs] = useState<EmailPreferences | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  // Load preferences on mount
+  useState(() => {
+    fetchEmailPreferences().then((data) => {
+      setPrefs(data);
+      setLoading(false);
+    });
+  });
+
+  const handleToggle = async (key: keyof EmailPreferences, value: boolean) => {
+    if (!prefs) return;
+    const updated = { ...prefs, [key]: value };
+    setPrefs(updated);
+    setSaving(true);
+    await updateEmailPreferences({ [key]: value });
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handleSelect = async (key: "timezone" | "digestDay", value: string) => {
+    if (!prefs) return;
+    const updated = { ...prefs, [key]: value };
+    setPrefs(updated);
+    setSaving(true);
+    await updateEmailPreferences({ [key]: value });
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  if (loading) {
+    return (
+      <div style={{ padding: 48, textAlign: "center" }}>
+        <p style={{ fontSize: 13, color: "#999999" }}>Loading email preferences...</p>
+      </div>
+    );
+  }
+
+  if (!prefs) {
+    return (
+      <div style={{ padding: 48, textAlign: "center" }}>
+        <p style={{ fontSize: 14, fontWeight: 500, color: "#0A0A0A", marginBottom: 4 }}>No email preferences found</p>
+        <p style={{ fontSize: 13, color: "#999999" }}>Email preferences will be created automatically on your next sign-in.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      {/* Save indicator */}
+      {(saving || saved) && (
+        <div style={{
+          position: "fixed", top: 16, right: 16, zIndex: 50,
+          padding: "8px 16px", borderRadius: 6, fontSize: 12, fontWeight: 500,
+          backgroundColor: saved ? "#F0FDF4" : "#FAFAFA",
+          color: saved ? "#16A34A" : "#999999",
+          border: `1px solid ${saved ? "#BBF7D0" : "#E5E5E5"}`,
+          transition: "all 200ms ease",
+        }}>
+          {saving ? "Saving..." : "Saved"}
+        </div>
+      )}
+
+      {/* Email notifications */}
+      <div className="card">
+        <div className="section-label" style={{ marginBottom: 16 }}>Notifications</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <ToggleRow
+            label="Weekly digest"
+            description="Financial summary sent on your chosen day"
+            checked={prefs.weeklyDigest}
+            onChange={(v) => handleToggle("weeklyDigest", v)}
+          />
+          <ToggleRow
+            label="Monthly close reminder"
+            description="Prompt to close your books on the 1st of each month"
+            checked={prefs.monthlyClose}
+            onChange={(v) => handleToggle("monthlyClose", v)}
+          />
+          <ToggleRow
+            label="Urgent alerts"
+            description="Large transactions, failed bank connections, low cash"
+            checked={prefs.urgentAlerts}
+            onChange={(v) => handleToggle("urgentAlerts", v)}
+          />
+          <ToggleRow
+            label="Quarterly tax reminders"
+            description="Estimated tax payment reminders each quarter"
+            checked={prefs.quarterlyTax}
+            onChange={(v) => handleToggle("quarterlyTax", v)}
+          />
+        </div>
+      </div>
+
+      {/* Schedule settings */}
+      <div className="card">
+        <div className="section-label" style={{ marginBottom: 16 }}>Schedule</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+          <div>
+            <label style={{ display: "block", fontSize: 12, color: "#999999", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 500 }}>
+              Timezone
+            </label>
+            <select
+              className="input"
+              value={prefs.timezone}
+              onChange={(e) => handleSelect("timezone", e.target.value)}
+              style={{ fontSize: 13, width: "100%" }}
+            >
+              {TIMEZONES.map((tz) => (
+                <option key={tz} value={tz}>{tz.replace(/_/g, " ")}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label style={{ display: "block", fontSize: 12, color: "#999999", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 500 }}>
+              Digest Day
+            </label>
+            <select
+              className="input"
+              value={prefs.digestDay}
+              onChange={(e) => handleSelect("digestDay", e.target.value)}
+              style={{ fontSize: 13, width: "100%" }}
+            >
+              {DAYS_OF_WEEK.map((day) => (
+                <option key={day} value={day}>{day.charAt(0).toUpperCase() + day.slice(1)}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <p style={{ fontSize: 12, color: "#999999", marginTop: 12 }}>
+          Digests are sent at 9:00 AM in your timezone on the selected day.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function ToggleRow({ label, description, checked, onChange }: {
+  label: string;
+  description: string;
+  checked: boolean;
+  onChange: (value: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between" style={{ paddingBottom: 16, borderBottom: "1px solid #F5F5F5" }}>
+      <div>
+        <div style={{ fontSize: 13, fontWeight: 500, color: "#0A0A0A" }}>{label}</div>
+        <div style={{ fontSize: 12, color: "#999999", marginTop: 2 }}>{description}</div>
+      </div>
+      <button
+        onClick={() => onChange(!checked)}
+        style={{
+          width: 40,
+          height: 22,
+          borderRadius: 11,
+          border: "none",
+          cursor: "pointer",
+          backgroundColor: checked ? "#0066FF" : "#E5E5E5",
+          position: "relative",
+          transition: "background-color 200ms ease",
+          flexShrink: 0,
+        }}
+      >
+        <div style={{
+          width: 18,
+          height: 18,
+          borderRadius: 9,
+          backgroundColor: "#FFFFFF",
+          position: "absolute",
+          top: 2,
+          left: checked ? 20 : 2,
+          transition: "left 200ms ease",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+        }} />
+      </button>
     </div>
   );
 }

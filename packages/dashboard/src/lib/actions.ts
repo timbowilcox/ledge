@@ -220,3 +220,50 @@ export async function createPortalSession(): Promise<string> {
   const json = await res.json();
   return json.data.url;
 }
+
+// --- Email Preferences -------------------------------------------------------
+
+export interface EmailPreferences {
+  userId: string;
+  weeklyDigest: boolean;
+  monthlyClose: boolean;
+  urgentAlerts: boolean;
+  quarterlyTax: boolean;
+  timezone: string;
+  digestDay: string;
+}
+
+export async function fetchEmailPreferences(): Promise<EmailPreferences | null> {
+  const session = await auth();
+  if (!session?.apiKey) return null;
+
+  const apiUrl = process.env["LEDGE_API_URL"] ?? "http://localhost:3001";
+  const res = await fetch(`${apiUrl}/v1/email/preferences`, {
+    headers: { Authorization: `Bearer ${session.apiKey}` },
+    cache: "no-store",
+  });
+
+  if (!res.ok) return null;
+  const json = await res.json();
+  return json.data;
+}
+
+export async function updateEmailPreferences(updates: Partial<Omit<EmailPreferences, "userId">>): Promise<EmailPreferences | null> {
+  const session = await auth();
+  if (!session?.apiKey) return null;
+
+  const apiUrl = process.env["LEDGE_API_URL"] ?? "http://localhost:3001";
+  const res = await fetch(`${apiUrl}/v1/email/preferences`, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${session.apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(updates),
+    cache: "no-store",
+  });
+
+  if (!res.ok) return null;
+  const json = await res.json();
+  return json.data;
+}

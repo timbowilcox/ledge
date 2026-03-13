@@ -18,6 +18,7 @@ import { serve } from "@hono/node-server";
 import type { Database } from "@ledge/core";
 import { SqliteDatabase, PostgresDatabase, LedgerEngine } from "@ledge/core";
 import { createApp } from "./app.js";
+import { checkAndSendDigests, checkAndSendMonthlyClose, checkOnboardingSequence } from "@ledge/core";
 
 const SYSTEM_USER_ID = "00000000-0000-0000-0000-000000000001";
 
@@ -80,6 +81,30 @@ const main = async () => {
   const app = createApp(engine);
 
   const port = parseInt(process.env["PORT"] ?? "3001", 10);
+
+  // ---------------------------------------------------------------------------
+  // Email scheduler — hourly checks for digests, onboarding, monthly close
+  // ---------------------------------------------------------------------------
+
+  const runEmailScheduler = async () => {
+    try {
+      const digestCount = await checkAndSendDigests(engine);
+      const monthlyCount = await checkAndSendMonthlyClose(engine);
+      const onboardingCount = await checkOnboardingSequence(engine);
+      const total = digestCount + monthlyCount + onboardingCount;
+      if (total > 0) {
+        console.log(`Email scheduler: sent ${digestCount} digests, ${monthlyCount} monthly close, ${onboardingCount} onboarding`);
+      }
+    } catch (err) {
+      console.error("Email scheduler error:", err);
+    }
+  };
+
+  // Run once at startup (after a short delay to let the server warm up)
+  setTimeout(runEmailScheduler, 10_000);
+
+  // Then every hour
+  setInterval(runEmailScheduler, 60 * 60 * 1000).unref();
 
   serve({ fetch: app.fetch, port, hostname: "0.0.0.0" }, (info) => {
     console.log(`@ledge/api listening on http://0.0.0.0:${info.port}`);
@@ -182,6 +207,30 @@ const applyPostgresMigrations = async (db: PostgresDatabase) => {
         }
       }
     }
+
+    // Apply remaining migrations (006-009) idempotently
+    const laterMigrations: [string, string][] = [
+      ["ledger_currencies", "006_multi_currency.sql"],
+      ["conversations", "007_conversations.sql"],
+      ["classification_rules", "008_classification.sql"],
+      ["email_preferences", "009_email.sql"],
+    ];
+    for (const [checkTable, fileName] of laterMigrations) {
+      const tableExists = await db.get<{ exists: boolean }>(
+        `SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = '${checkTable}') as exists`
+      );
+      if (!tableExists?.exists) {
+        const mgDir = findMigrationsDir();
+        if (mgDir) {
+          const migPath = join(mgDir, fileName);
+          if (existsSync(migPath)) {
+            const sql = readFileSync(migPath, "utf-8");
+            await db.exec(sql);
+            console.log(`Applied PostgreSQL migration: ${fileName}`);
+          }
+        }
+      }
+    }
     return;
   }
 
@@ -229,6 +278,22 @@ const applyPostgresMigrations = async (db: PostgresDatabase) => {
       console.log("Applied PostgreSQL migration: 005_intelligence.sql");
     }
 
+    // Apply remaining migrations (006-009)
+    const laterFiles = [
+      "006_multi_currency.sql",
+      "007_conversations.sql",
+      "008_classification.sql",
+      "009_email.sql",
+    ];
+    for (const fileName of laterFiles) {
+      const migPath = join(migrationsDir, fileName);
+      if (existsSync(migPath)) {
+        const sql = readFileSync(migPath, "utf-8");
+        await db.exec(sql);
+        console.log(`Applied PostgreSQL migration: ${fileName}`);
+      }
+    }
+
     // Seed system user
     await ensureSystemUser(db);
   }
@@ -248,6 +313,10 @@ const applySqliteMigrations = async (db: SqliteDatabase) => {
     "003_billing.sqlite.sql",
     "004_bank_feeds.sqlite.sql",
     "005_intelligence.sqlite.sql",
+    "006_multi_currency.sqlite.sql",
+    "007_conversations.sqlite.sql",
+    "008_classification.sqlite.sql",
+    "009_email.sqlite.sql",
   ];
 
   for (const file of migrationFiles) {

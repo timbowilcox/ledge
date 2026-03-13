@@ -716,6 +716,11 @@ export interface CreateApiKeyParams {
 export class LedgerEngine {
   constructor(private readonly db: Database) {}
 
+  /** Expose the database for modules that need direct access (email, scheduler). */
+  getDb(): Database {
+    return this.db;
+  }
+
   // -------------------------------------------------------------------------
   // Ledger operations
   // -------------------------------------------------------------------------

@@ -10,6 +10,7 @@ import type { Env } from "../lib/context.js";
 import { adminAuth } from "../middleware/auth.js";
 import { errorResponse, success } from "../lib/responses.js";
 import type { Ledger } from "@ledge/core";
+import { createDefaultEmailPreferences } from "@ledge/core";
 
 export const provisionRoutes = new Hono<Env>();
 
@@ -56,6 +57,15 @@ provisionRoutes.post("/provision", adminAuth, async (c) => {
       const createResult = await engine.createUser({ email, name, authProvider, authProviderId });
       if (!createResult.ok) return errorResponse(c, createResult.error);
       user = createResult.value;
+    }
+  }
+
+  // 1b. Auto-create email preferences for new users
+  if (isNew) {
+    try {
+      await createDefaultEmailPreferences(engine.getDb(), user.id);
+    } catch (err) {
+      console.error("Failed to create default email preferences:", err);
     }
   }
 

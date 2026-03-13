@@ -25,6 +25,7 @@ import { currencyRoutes } from "./routes/currencies.js";
 import { conversationRoutes } from "./routes/conversations.js";
 import { provisionRoutes } from "./routes/provision.js";
 import { billingRoutes } from "./routes/billing.js";
+import { emailRoutes } from "./routes/email.js";
 
 export const createApp = (engine: LedgerEngine): Hono<Env> => {
   const app = new Hono<Env>();
@@ -90,6 +91,7 @@ export const createApp = (engine: LedgerEngine): Hono<Env> => {
   app.route("/v1/api-keys", apiKeyRoutes);
   app.route("/v1/admin", provisionRoutes);
   app.route("/v1/billing", billingRoutes);
+  app.route("/v1/email", emailRoutes);
 
   // ---------------------------------------------------------------------------
   // 404 fallback

@@ -550,32 +550,10 @@ function ConnectStep({ onSkip }: { onSkip: () => void }) {
         </button>
 
         <button
-          onClick={() => {}}
-          disabled
-          style={{
-            ...secondaryButtonStyle,
-            opacity: 0.5,
-            cursor: "not-allowed",
-            position: "relative",
-          }}
+          onClick={() => (window.location.href = "/settings?tab=connections")}
+          style={secondaryButtonStyle}
         >
-          Connect Stripe
-          <span
-            style={{
-              position: "absolute",
-              top: -8,
-              right: -8,
-              fontSize: 10,
-              fontWeight: 600,
-              padding: "2px 8px",
-              borderRadius: 9999,
-              backgroundColor: "#F0F6FF",
-              color: "#0066FF",
-              border: "1px solid rgba(0,102,255,0.2)",
-            }}
-          >
-            Coming soon
-          </span>
+          Connect Stripe &rarr;
         </button>
 
         <button

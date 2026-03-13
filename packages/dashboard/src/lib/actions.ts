@@ -675,3 +675,38 @@ export async function updateLedgerAction(updates: { name?: string; fiscalYearSta
   }
 }
 
+// --- Stripe Connect -------------------------------------------------------
+
+export interface StripeConnectStatus {
+  id: string;
+  stripeAccountId: string;
+  status: string;
+  lastSyncedAt: string | null;
+  createdAt: string;
+}
+
+export async function fetchStripeStatus(): Promise<StripeConnectStatus | null> {
+  const { client } = await getSessionClient();
+  return client.stripeConnect.status();
+}
+
+export async function disconnectStripe(): Promise<boolean> {
+  const { client } = await getSessionClient();
+  try {
+    await client.stripeConnect.disconnect();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function syncStripe(): Promise<boolean> {
+  const { client } = await getSessionClient();
+  try {
+    await client.stripeConnect.sync();
+    return true;
+  } catch {
+    return false;
+  }
+}
+

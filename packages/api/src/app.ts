@@ -30,6 +30,7 @@ import { onboardingRoutes } from "./routes/onboarding.js";
 import { transactionAttachmentRoutes, attachmentRoutes } from "./routes/attachments.js";
 import { recurringRoutes, recurringAdminRoutes } from "./routes/recurring.js";
 import { periodRoutes } from "./routes/periods.js";
+import { stripeConnectRoutes } from "./routes/stripe-connect.js";
 
 export const createApp = (engine: LedgerEngine, storage?: AttachmentStorage): Hono<Env> => {
   const app = new Hono<Env>();
@@ -103,6 +104,7 @@ export const createApp = (engine: LedgerEngine, storage?: AttachmentStorage): Ho
   app.route("/v1/recurring", recurringAdminRoutes);
   app.route("/v1/onboarding", onboardingRoutes);
   app.route("/v1/ledgers/:ledgerId/periods", periodRoutes);
+  app.route("/v1/stripe-connect", stripeConnectRoutes);
 
   // ---------------------------------------------------------------------------
   // 404 fallback

@@ -19,6 +19,7 @@ import { registerUsageTool } from "./tools/usage.js";
 import { registerCurrencyTools } from "./tools/currencies.js";
 import { registerClassificationTools } from "./tools/classification.js";
 import { registerRecurringTools } from "./tools/recurring.js";
+import { registerStripeTools } from "./tools/stripe.js";
 import { registerResources } from "./resources/index.js";
 import { registerPrompts } from "./prompts/index.js";
 
@@ -52,6 +53,7 @@ export function createMcpServer(
   registerCurrencyTools(server, engine, systemUserId);
   registerClassificationTools(server, engine);
   registerRecurringTools(server, engine);
+  registerStripeTools(server, engine, db);
 
   // Resources
   registerResources(server, engine);

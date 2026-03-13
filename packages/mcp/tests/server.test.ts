@@ -60,7 +60,7 @@ function parseToolResult(result: { content: unknown[] }): unknown {
 // ---------------------------------------------------------------------------
 
 describe("Tool discovery", () => {
-  it("lists all 37 tools", async () => {
+  it("lists all 39 tools", async () => {
     const { tools } = await client.listTools();
     const names = tools.map((t) => t.name).sort();
     expect(names).toEqual([
@@ -78,6 +78,7 @@ describe("Tool discovery", () => {
       "get_import_batch",
       "get_notification",
       "get_statement",
+      "get_stripe_status",
       "get_usage",
       "import_file",
       "list_accounts",
@@ -99,6 +100,7 @@ describe("Tool discovery", () => {
       "set_exchange_rate",
       "setup_ledger",
       "sync_bank_account",
+      "sync_stripe",
       "update_notification",
       "update_recurring_entry",
     ]);

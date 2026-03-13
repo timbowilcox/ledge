@@ -77,12 +77,25 @@ function jaccardSimilarity(a: Set<string>, b: Set<string>): number {
   return intersectionSize / unionSize;
 }
 
-function scoreText(importPayee: string, importMemo: string | null, txnMemo: string): number {
+function scoreText(importPayee: string, importMemo: string | null, txnMemo: string, sourceRef?: string | null): number {
   const importText = [importPayee, importMemo ?? ""].join(" ");
   const importTokens = tokenize(importText);
   const txnTokens = tokenize(txnMemo);
 
-  return Math.round(jaccardSimilarity(importTokens, txnTokens) * 20);
+  let base = Math.round(jaccardSimilarity(importTokens, txnTokens) * 20);
+
+  // Stripe payout boost: when a bank feed row mentioning "stripe" matches
+  // a ledger transaction sourced from a Stripe payout, give full text score.
+  // This prevents double-counting when both Stripe Connect and bank feeds
+  // import the same payout.
+  if (
+    sourceRef?.startsWith("stripe:payout:") &&
+    importText.toLowerCase().includes("stripe")
+  ) {
+    base = 20;
+  }
+
+  return base;
 }
 
 // ---------------------------------------------------------------------------
@@ -130,7 +143,7 @@ export function matchRows(
     for (const txn of existingTransactions) {
       const dateScore = scoreDate(row.date, txn.date);
       const amountScore = scoreAmount(row.amount, transactionAmount(txn));
-      const textScore = scoreText(row.payee, row.memo, txn.memo);
+      const textScore = scoreText(row.payee, row.memo, txn.memo, txn.sourceRef);
       const totalScore = dateScore + amountScore + textScore;
 
       if (totalScore > 0) {

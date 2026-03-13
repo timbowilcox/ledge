@@ -108,6 +108,10 @@ export type {
   CreateRecurringEntryInput,
   UpdateRecurringEntryInput,
 
+  // Stripe Connect
+  StripeConnection,
+  StripeConnectionStatus,
+
 } from "@ledge/core";
 
 export type {
@@ -262,6 +266,7 @@ export class Ledge {
   readonly classification: ClassificationModule;
   readonly recurring: RecurringModule;
   readonly periods: PeriodsModule;
+  readonly stripeConnect: StripeConnectModule;
 
   constructor(config: LedgeConfig) {
     this._apiKey = config.apiKey;
@@ -285,6 +290,7 @@ export class Ledge {
     this.classification = new ClassificationModule(this);
     this.recurring = new RecurringModule(this);
     this.periods = new PeriodsModule(this);
+    this.stripeConnect = new StripeConnectModule(this);
   }
 
   // -------------------------------------------------------------------------
@@ -1142,5 +1148,37 @@ class RecurringModule {
   /** Resume a recurring entry. */
   async resume(ledgerId: string, id: string): Promise<RecurringEntry> {
     return this.c.request("POST", `/v1/ledgers/${ledgerId}/recurring/${id}/resume`);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Stripe Connect Module
+// ---------------------------------------------------------------------------
+
+/** Stripe connection status returned from the API (tokens hidden). */
+export interface StripeConnectStatus {
+  readonly id: string;
+  readonly stripeAccountId: string;
+  readonly status: string;
+  readonly lastSyncedAt: string | null;
+  readonly createdAt: string;
+}
+
+class StripeConnectModule {
+  constructor(private readonly c: Ledge) {}
+
+  /** Get Stripe connection status. Returns null if not connected. */
+  async status(): Promise<StripeConnectStatus | null> {
+    return this.c.request("GET", "/v1/stripe-connect/status");
+  }
+
+  /** Disconnect the Stripe account. */
+  async disconnect(): Promise<{ disconnected: boolean }> {
+    return this.c.request("POST", "/v1/stripe-connect/disconnect");
+  }
+
+  /** Trigger a manual sync of Stripe data (last 90 days). */
+  async sync(): Promise<{ syncing: boolean; message: string }> {
+    return this.c.request("POST", "/v1/stripe-connect/sync");
   }
 }

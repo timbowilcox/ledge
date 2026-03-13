@@ -65,6 +65,10 @@ export default async function OverviewPage() {
     .filter((a: AccountWithBalance) => a.type === "expense")
     .reduce((sum: number, a: AccountWithBalance) => sum + Math.abs(a.balance), 0);
 
+  // Stripe revenue = balance of account code 1050 (Stripe Balance) if it exists
+  const stripeBalanceAccount = accountsList.find((a: AccountWithBalance) => a.code === "1050");
+  const stripeRevenue = stripeBalanceAccount ? stripeBalanceAccount.balance : null;
+
   return (
     <div>
       {/* Greeting */}
@@ -95,6 +99,12 @@ export default async function OverviewPage() {
         <MetricCard label="Revenue" value={formatCurrency(totalRevenue)} />
         <MetricCard label="Expenses" value={formatCurrency(totalExpenses)} />
       </div>
+
+      {stripeRevenue !== null && (
+        <div style={{ gap: 16, marginBottom: 32 }}>
+          <MetricCard label="Stripe Balance" value={formatCurrency(stripeRevenue)} />
+        </div>
+      )}
 
       {/* Quick actions */}
       <div style={{ marginBottom: 32 }}>

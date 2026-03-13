@@ -685,6 +685,16 @@ export interface StripeConnectStatus {
   createdAt: string;
 }
 
+export async function getStripeAuthorizeUrl(): Promise<string | null> {
+  try {
+    const { client } = await getSessionClient();
+    const result = await client.stripeConnect.authorize();
+    return result.url;
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchStripeStatus(): Promise<StripeConnectStatus | null> {
   const { client } = await getSessionClient();
   return client.stripeConnect.status();

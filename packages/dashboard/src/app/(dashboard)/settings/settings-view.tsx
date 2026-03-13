@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { formatDate } from "@/lib/format";
-import { createApiKey, revokeApiKey, fetchApiKeys, createCheckoutSession, createPortalSession, fetchEmailPreferences, updateEmailPreferences, fetchRecurringEntries, deleteRecurringEntryAction, pauseRecurringEntryAction, resumeRecurringEntryAction, updateLedgerAction, reopenPeriodAction, fetchStripeStatus, disconnectStripe, syncStripe } from "@/lib/actions";
+import { createApiKey, revokeApiKey, fetchApiKeys, createCheckoutSession, createPortalSession, fetchEmailPreferences, updateEmailPreferences, fetchRecurringEntries, deleteRecurringEntryAction, pauseRecurringEntryAction, resumeRecurringEntryAction, updateLedgerAction, reopenPeriodAction, fetchStripeStatus, disconnectStripe, syncStripe, getStripeAuthorizeUrl } from "@/lib/actions";
 import type { StripeConnectStatus } from "@/lib/actions";
 import type { EmailPreferences, ClosedPeriodSummary } from "@/lib/actions";
 import { CopyButton } from "@/components/copy-button";
@@ -1158,7 +1158,14 @@ function ConnectionsTab() {
     });
   };
 
-  const apiBaseUrl = process.env["NEXT_PUBLIC_API_URL"] || "";
+  const handleConnect = () => {
+    startTransition(async () => {
+      const url = await getStripeAuthorizeUrl();
+      if (url) {
+        window.location.href = url;
+      }
+    });
+  };
 
   return (
     <div>
@@ -1229,13 +1236,14 @@ function ConnectionsTab() {
             <p style={{ fontSize: 13, color: "#666666", marginBottom: 12 }}>
               Connect your Stripe account to automatically import charges, refunds, and payouts as journal entries.
             </p>
-            <a
-              href={`${apiBaseUrl}/v1/stripe-connect/authorize`}
+            <button
               className="btn-primary"
-              style={{ fontSize: 12, height: 32, padding: "0 12px", display: "inline-flex", alignItems: "center", textDecoration: "none" }}
+              style={{ fontSize: 12, height: 32, padding: "0 12px" }}
+              onClick={handleConnect}
+              disabled={isPending}
             >
-              Connect Stripe
-            </a>
+              {isPending ? "Connecting..." : "Connect Stripe"}
+            </button>
           </div>
         )}
       </div>

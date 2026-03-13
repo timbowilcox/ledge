@@ -1167,6 +1167,11 @@ export interface StripeConnectStatus {
 class StripeConnectModule {
   constructor(private readonly c: Ledge) {}
 
+  /** Get the Stripe OAuth URL. The caller should redirect the user's browser to this URL. */
+  async authorize(): Promise<{ url: string }> {
+    return this.c.request("GET", "/v1/stripe-connect/authorize");
+  }
+
   /** Get Stripe connection status. Returns null if not connected. */
   async status(): Promise<StripeConnectStatus | null> {
     return this.c.request("GET", "/v1/stripe-connect/status");

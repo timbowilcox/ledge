@@ -100,7 +100,7 @@ stripeConnectRoutes.post("/webhook", async (c) => {
 // Auth-protected routes
 // ---------------------------------------------------------------------------
 
-/** GET /v1/stripe-connect/authorize — Redirect to Stripe OAuth */
+/** GET /v1/stripe-connect/authorize — Returns the Stripe OAuth URL for the client to redirect to */
 stripeConnectRoutes.get("/authorize", apiKeyAuth, async (c) => {
   if (!STRIPE_CONNECT_CLIENT_ID) {
     return c.json(
@@ -116,7 +116,7 @@ stripeConnectRoutes.get("/authorize", apiKeyAuth, async (c) => {
 
   const redirectUri = `${API_BASE_URL}/v1/stripe-connect/callback`;
   const url = getOAuthUrl(STRIPE_CONNECT_CLIENT_ID, redirectUri, state);
-  return c.redirect(url);
+  return success(c, { url });
 });
 
 /** GET /v1/stripe-connect/callback — Handle OAuth callback */

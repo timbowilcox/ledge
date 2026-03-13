@@ -1,8 +1,9 @@
 "use client";
 
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 
 const mainNavItems = [
   { href: "/", label: "Overview", icon: OverviewIcon },
@@ -114,36 +115,130 @@ export function Sidebar() {
       {/* Footer */}
       <div
         style={{
-          paddingLeft: 28,
-          paddingRight: 28,
+          paddingLeft: 16,
+          paddingRight: 16,
           paddingTop: 20,
           borderTop: "1px solid rgba(0,0,0,0.10)",
         }}
       >
-        {session?.user && (
-          <div className="flex items-center gap-3" style={{ marginBottom: 12 }}>
-            {session.user.image && (
-              <img
-                src={session.user.image}
-                alt=""
-                style={{ width: 28, height: 28, borderRadius: "50%", border: "1px solid rgba(0,0,0,0.10)", flexShrink: 0 }}
-              />
-            )}
-            <div style={{ minWidth: 0 }}>
-              <div className="text-sm font-medium truncate" style={{ color: "#0A0A0A" }}>
-                {session.user.name}
-              </div>
-              <div className="text-xs truncate" style={{ color: "rgba(0,0,0,0.36)" }}>
-                {session.user.email}
-              </div>
-            </div>
-          </div>
-        )}
-        <div className="text-xs" style={{ color: "rgba(0,0,0,0.28)" }}>
+        {session?.user && <UserProfileMenu session={session} />}
+        <div className="text-xs" style={{ color: "rgba(0,0,0,0.28)", paddingLeft: 12 }}>
           Ledge v0.1.0
         </div>
       </div>
     </aside>
+  );
+}
+
+function UserProfileMenu({ session }: { session: NonNullable<ReturnType<typeof useSession>["data"]> }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    if (open) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [open]);
+
+  return (
+    <div ref={ref} style={{ position: "relative", marginBottom: 12 }}>
+      {/* Popover */}
+      {open && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: "calc(100% + 8px)",
+            left: 0,
+            right: 0,
+            backgroundColor: "#fff",
+            borderRadius: 12,
+            boxShadow: "0 10px 25px -5px rgba(0,0,0,0.15), 0 4px 6px -4px rgba(0,0,0,0.1)",
+            border: "1px solid rgba(0,0,0,0.08)",
+            padding: 16,
+            zIndex: 50,
+          }}
+        >
+          <div className="text-sm font-medium" style={{ color: "#0A0A0A", marginBottom: 2 }}>
+            {session.user?.name ?? "Ledge User"}
+          </div>
+          <div className="text-xs" style={{ color: "rgba(0,0,0,0.45)", marginBottom: 12 }}>
+            {session.user?.email}
+          </div>
+          <div style={{ borderTop: "1px solid rgba(0,0,0,0.08)", paddingTop: 8 }}>
+            <button
+              onClick={() => signOut({ callbackUrl: "/signin" })}
+              className="flex items-center gap-2 w-full text-left text-sm"
+              style={{
+                padding: "8px 8px",
+                borderRadius: 8,
+                color: "#64748b",
+                fontWeight: 500,
+                border: "none",
+                backgroundColor: "transparent",
+                cursor: "pointer",
+                transition: "all 150ms",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "#fef2f2";
+                e.currentTarget.style.color = "#dc2626";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "transparent";
+                e.currentTarget.style.color = "#64748b";
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 14H3.33a1.33 1.33 0 0 1-1.33-1.33V3.33A1.33 1.33 0 0 1 3.33 2H6" />
+                <path d="M10.67 11.33L14 8l-3.33-3.33" />
+                <path d="M14 8H6" />
+              </svg>
+              Sign out
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Profile button */}
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-3 w-full text-left"
+        style={{
+          padding: "10px 12px",
+          borderRadius: 12,
+          border: "none",
+          backgroundColor: open ? "rgba(0,0,0,0.04)" : "transparent",
+          cursor: "pointer",
+          transition: "background-color 150ms",
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "rgba(0,0,0,0.04)"; }}
+        onMouseLeave={(e) => { if (!open) e.currentTarget.style.backgroundColor = "transparent"; }}
+      >
+        {session.user?.image && (
+          <img
+            src={session.user.image}
+            alt=""
+            style={{ width: 28, height: 28, borderRadius: "50%", border: "1px solid rgba(0,0,0,0.10)", flexShrink: 0 }}
+          />
+        )}
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div className="text-sm font-medium truncate" style={{ color: "#0A0A0A" }}>
+            {session.user?.name ?? "Ledge User"}
+          </div>
+          <div className="text-xs truncate" style={{ color: "rgba(0,0,0,0.36)" }}>
+            {session.user?.email}
+          </div>
+        </div>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="rgba(0,0,0,0.3)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, transform: open ? "rotate(180deg)" : "none", transition: "transform 150ms" }}>
+          <path d="M4 10l4-4 4 4" />
+        </svg>
+      </button>
+    </div>
   );
 }
 

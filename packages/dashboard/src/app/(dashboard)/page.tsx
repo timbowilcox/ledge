@@ -17,7 +17,12 @@ function getGreeting(): string {
 export default async function OverviewPage() {
   const { client, ledgerId } = await getSessionClient();
   const session = await auth();
-  const firstName = session?.user?.name?.split(" ")[0] ?? "";
+  const rawName = session?.user?.name;
+  const firstName = rawName
+    ? rawName.split(" ")[0]
+    : session?.user?.email
+      ? session.user.email.split("@")[0].charAt(0).toUpperCase() + session.user.email.split("@")[0].slice(1)
+      : "";
 
   const [ledger, accountsList, txResult] = await Promise.all([
     client.ledgers.get(ledgerId),
@@ -61,7 +66,7 @@ export default async function OverviewPage() {
         <MetricCard label="Accounts" value={formatNumber(accountCount)} variant="default" />
         <MetricCard label="Total Assets" value={formatCurrency(totalAssets)} mono variant="blue" />
         <MetricCard label="Revenue" value={formatCurrency(totalRevenue)} mono variant="green" />
-        <MetricCard label="Expenses" value={formatCurrency(totalExpenses)} mono variant="default" />
+        <MetricCard label="Expenses" value={formatCurrency(totalExpenses)} mono variant="red" />
       </div>
 
       {/* Quick actions */}
@@ -156,11 +161,15 @@ function MetricCard({
   label: string;
   value: string;
   mono?: boolean;
-  variant?: "default" | "blue" | "green";
+  variant?: "default" | "blue" | "green" | "red";
 }) {
-  const bgColor = variant === "blue" ? "#eff6ff" : variant === "green" ? "#ecfdf5" : "#f8fafc";
-  const valueColor = variant === "blue" ? "#2563eb" : variant === "green" ? "#059669" : "#0f172a";
-  const sparkColor = variant === "blue" ? "#3b82f6" : variant === "green" ? "#10b981" : "#94a3b8";
+  const colors = {
+    default: { bg: "#f8fafc", value: "#0f172a", spark: "#94a3b8" },
+    blue: { bg: "#eff6ff", value: "#2563eb", spark: "#3b82f6" },
+    green: { bg: "#ecfdf5", value: "#059669", spark: "#10b981" },
+    red: { bg: "#fef2f2", value: "#dc2626", spark: "#f87171" },
+  };
+  const { bg: bgColor, value: valueColor, spark: sparkColor } = colors[variant];
   return (
     <div className="stat-card" style={{ backgroundColor: bgColor }}>
       <div className="stat-card-label">{label}</div>

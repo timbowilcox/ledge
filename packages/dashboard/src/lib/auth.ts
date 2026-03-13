@@ -36,7 +36,17 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         const provider = account.provider;
         const providerId = String(account.providerAccountId);
         const email = token.email ?? `${provider}-${providerId}@ledge.internal`;
-        const name = token.name ?? "Ledge User";
+
+        // Capture the real display name from OAuth profile
+        // GitHub: profile.name (can be null), fallback to profile.login
+        // Google: profile.name, or given_name + family_name
+        const profileAny = profile as Record<string, unknown>;
+        const oauthName =
+          (profileAny.name as string) ??
+          (profileAny.login as string) ??
+          email.split("@")[0];
+        const name = oauthName || "Ledge User";
+        token.name = name;
 
         try {
           const result = await provisionUser({

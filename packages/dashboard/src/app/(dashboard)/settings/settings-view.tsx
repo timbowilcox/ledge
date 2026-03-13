@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
-import { useSession, signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { formatDate } from "@/lib/format";
 import { createApiKey, revokeApiKey, fetchApiKeys, createCheckoutSession, createPortalSession } from "@/lib/actions";
 import { CopyButton } from "@/components/copy-button";
@@ -120,12 +120,6 @@ function GeneralTab({ ledger }: { ledger: Props["ledger"] }) {
                 <div className="text-xs" style={{ color: "rgba(0,0,0,0.36)" }}>{session.user.email}</div>
               </div>
             </div>
-            <button
-              onClick={() => signOut({ callbackUrl: "/signin" })}
-              className="btn-ghost text-xs"
-            >
-              Sign out
-            </button>
           </div>
         )}
       </div>

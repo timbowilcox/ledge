@@ -1,5 +1,5 @@
 import { getSessionClient } from "@/lib/ledge";
-import { formatCurrency, formatDate, formatNumber, truncateId } from "@/lib/format";
+import { formatCurrency, formatDate, formatNumber } from "@/lib/format";
 import { auth } from "@/lib/auth";
 import Link from "next/link";
 import type { TransactionWithLines, AccountWithBalance } from "@ledge/sdk";
@@ -44,8 +44,8 @@ export default async function OverviewPage() {
       <div style={{ marginBottom: 32, display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
         <div>
           <h1
-            className="font-bold"
-            style={{ fontSize: 24, color: "#0A0A0A", fontFamily: "var(--font-family-display)", marginBottom: 4 }}
+            className="font-semibold"
+            style={{ fontSize: 28, color: "#0A0A0A", fontFamily: "var(--font-heading)", marginBottom: 8 }}
           >
             {getGreeting()}, {firstName}
           </h1>
@@ -58,10 +58,10 @@ export default async function OverviewPage() {
 
       {/* Metric cards */}
       <div className="grid grid-cols-4" style={{ gap: 20, marginBottom: 32 }}>
-        <MetricCard label="Accounts" value={formatNumber(accountCount)} />
-        <MetricCard label="Total Assets" value={formatCurrency(totalAssets)} mono />
-        <MetricCard label="Revenue" value={formatCurrency(totalRevenue)} mono accent="green" />
-        <MetricCard label="Expenses" value={formatCurrency(totalExpenses)} mono accent="red" />
+        <MetricCard label="Accounts" value={formatNumber(accountCount)} variant="default" />
+        <MetricCard label="Total Assets" value={formatCurrency(totalAssets)} mono variant="blue" />
+        <MetricCard label="Revenue" value={formatCurrency(totalRevenue)} mono variant="green" />
+        <MetricCard label="Expenses" value={formatCurrency(totalExpenses)} mono variant="default" />
       </div>
 
       {/* Quick actions */}
@@ -101,7 +101,6 @@ export default async function OverviewPage() {
         <table className="w-full">
           <thead>
             <tr>
-              <th className="table-header" style={{ position: "sticky", top: 0, backgroundColor: "#F7F7F6", zIndex: 1 }}>ID</th>
               <th className="table-header" style={{ position: "sticky", top: 0, backgroundColor: "#F7F7F6", zIndex: 1 }}>Date</th>
               <th className="table-header" style={{ position: "sticky", top: 0, backgroundColor: "#F7F7F6", zIndex: 1 }}>Description</th>
               <th className="table-header text-right" style={{ position: "sticky", top: 0, backgroundColor: "#F7F7F6", zIndex: 1 }}>Amount</th>
@@ -115,11 +114,8 @@ export default async function OverviewPage() {
                 .reduce((sum, l) => sum + l.amount, 0);
               return (
                 <tr key={tx.id} className="table-row">
-                  <td className="table-cell font-mono text-xs" style={{ color: "rgba(0,0,0,0.36)" }}>
-                    {truncateId(tx.id)}
-                  </td>
-                  <td className="table-cell text-sm">{formatDate(tx.date)}</td>
-                  <td className="table-cell text-sm">{tx.memo}</td>
+                  <td className="table-cell font-mono text-sm" style={{ color: "#64748b" }}>{formatDate(tx.date)}</td>
+                  <td className="table-cell text-sm" style={{ color: "#0f172a", fontWeight: 500 }}>{tx.memo}</td>
                   <td className="table-cell text-right font-mono text-sm" style={{ fontVariantNumeric: "tabular-nums" }}>
                     {formatCurrency(totalDebit)}
                   </td>
@@ -133,7 +129,7 @@ export default async function OverviewPage() {
             })}
             {recentTransactions.length === 0 && (
               <tr>
-                <td colSpan={5} className="table-cell text-center" style={{ padding: 48 }}>
+                <td colSpan={4} className="table-cell text-center" style={{ padding: 48 }}>
                   <EmptyState
                     icon={<svg width="40" height="40" viewBox="0 0 40 40" fill="none" stroke="rgba(0,0,0,0.15)" strokeWidth="1.5" strokeLinecap="round"><path d="M6 11h28M6 20h28M6 29h18" /></svg>}
                     title="No transactions yet"
@@ -155,29 +151,26 @@ function MetricCard({
   label,
   value,
   mono = false,
-  accent,
+  variant = "default",
 }: {
   label: string;
   value: string;
   mono?: boolean;
-  accent?: "green" | "red";
+  variant?: "default" | "blue" | "green";
 }) {
-  const accentColor = accent === "green" ? "#16A34A" : accent === "red" ? "#EF4444" : "#0A0A0A";
+  const bgColor = variant === "blue" ? "#eff6ff" : variant === "green" ? "#ecfdf5" : "#f8fafc";
+  const valueColor = variant === "blue" ? "#2563eb" : variant === "green" ? "#059669" : "#0f172a";
+  const sparkColor = variant === "blue" ? "#3b82f6" : variant === "green" ? "#10b981" : "#94a3b8";
   return (
-    <div className="card">
-      <div className="section-label" style={{ marginBottom: 10 }}>{label}</div>
+    <div className="stat-card" style={{ backgroundColor: bgColor }}>
+      <div className="stat-card-label">{label}</div>
       <div
-        className={"font-bold " + (mono ? "font-mono" : "")}
-        style={{
-          fontSize: 28,
-          lineHeight: 1.1,
-          letterSpacing: "-0.02em",
-          color: accentColor,
-          fontVariantNumeric: "tabular-nums",
-        }}
+        className={"stat-card-value " + (mono ? "font-mono" : "")}
+        style={{ color: valueColor }}
       >
         {value}
       </div>
+      <div className="stat-sparkline" style={{ backgroundColor: sparkColor, width: "60%" }} />
     </div>
   );
 }
@@ -189,9 +182,9 @@ function QuickAction({ icon, label, href }: { icon: React.ReactNode; label: stri
       className="flex items-center gap-3 quick-action"
       style={{
         padding: "12px 20px",
-        borderRadius: 12,
-        border: "1px solid rgba(0,0,0,0.10)",
-        backgroundColor: "#F7F7F6",
+        borderRadius: 16,
+        border: "none",
+        backgroundColor: "#f8fafc",
         fontSize: 13,
         fontWeight: 500,
         color: "#0A0A0A",

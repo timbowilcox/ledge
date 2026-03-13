@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { formatCurrency } from "@/lib/format";
-import type { AccountWithBalance, AccountType } from "@ledge/sdk";
+import type { AccountWithBalance } from "@ledge/sdk";
 import { ContextualPrompt } from "@/components/contextual-prompt";
 
 const typeOrder: Record<string, number> = {
@@ -13,8 +13,8 @@ const typeLabels: Record<string, string> = {
   asset: "Asset", liability: "Liability", equity: "Equity", revenue: "Revenue", expense: "Expense",
 };
 
-const typeBadge: Record<string, string> = {
-  asset: "badge-blue", liability: "badge-amber", equity: "badge-green", revenue: "badge-green", expense: "badge-red",
+const typeColors: Record<string, string> = {
+  asset: "#3B82F6", liability: "#D97706", equity: "#8B5CF6", revenue: "#059669", expense: "#64748B",
 };
 
 export function AccountsView({ accounts }: { accounts: AccountWithBalance[] }) {
@@ -47,8 +47,8 @@ export function AccountsView({ accounts }: { accounts: AccountWithBalance[] }) {
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
         <h1
-          className="font-bold"
-          style={{ fontSize: 24, color: "#0A0A0A", fontFamily: "var(--font-family-display)" }}
+          className="font-semibold"
+          style={{ fontSize: 28, color: "#0A0A0A", fontFamily: "var(--font-heading)" }}
         >
           Account Tree
         </h1>
@@ -61,7 +61,6 @@ export function AccountsView({ accounts }: { accounts: AccountWithBalance[] }) {
             <tr>
               <th className="table-header" style={{ width: 120, position: "sticky", top: 0, backgroundColor: "#F7F7F6", zIndex: 1 }}>Code</th>
               <th className="table-header" style={{ position: "sticky", top: 0, backgroundColor: "#F7F7F6", zIndex: 1 }}>Account Name</th>
-              <th className="table-header" style={{ width: 100, position: "sticky", top: 0, backgroundColor: "#F7F7F6", zIndex: 1 }}>Type</th>
               <th className="table-header text-right" style={{ width: 160, position: "sticky", top: 0, backgroundColor: "#F7F7F6", zIndex: 1 }}>Balance</th>
             </tr>
           </thead>
@@ -120,7 +119,7 @@ function GroupRows({
             >
               <path d="M5 3l4 4-4 4" />
             </svg>
-            <span className="text-sm font-semibold">
+            <span className="text-sm font-semibold" style={{ color: typeColors[type] ?? "#0f172a" }}>
               {(typeLabels[type] ?? type).replace(/y$/,"ie")+"s"}
             </span>
             <span className="text-xs" style={{ color: "rgba(0,0,0,0.28)" }}>
@@ -128,32 +127,26 @@ function GroupRows({
             </span>
           </div>
         </td>
-        <td className="table-cell">
-          <span className={"badge " + (typeBadge[type] ?? "badge-blue")}>{typeLabels[type] ?? type}</span>
-        </td>
         <td
           className="table-cell text-right font-mono text-sm font-medium"
-          style={{ color: groupTotal < 0 ? "#EF4444" : "#0A0A0A", fontVariantNumeric: "tabular-nums" }}
+          style={{ color: groupTotal < 0 ? "#EF4444" : "#0f172a", fontVariantNumeric: "tabular-nums" }}
         >
           {formatCurrency(Math.abs(groupTotal))}
         </td>
       </tr>
 
       {isExpanded &&
-        accounts.map((account) => (
-          <tr key={account.id} className="table-row">
+        accounts.map((account, idx) => (
+          <tr key={account.id} className="table-row" style={{ backgroundColor: idx % 2 === 1 ? "#f8fafc" : undefined }}>
             <td className="table-cell" style={{ paddingLeft: 44 }}>
-              <code className="text-xs font-mono" style={{ color: "#3B82F6" }}>
+              <code className="text-xs font-mono" style={{ color: "#94a3b8" }}>
                 {account.code}
               </code>
             </td>
-            <td className="table-cell text-sm">{account.name}</td>
-            <td className="table-cell">
-              <span className={"badge " + (typeBadge[type] ?? "badge-blue")}>{typeLabels[type] ?? type}</span>
-            </td>
+            <td className="table-cell text-sm" style={{ color: "#0f172a" }}>{account.name}</td>
             <td
               className="table-cell text-right font-mono text-sm"
-              style={{ color: account.balance < 0 ? "#EF4444" : "#0A0A0A", fontVariantNumeric: "tabular-nums" }}
+              style={{ color: account.balance < 0 ? "#EF4444" : "#0f172a", fontVariantNumeric: "tabular-nums" }}
             >
               {formatCurrency(Math.abs(account.balance))}
             </td>

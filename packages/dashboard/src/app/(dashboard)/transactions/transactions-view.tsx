@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { formatCurrency, formatDate, truncateId } from "@/lib/format";
+import { formatCurrency, formatDate } from "@/lib/format";
 import { fetchTransactions } from "@/lib/actions";
 import type { TransactionWithLines, PaginatedResult, AccountWithBalance } from "@ledge/sdk";
 import { ContextualPrompt } from "@/components/contextual-prompt";
@@ -43,8 +43,8 @@ export function TransactionsView({ initialData, accountMap }: Props) {
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
         <h1
-          className="font-bold"
-          style={{ fontSize: 24, color: "#0A0A0A", fontFamily: "var(--font-family-display)" }}
+          className="font-semibold"
+          style={{ fontSize: 28, color: "#0A0A0A", fontFamily: "var(--font-heading)" }}
         >
           Transactions
         </h1>
@@ -90,7 +90,6 @@ export function TransactionsView({ initialData, accountMap }: Props) {
         <table className="w-full">
           <thead>
             <tr>
-              <th className="table-header" style={{ width: 100, position: "sticky", top: 0, backgroundColor: "#F7F7F6", zIndex: 1 }}>ID</th>
               <th className="table-header" style={{ width: 120, position: "sticky", top: 0, backgroundColor: "#F7F7F6", zIndex: 1 }}>Date</th>
               <th className="table-header" style={{ position: "sticky", top: 0, backgroundColor: "#F7F7F6", zIndex: 1 }}>Description</th>
               <th className="table-header text-right" style={{ width: 140, position: "sticky", top: 0, backgroundColor: "#F7F7F6", zIndex: 1 }}>Amount</th>
@@ -110,7 +109,7 @@ export function TransactionsView({ initialData, accountMap }: Props) {
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={5} className="table-cell text-center" style={{ padding: 48 }}>
+                <td colSpan={4} className="table-cell text-center" style={{ padding: 48 }}>
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
                     <div style={{ marginBottom: 8 }}>
                       <svg width="40" height="40" viewBox="0 0 40 40" fill="none" stroke="rgba(0,0,0,0.15)" strokeWidth="1.5" strokeLinecap="round">
@@ -162,11 +161,8 @@ function TransactionRow({
   return (
     <>
       <tr className="table-row cursor-pointer" onClick={onToggle}>
-        <td className="table-cell font-mono text-xs" style={{ color: "rgba(0,0,0,0.36)" }}>
-          {truncateId(tx.id)}
-        </td>
-        <td className="table-cell text-sm">{formatDate(tx.date)}</td>
-        <td className="table-cell text-sm">{tx.memo}</td>
+        <td className="table-cell font-mono text-sm" style={{ color: "#64748b" }}>{formatDate(tx.date)}</td>
+        <td className="table-cell text-sm" style={{ color: "#0f172a", fontWeight: 500 }}>{tx.memo}</td>
         <td className="table-cell text-right font-mono text-sm" style={{ fontVariantNumeric: "tabular-nums", color: amount < 0 ? "#EF4444" : undefined }}>
           {formatCurrency(amount)}
         </td>
@@ -179,7 +175,7 @@ function TransactionRow({
 
       {isExpanded && (
         <tr>
-          <td colSpan={5} style={{ padding: 0 }}>
+          <td colSpan={4} style={{ padding: 0 }}>
             <div
               style={{
                 margin: "0 16px 12px",
@@ -203,7 +199,7 @@ function TransactionRow({
                       <tr key={i}>
                         <td className="table-cell text-sm" style={{ paddingTop: 10, paddingBottom: 10 }}>
                           {acct && (
-                            <code className="font-mono text-xs" style={{ color: "#3B82F6", marginRight: 8 }}>
+                            <code className="font-mono text-xs" style={{ color: "#94a3b8", marginRight: 8 }}>
                               {acct.code}
                             </code>
                           )}

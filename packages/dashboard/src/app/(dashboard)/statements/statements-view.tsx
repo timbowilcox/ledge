@@ -60,8 +60,8 @@ export function StatementsView({
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
         <h1
-          className="font-bold"
-          style={{ fontSize: 24, color: "#0A0A0A", fontFamily: "var(--font-family-display)" }}
+          className="font-semibold"
+          style={{ fontSize: 28, color: "#0A0A0A", fontFamily: "var(--font-heading)" }}
         >
           Statements
         </h1>
@@ -150,8 +150,8 @@ export function StatementsView({
       <div className="card" style={{ padding: 0 }}>
         <div style={{ padding: "20px 24px" }}>
           <h2
-            className="font-bold"
-            style={{ fontSize: 18, fontFamily: "var(--font-family-display)" }}
+            className="font-semibold"
+            style={{ fontSize: 18, fontFamily: "var(--font-heading)" }}
           >
             {formatStatementTitle(statement.statementType)}
           </h2>
@@ -174,35 +174,36 @@ export function StatementsView({
               <SectionRows key={section.name} section={section} />
             ))}
 
-            {Object.entries(statement.totals).map(([key, value]) => (
-              <tr key={key} style={{ backgroundColor: (key === "netIncome" || key === "netChange" || key === "totalAssets") ? "rgba(59,130,246,0.04)" : undefined }}>
-                <td
-                  className="text-sm font-bold"
-                  style={{
-                    padding: "14px 20px",
-                    borderTop: "2px solid rgba(0,0,0,0.12)",
-                    color: "#0A0A0A",
-                  }}
-                >
-                  {formatTotalLabel(key)}
-                </td>
-                <td
-                  className="text-right font-mono text-sm font-bold"
-                  style={{
-                    padding: "14px 20px",
-                    borderTop: "2px solid rgba(0,0,0,0.12)",
-                    fontVariantNumeric: "tabular-nums",
-                    color: key === "netIncome" || key === "netChange"
-                      ? value >= 0 ? "#16A34A" : "#DC2626"
-                      : "#0A0A0A",
-                  }}
-                >
-                  {key === "debtToEquity"
-                    ? (value / 100).toFixed(2)
-                    : formatCurrency(Math.abs(value))}
-                </td>
-              </tr>
-            ))}
+            {Object.entries(statement.totals).map(([key, value]) => {
+              const isGrand = key === "netIncome" || key === "netChange" || key === "grossProfit";
+              return (
+                <tr key={key} className={isGrand ? "grand-total-row" : ""} style={!isGrand ? { backgroundColor: "#f8fafc" } : undefined}>
+                  <td
+                    className="text-sm font-semibold"
+                    style={{
+                      padding: "14px 20px",
+                      borderTop: "2px solid rgba(0,0,0,0.12)",
+                      color: isGrand ? "white" : "#0f172a",
+                    }}
+                  >
+                    {formatTotalLabel(key)}
+                  </td>
+                  <td
+                    className="text-right font-mono text-sm font-semibold"
+                    style={{
+                      padding: "14px 20px",
+                      borderTop: "2px solid rgba(0,0,0,0.12)",
+                      fontVariantNumeric: "tabular-nums",
+                      color: isGrand ? "white" : "#0f172a",
+                    }}
+                  >
+                    {key === "debtToEquity"
+                      ? (value / 100).toFixed(2)
+                      : formatCurrency(Math.abs(value))}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -237,6 +238,8 @@ function SectionRows({ section }: { section: StatementResponse["sections"][numbe
             padding: "20px 20px 10px",
             color: sectionColor,
             position: "relative",
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
           }}
         >
           <span
@@ -263,7 +266,7 @@ function SectionRows({ section }: { section: StatementResponse["sections"][numbe
         >
           <td className="table-cell text-sm" style={{ paddingLeft: 36 }}>
             {line.accountCode && (
-              <code className="font-mono text-xs" style={{ color: "#3B82F6", marginRight: 8 }}>
+              <code className="font-mono text-xs" style={{ color: "#94a3b8", marginRight: 8 }}>
                 {line.accountCode}
               </code>
             )}
@@ -284,9 +287,9 @@ function SectionRows({ section }: { section: StatementResponse["sections"][numbe
       ))}
 
       {/* Section total */}
-      <tr>
+      <tr style={{ backgroundColor: "#f8fafc" }}>
         <td
-          className="text-sm font-medium"
+          className="text-sm font-semibold"
           style={{
             paddingLeft: 36,
             padding: "10px 20px 10px 36px",
@@ -296,11 +299,11 @@ function SectionRows({ section }: { section: StatementResponse["sections"][numbe
           Total {section.name}
         </td>
         <td
-          className="text-right font-mono text-sm font-medium"
+          className="text-right font-mono text-sm font-semibold"
           style={{
             padding: "10px 20px",
             borderTop: "1px solid rgba(0,0,0,0.08)",
-            color: section.total < 0 ? "#EF4444" : "#0A0A0A",
+            color: section.total < 0 ? "#EF4444" : "#0f172a",
             fontVariantNumeric: "tabular-nums",
           }}
         >
@@ -316,6 +319,7 @@ function SectionRows({ section }: { section: StatementResponse["sections"][numbe
 function formatStatementTitle(type: string): string {
   const titles: Record<string, string> = {
     income_statement: "Profit & Loss Statement",
+    pnl: "Profit & Loss Statement",
     balance_sheet: "Balance Sheet",
     cash_flow: "Cash Flow Statement",
   };

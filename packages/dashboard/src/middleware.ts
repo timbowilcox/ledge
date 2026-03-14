@@ -12,7 +12,7 @@ export default auth((req) => {
   }
 
   // Allow static assets
-  if (pathname.startsWith("/_next") || pathname === "/favicon.ico") {
+  if (pathname.startsWith("/_next") || pathname === "/favicon.ico" || pathname.endsWith(".svg") || pathname.endsWith(".png") || pathname.endsWith(".ico")) {
     return NextResponse.next();
   }
 

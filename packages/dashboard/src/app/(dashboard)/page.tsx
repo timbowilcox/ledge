@@ -1,5 +1,5 @@
 import { getSessionClient } from "@/lib/ledge";
-import { formatCurrency, formatDate, formatNumber } from "@/lib/format";
+import { formatCurrency, formatDate } from "@/lib/format";
 import { auth } from "@/lib/auth";
 import Link from "next/link";
 import type { TransactionWithLines, AccountWithBalance } from "@ledge/sdk";
@@ -55,20 +55,23 @@ export default async function OverviewPage() {
     if (txResult.status === "fulfilled") recentTransactions = [...(txResult.value?.data ?? [])];
   }
 
-  const accountCount = accountsList.length;
-  const totalAssets = accountsList
-    .filter((a: AccountWithBalance) => a.type === "asset")
+  // Cash balance: sum of accounts with codes 1000–1099 (checking/savings)
+  const cashBalance = accountsList
+    .filter((a: AccountWithBalance) => {
+      const code = parseInt(a.code ?? "", 10);
+      return !isNaN(code) && code >= 1000 && code <= 1099;
+    })
     .reduce((sum: number, a: AccountWithBalance) => sum + a.balance, 0);
-  const totalRevenue = accountsList
-    .filter((a: AccountWithBalance) => a.type === "revenue")
-    .reduce((sum: number, a: AccountWithBalance) => sum + Math.abs(a.balance), 0);
+
   const totalExpenses = accountsList
     .filter((a: AccountWithBalance) => a.type === "expense")
     .reduce((sum: number, a: AccountWithBalance) => sum + Math.abs(a.balance), 0);
 
-  // Stripe revenue = balance of account code 1050 (Stripe Balance) if it exists
-  const stripeBalanceAccount = accountsList.find((a: AccountWithBalance) => a.code === "1050");
-  const stripeRevenue = stripeBalanceAccount ? stripeBalanceAccount.balance : null;
+  // Burn rate: average monthly expenses (use total expenses as proxy for current period)
+  const burnRate = totalExpenses;
+
+  // Runway: months of cash remaining (burn rate > 0 to avoid division by zero)
+  const runwayMonths = burnRate > 0 ? Math.round(cashBalance / burnRate) : null;
 
   // Revenue recognition metrics (graceful — returns zeros if no schedules)
   let revMetrics = { mrr: 0, arr: 0, deferredRevenueBalance: 0, recognisedThisMonth: 0, recognisedThisYear: 0, activeSchedules: 0 };
@@ -104,39 +107,57 @@ export default async function OverviewPage() {
 
       {/* Metric cards */}
       <div className="grid grid-cols-4" style={{ gap: 16, marginBottom: 32 }}>
-        <MetricCard label="Accounts" value={formatNumber(accountCount)} />
-        <MetricCard label="Total Assets" value={formatCurrency(totalAssets)} />
-        {hasRevSchedules ? (
-          <MetricCard label="MRR" value={`${formatCurrency(revMetrics.mrr)}/mo`} subtitle={`Deferred: ${formatCurrency(revMetrics.deferredRevenueBalance)}`} />
-        ) : (
-          <MetricCard label="Revenue" value={formatCurrency(totalRevenue)} />
-        )}
-        <MetricCard label="Expenses" value={formatCurrency(totalExpenses)} />
+        <MetricCard
+          label="Cash Balance"
+          value={formatCurrency(cashBalance)}
+          icon={<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#10B981" strokeWidth="1.5" strokeLinecap="round"><rect x="2" y="4" width="16" height="12" rx="2" /><path d="M2 8h16" /><path d="M6 12h3" /></svg>}
+          color="#10B981"
+        />
+        <MetricCard
+          label={hasRevSchedules ? "MRR" : "Revenue"}
+          value={hasRevSchedules ? `${formatCurrency(revMetrics.mrr)}/mo` : formatCurrency(accountsList.filter((a: AccountWithBalance) => a.type === "revenue").reduce((s: number, a: AccountWithBalance) => s + Math.abs(a.balance), 0))}
+          subtitle={hasRevSchedules ? `Deferred: ${formatCurrency(revMetrics.deferredRevenueBalance)}` : undefined}
+          icon={<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#0066FF" strokeWidth="1.5" strokeLinecap="round"><path d="M3 17V9M7.5 17V5M12 17V11M16.5 17V3" /></svg>}
+          color="#0066FF"
+        />
+        <MetricCard
+          label="Burn Rate"
+          value={burnRate > 0 ? `-${formatCurrency(burnRate)}/mo` : formatCurrency(0)}
+          icon={<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#F59E0B" strokeWidth="1.5" strokeLinecap="round"><path d="M10 3c0 3-4 5-4 8a4 4 0 108 0c0-3-4-5-4-8z" /></svg>}
+          color="#F59E0B"
+        />
+        <MetricCard
+          label="Runway"
+          value={runwayMonths !== null ? `${runwayMonths} mo` : "∞"}
+          subtitle={runwayMonths !== null && runwayMonths <= 6 ? "Review spending" : undefined}
+          icon={<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke={runwayMonths !== null && runwayMonths <= 6 ? "#EF4444" : "#8B5CF6"} strokeWidth="1.5" strokeLinecap="round"><circle cx="10" cy="10" r="7" /><path d="M10 6v4l2.5 2.5" /></svg>}
+          color={runwayMonths !== null && runwayMonths <= 6 ? "#EF4444" : "#8B5CF6"}
+        />
       </div>
-
-      {stripeRevenue !== null && (
-        <div style={{ gap: 16, marginBottom: 32 }}>
-          <MetricCard label="Stripe Balance" value={formatCurrency(stripeRevenue)} />
-        </div>
-      )}
 
       {/* Quick actions */}
       <div style={{ marginBottom: 32 }}>
         <div className="section-label" style={{ marginBottom: 8 }}>Quick Actions</div>
         <div className="flex" style={{ gap: 12 }}>
           <QuickActionButton
-            icon={<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#0066FF" strokeWidth="1.5" strokeLinecap="round"><path d="M8 3v10M3 8h10" /></svg>}
+            icon={<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0066FF" strokeWidth="1.5" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>}
             label="Post transaction"
+            bgColor="#EFF6FF"
+            accentColor="#0066FF"
           />
           <QuickAction
-            icon={<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#0066FF" strokeWidth="1.5" strokeLinecap="round"><path d="M2 13V5M5.5 13V7.5M9 13V3M12.5 13V9" /></svg>}
+            icon={<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="1.5" strokeLinecap="round"><path d="M3 18V8M7.5 18V10M12 18V5M16.5 18V12M21 18V14" /></svg>}
             label="Generate statement"
             href="/statements"
+            bgColor="#ECFDF5"
+            accentColor="#059669"
           />
           <QuickAction
-            icon={<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#0066FF" strokeWidth="1.5" strokeLinecap="round"><path d="M2 3h12M3 3v10M13 3v10M2 13h12M2 6.5h12" /></svg>}
+            icon={<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="1.5" strokeLinecap="round"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 10h18" /><path d="M7 14h4" /></svg>}
             label="Connect bank account"
             href="/bank-feeds"
+            bgColor="#FFFBEB"
+            accentColor="#D97706"
           />
         </div>
       </div>
@@ -205,14 +226,33 @@ function MetricCard({
   label,
   value,
   subtitle,
+  icon,
+  color,
 }: {
   label: string;
   value: string;
   subtitle?: string;
+  icon?: React.ReactNode;
+  color?: string;
 }) {
   return (
     <div className="stat-card">
-      <div className="stat-card-label">{label}</div>
+      <div className="flex items-center" style={{ gap: 8, marginBottom: 8 }}>
+        {icon && (
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 32,
+            height: 32,
+            borderRadius: 8,
+            backgroundColor: color ? `${color}14` : "#F5F5F5",
+          }}>
+            {icon}
+          </div>
+        )}
+        <div className="stat-card-label" style={{ marginBottom: 0 }}>{label}</div>
+      </div>
       <div className="stat-card-value">{value}</div>
       {subtitle && (
         <div style={{ fontSize: 11, color: "#999999", marginTop: 2, fontFamily: "var(--font-geist-mono, monospace)" }}>
@@ -223,50 +263,58 @@ function MetricCard({
   );
 }
 
-function QuickAction({ icon, label, href }: { icon: React.ReactNode; label: string; href: string }) {
+function QuickAction({ icon, label, href, bgColor, accentColor }: { icon: React.ReactNode; label: string; href: string; bgColor?: string; accentColor?: string }) {
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 quick-action"
+      className="flex items-center quick-action"
       style={{
-        padding: "8px 16px",
-        borderRadius: 8,
+        padding: "12px 16px",
+        borderRadius: 10,
         border: "1px solid #E5E5E5",
-        backgroundColor: "#FFFFFF",
-        fontSize: 13,
+        backgroundColor: bgColor ?? "#FFFFFF",
+        fontSize: 14,
         fontWeight: 500,
         color: "#0A0A0A",
-        height: 40,
+        height: 56,
+        flex: 1,
+        transition: "box-shadow 0.15s, border-color 0.15s",
+        gap: 12,
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 28, height: 28, borderRadius: 6, backgroundColor: "#F0F6FF" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: 8, backgroundColor: accentColor ? `${accentColor}18` : "#F0F6FF", flexShrink: 0 }}>
         {icon}
       </div>
-      {label}
+      <span style={{ flex: 1 }}>{label}</span>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke={accentColor ?? "#999"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M6 4l4 4-4 4" /></svg>
     </Link>
   );
 }
 
-function QuickActionButton({ icon, label }: { icon: React.ReactNode; label: string }) {
+function QuickActionButton({ icon, label, bgColor, accentColor }: { icon: React.ReactNode; label: string; bgColor?: string; accentColor?: string }) {
   return (
     <PostTransactionButton
-      className="flex items-center gap-3 quick-action"
+      className="flex items-center quick-action"
       style={{
-        padding: "8px 16px",
-        borderRadius: 8,
+        padding: "12px 16px",
+        borderRadius: 10,
         border: "1px solid #E5E5E5",
-        backgroundColor: "#FFFFFF",
-        fontSize: 13,
+        backgroundColor: bgColor ?? "#FFFFFF",
+        fontSize: 14,
         fontWeight: 500,
         color: "#0A0A0A",
-        height: 40,
+        height: 56,
+        flex: 1,
         cursor: "pointer",
+        transition: "box-shadow 0.15s, border-color 0.15s",
+        gap: 12,
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 28, height: 28, borderRadius: 6, backgroundColor: "#F0F6FF" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: 8, backgroundColor: accentColor ? `${accentColor}18` : "#F0F6FF", flexShrink: 0 }}>
         {icon}
       </div>
-      {label}
+      <span style={{ flex: 1 }}>{label}</span>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke={accentColor ?? "#999"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M6 4l4 4-4 4" /></svg>
     </PostTransactionButton>
   );
 }

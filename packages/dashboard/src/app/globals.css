@@ -344,7 +344,8 @@ a {
 }
 
 .quick-action:hover {
-  background-color: var(--color-hover) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-color: #D4D4D4 !important;
 }
 
 /* ── Skeleton ────────────────────────────────────────────────────── */

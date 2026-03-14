@@ -720,3 +720,133 @@ export async function syncStripe(): Promise<boolean> {
   }
 }
 
+// --- Revenue Recognition ---------------------------------------------------
+
+export interface RevenueMetricsSummary {
+  mrr: number;
+  arr: number;
+  deferredRevenueBalance: number;
+  recognisedThisMonth: number;
+  recognisedThisYear: number;
+  activeSchedules: number;
+}
+
+export interface MrrHistoryPoint {
+  month: string;
+  mrr: number;
+}
+
+export interface RevenueScheduleSummary {
+  id: string;
+  ledgerId: string;
+  sourceType: string;
+  sourceRef: string | null;
+  stripeSubscriptionId: string | null;
+  stripeCustomerId: string | null;
+  customerName: string | null;
+  totalAmount: number;
+  currency: string;
+  recognitionStart: string;
+  recognitionEnd: string;
+  frequency: string;
+  status: string;
+  amountRecognised: number;
+  amountRemaining: number;
+  deferredRevenueAccountId: string;
+  revenueAccountId: string;
+  description: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RevenueScheduleEntrySummary {
+  id: string;
+  scheduleId: string;
+  ledgerId: string;
+  periodStart: string;
+  periodEnd: string;
+  amount: number;
+  status: string;
+  transactionId: string | null;
+  postedAt: string | null;
+  createdAt: string;
+}
+
+export interface RevenueScheduleDetail extends RevenueScheduleSummary {
+  entries: RevenueScheduleEntrySummary[];
+}
+
+async function revenueFetch(path: string, method = "GET", body?: unknown): Promise<Response> {
+  const session = await auth();
+  const apiUrl = process.env["LEDGE_API_URL"] ?? "http://localhost:3001";
+  if (!session?.apiKey) throw new Error("No authenticated session");
+
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${session.apiKey}`,
+  };
+  if (body) headers["Content-Type"] = "application/json";
+
+  return fetch(`${apiUrl}/v1/revenue${path}`, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+    cache: "no-store",
+  });
+}
+
+export async function fetchRevenueMetrics(): Promise<RevenueMetricsSummary> {
+  const res = await revenueFetch("/metrics");
+  if (!res.ok) return { mrr: 0, arr: 0, deferredRevenueBalance: 0, recognisedThisMonth: 0, recognisedThisYear: 0, activeSchedules: 0 };
+  const json = await res.json();
+  return json.data;
+}
+
+export async function fetchMrrHistory(months = 12): Promise<MrrHistoryPoint[]> {
+  const res = await revenueFetch(`/mrr-history?months=${months}`);
+  if (!res.ok) return [];
+  const json = await res.json();
+  return json.data ?? [];
+}
+
+export async function fetchRevenueSchedules(
+  status?: string,
+): Promise<{ data: RevenueScheduleSummary[]; nextCursor: string | null }> {
+  const params = new URLSearchParams();
+  if (status) params.set("status", status);
+  const qs = params.toString() ? `?${params.toString()}` : "";
+  const res = await revenueFetch(`/schedules${qs}`);
+  if (!res.ok) return { data: [], nextCursor: null };
+  const json = await res.json();
+  return { data: json.data ?? [], nextCursor: json.nextCursor ?? null };
+}
+
+export async function fetchRevenueSchedule(id: string): Promise<RevenueScheduleDetail | null> {
+  const res = await revenueFetch(`/schedules/${id}`);
+  if (!res.ok) return null;
+  const json = await res.json();
+  return json.data;
+}
+
+export async function createRevenueScheduleAction(input: {
+  totalAmount: number;
+  recognitionStart: string;
+  recognitionEnd: string;
+  customerName?: string;
+  description?: string;
+  currency?: string;
+}): Promise<RevenueScheduleDetail | null> {
+  const res = await revenueFetch("/schedules", "POST", input);
+  if (!res.ok) return null;
+  const json = await res.json();
+  return json.data;
+}
+
+export async function updateRevenueScheduleAction(
+  id: string,
+  action: "pause" | "cancel" | "resume",
+): Promise<boolean> {
+  const res = await revenueFetch(`/schedules/${id}`, "PUT", { action });
+  return res.ok;
+}
+

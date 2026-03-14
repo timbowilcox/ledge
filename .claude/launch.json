@@ -8,12 +8,11 @@
         "/c",
         "npx",
         "next",
-        "dev",
-        "--port",
-        "3400"
+        "dev"
       ],
       "port": 3400,
-      "cwd": "packages/dashboard"
+      "cwd": "packages/dashboard",
+      "autoPort": true
     }
   ]
 }

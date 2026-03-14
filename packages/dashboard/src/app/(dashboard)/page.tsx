@@ -7,6 +7,7 @@ import { ContextualPrompt } from "@/components/contextual-prompt";
 import { PostTransactionButton } from "@/components/post-transaction-button";
 import { ProgressChecklist } from "@/components/progress-checklist";
 import { FirstClassificationModal } from "@/components/first-classification-modal";
+import { fetchRevenueMetrics } from "@/lib/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -69,6 +70,15 @@ export default async function OverviewPage() {
   const stripeBalanceAccount = accountsList.find((a: AccountWithBalance) => a.code === "1050");
   const stripeRevenue = stripeBalanceAccount ? stripeBalanceAccount.balance : null;
 
+  // Revenue recognition metrics (graceful — returns zeros if no schedules)
+  let revMetrics = { mrr: 0, arr: 0, deferredRevenueBalance: 0, recognisedThisMonth: 0, recognisedThisYear: 0, activeSchedules: 0 };
+  try {
+    revMetrics = await fetchRevenueMetrics();
+  } catch {
+    // Revenue tables may not exist yet
+  }
+  const hasRevSchedules = revMetrics.activeSchedules > 0;
+
   return (
     <div>
       {/* Greeting */}
@@ -96,7 +106,11 @@ export default async function OverviewPage() {
       <div className="grid grid-cols-4" style={{ gap: 16, marginBottom: 32 }}>
         <MetricCard label="Accounts" value={formatNumber(accountCount)} />
         <MetricCard label="Total Assets" value={formatCurrency(totalAssets)} />
-        <MetricCard label="Revenue" value={formatCurrency(totalRevenue)} />
+        {hasRevSchedules ? (
+          <MetricCard label="MRR" value={`${formatCurrency(revMetrics.mrr)}/mo`} subtitle={`Deferred: ${formatCurrency(revMetrics.deferredRevenueBalance)}`} />
+        ) : (
+          <MetricCard label="Revenue" value={formatCurrency(totalRevenue)} />
+        )}
         <MetricCard label="Expenses" value={formatCurrency(totalExpenses)} />
       </div>
 
@@ -190,14 +204,21 @@ export default async function OverviewPage() {
 function MetricCard({
   label,
   value,
+  subtitle,
 }: {
   label: string;
   value: string;
+  subtitle?: string;
 }) {
   return (
     <div className="stat-card">
       <div className="stat-card-label">{label}</div>
       <div className="stat-card-value">{value}</div>
+      {subtitle && (
+        <div style={{ fontSize: 11, color: "#999999", marginTop: 2, fontFamily: "var(--font-geist-mono, monospace)" }}>
+          {subtitle}
+        </div>
+      )}
     </div>
   );
 }

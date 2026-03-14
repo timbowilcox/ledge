@@ -10,6 +10,7 @@ const mainNavItems = [
   { href: "/accounts", label: "Accounts", icon: AccountsIcon },
   { href: "/transactions", label: "Transactions", icon: TransactionsIcon },
   { href: "/statements", label: "Statements", icon: StatementsIcon },
+  { href: "/revenue", label: "Revenue", icon: RevenueIcon },
   { href: "/bank-feeds", label: "Bank Feeds", icon: BankFeedsIcon },
   { href: "/notifications", label: "Insights", icon: InsightsIcon },
 ];
@@ -334,6 +335,15 @@ function AssistantIcon({ active }: { active: boolean }) {
     <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke={active ? "#0066FF" : "#999999"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M10 2l1.5 3.5L15 7l-3.5 1.5L10 12l-1.5-3.5L5 7l3.5-1.5L10 2z" />
       <path d="M15 12l.75 1.75L17.5 14.5l-1.75.75L15 17l-.75-1.75L12.5 14.5l1.75-.75L15 12z" />
+    </svg>
+  );
+}
+
+function RevenueIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke={active ? "#0066FF" : "#999999"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 16l4-5 4 3 4-6 4 3" />
+      <path d="M18 16H2V4" />
     </svg>
   );
 }

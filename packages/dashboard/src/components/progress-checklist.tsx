@@ -25,12 +25,12 @@ const ITEM_CONFIG: Record<
   },
   bank_connected: {
     label: "Bank account connected",
-    href: "/settings?tab=bank-feeds",
+    href: "/bank-feeds",
     description: "Connect a bank account to import transactions",
   },
   first_classified: {
     label: "First transactions classified",
-    href: "/settings?tab=bank-feeds",
+    href: "/bank-feeds",
     description: "Classify your imported transactions",
   },
   connect_stripe: {

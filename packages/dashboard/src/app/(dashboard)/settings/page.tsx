@@ -1,6 +1,6 @@
 import { getSessionClient } from "@/lib/ledge";
-import { fetchBillingStatus, fetchApiKeys, fetchClosedPeriods, fetchBankTransactions } from "@/lib/actions";
-import type { ClosedPeriodSummary, BankTransactionSummary } from "@/lib/actions";
+import { fetchBillingStatus, fetchApiKeys, fetchClosedPeriods } from "@/lib/actions";
+import type { ClosedPeriodSummary } from "@/lib/actions";
 import { SettingsView } from "./settings-view";
 import type { ApiKeySafe, AccountWithBalance } from "@ledge/sdk";
 
@@ -35,22 +35,6 @@ export default async function SettingsPage() {
     closedPeriods = await fetchClosedPeriods();
   } catch {}
 
-  // Bank feeds data — fetched with graceful error handling
-  let bankConnections: unknown[] = [];
-  let bankError: string | null = null;
-  let bankTxns: BankTransactionSummary[] = [];
-  try {
-    bankConnections = await client.bankFeeds.listConnections(ledgerId);
-    bankTxns = await fetchBankTransactions("business", 50);
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : String(e);
-    if (msg.includes("403") || msg.includes("Builder plan")) {
-      bankError = "upgrade";
-    } else if (msg.includes("503") || msg.includes("not configured")) {
-      bankError = "not-configured";
-    }
-  }
-
   return (
     <SettingsView
       ledger={ledger}
@@ -62,9 +46,6 @@ export default async function SettingsPage() {
       closedThrough={closedThrough}
       closedPeriods={closedPeriods}
       accounts={accounts as AccountWithBalance[]}
-      bankConnections={bankConnections}
-      bankError={bankError}
-      bankTxns={bankTxns}
     />
   );
 }

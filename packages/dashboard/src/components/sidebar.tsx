@@ -8,8 +8,9 @@ import { useSession, signOut } from "next-auth/react";
 const mainNavItems = [
   { href: "/", label: "Overview", icon: OverviewIcon },
   { href: "/transactions", label: "Transactions", icon: TransactionsIcon },
-  { href: "/statements", label: "Statements", icon: StatementsIcon },
+  { href: "/bank-feeds", label: "Bank Feeds", icon: BankFeedsIcon },
   { href: "/revenue", label: "Revenue", icon: RevenueIcon },
+  { href: "/statements", label: "Statements", icon: StatementsIcon },
   { href: "/notifications", label: "Insights", icon: InsightsIcon },
 ];
 

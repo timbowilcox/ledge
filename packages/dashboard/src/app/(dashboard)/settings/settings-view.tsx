@@ -9,13 +9,12 @@ import type { StripeConnectStatus } from "@/lib/actions";
 import type { EmailPreferences, ClosedPeriodSummary } from "@/lib/actions";
 import { CopyButton } from "@/components/copy-button";
 import type { ApiKeySafe, AccountWithBalance } from "@ledge/sdk";
-import type { BillingStatus, BankTransactionSummary } from "@/lib/actions";
+import type { BillingStatus } from "@/lib/actions";
 import { AccountsView } from "@/app/(dashboard)/accounts/accounts-view";
-import { BankFeedsView } from "@/app/(dashboard)/bank-feeds/bank-feeds-view";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-type SettingsTab = "general" | "accounts" | "bank-feeds" | "currencies" | "api-keys" | "billing" | "email" | "recurring" | "connections";
+type SettingsTab = "general" | "accounts" | "currencies" | "api-keys" | "billing" | "email" | "recurring" | "connections";
 
 interface Props {
   ledger: { name: string; currency: string; accountingBasis: string; templateId: string | null; createdAt: string };
@@ -27,9 +26,6 @@ interface Props {
   closedThrough: string | null;
   closedPeriods: ClosedPeriodSummary[];
   accounts: AccountWithBalance[];
-  bankConnections: unknown[];
-  bankError: string | null;
-  bankTxns: BankTransactionSummary[];
 }
 
 // ── Template display names ──────────────────────────────────────────────────
@@ -68,7 +64,6 @@ const getTemplateName = (templateId: string | null): string => {
 const TABS: { key: SettingsTab; label: string }[] = [
   { key: "general", label: "General" },
   { key: "accounts", label: "Accounts" },
-  { key: "bank-feeds", label: "Bank Feeds" },
   { key: "connections", label: "Connections" },
   { key: "recurring", label: "Recurring" },
   { key: "api-keys", label: "API Keys" },
@@ -78,7 +73,7 @@ const TABS: { key: SettingsTab; label: string }[] = [
 
 // ── Main component ─────────────────────────────────────────────────────────
 
-export function SettingsView({ ledger, billing, initialKeys, currencies, exchangeRates, fiscalYearStart, closedThrough, closedPeriods, accounts, bankConnections, bankError, bankTxns }: Props) {
+export function SettingsView({ ledger, billing, initialKeys, currencies, exchangeRates, fiscalYearStart, closedThrough, closedPeriods, accounts }: Props) {
   const searchParams = useSearchParams();
   const initialTab = (searchParams.get("tab") as SettingsTab) || "general";
   const [activeTab, setActiveTab] = useState<SettingsTab>(TABS.some(t => t.key === initialTab) ? initialTab : "general");
@@ -131,7 +126,6 @@ export function SettingsView({ ledger, billing, initialKeys, currencies, exchang
       {/* Tab content */}
       {activeTab === "general" && <GeneralTab ledger={ledger} fiscalYearStart={fiscalYearStart} closedThrough={closedThrough} closedPeriods={closedPeriods} />}
       {activeTab === "accounts" && <AccountsView accounts={accounts} />}
-      {activeTab === "bank-feeds" && <BankFeedsView connections={bankConnections} error={bankError} initialBankTxns={bankTxns} />}
       {activeTab === "currencies" && <CurrenciesTab currencies={currencies} exchangeRates={exchangeRates} />}
       {activeTab === "api-keys" && <ApiKeysTab initialKeys={initialKeys} />}
       {activeTab === "billing" && <BillingTab billing={billing} />}

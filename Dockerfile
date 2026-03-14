@@ -2,8 +2,8 @@
 # Kounta — self-hosted single-container image
 #
 # Bundles the REST API with embedded SQLite (sql.js WASM).
-# Start with:   docker run -p 3001:3001 getledge/ledge
-# Persist data:  docker run -p 3001:3001 -v ledge-data:/data getledge/ledge
+# Start with:   docker run -p 3001:3001 kounta/kounta
+# Persist data:  docker run -p 3001:3001 -v kounta-data:/data kounta/kounta
 # ---------------------------------------------------------------------------
 
 # ---- Stage 1: Install & Build -------------------------------------------------
@@ -21,14 +21,14 @@ COPY packages/core/package.json packages/core/tsconfig.json packages/core/
 COPY packages/api/package.json  packages/api/tsconfig.json  packages/api/
 
 # Install dependencies (frozen lockfile for reproducibility)
-RUN pnpm install --frozen-lockfile --filter=@ledge/core --filter=@ledge/api
+RUN pnpm install --frozen-lockfile --filter=@kounta/core --filter=@kounta/api
 
 # Copy source files
 COPY packages/core/src packages/core/src
 COPY packages/api/src  packages/api/src
 
 # Build core first, then api (dependency order)
-RUN pnpm --filter=@ledge/core build && pnpm --filter=@ledge/api build
+RUN pnpm --filter=@kounta/core build && pnpm --filter=@kounta/api build
 
 # ---- Stage 2: Prune to production deps only -----------------------------------
 FROM node:20-slim AS pruner
@@ -41,19 +41,19 @@ COPY --from=builder /build/package.json /build/pnpm-workspace.yaml /build/pnpm-l
 COPY --from=builder /build/packages/core/package.json packages/core/
 COPY --from=builder /build/packages/api/package.json  packages/api/
 
-RUN pnpm install --frozen-lockfile --prod --filter=@ledge/core --filter=@ledge/api
+RUN pnpm install --frozen-lockfile --prod --filter=@kounta/core --filter=@kounta/api
 
 # ---- Stage 3: Runtime ----------------------------------------------------------
 FROM node:20-slim AS runtime
 
 LABEL org.opencontainers.image.title="Kounta" \
       org.opencontainers.image.description="Double-entry ledger API with embedded SQLite" \
-      org.opencontainers.image.vendor="getledge" \
-      org.opencontainers.image.url="https://getledge.dev"
+      org.opencontainers.image.vendor="kounta" \
+      org.opencontainers.image.url="https://kounta.ai"
 
 # Create non-root user
-RUN groupadd --gid 1001 ledge && \
-    useradd  --uid 1001 --gid ledge --shell /bin/false --create-home ledge
+RUN groupadd --gid 1001 kounta && \
+    useradd  --uid 1001 --gid kounta --shell /bin/false --create-home kounta
 
 WORKDIR /app
 
@@ -76,9 +76,9 @@ COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Data directory for persistent SQLite storage
-RUN mkdir -p /data && chown ledge:ledge /data
+RUN mkdir -p /data && chown kounta:kounta /data
 
-USER ledge
+USER kounta
 
 ENV NODE_ENV=production \
     PORT=3001 \

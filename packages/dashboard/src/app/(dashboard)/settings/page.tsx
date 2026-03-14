@@ -3,11 +3,22 @@ import { fetchBillingStatus, fetchApiKeys, fetchClosedPeriods } from "@/lib/acti
 import type { ClosedPeriodSummary } from "@/lib/actions";
 import { SettingsView } from "./settings-view";
 import type { ApiKeySafe, AccountWithBalance } from "@kounta/sdk";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
-  const { client, ledgerId } = await getSessionClient();
+  let client: Awaited<ReturnType<typeof getSessionClient>>["client"];
+  let ledgerId: string;
+
+  try {
+    const sc = await getSessionClient();
+    client = sc.client;
+    ledgerId = sc.ledgerId;
+  } catch {
+    // Session missing apiKey/ledgerId — force re-auth
+    redirect("/signin?callbackUrl=/settings");
+  }
 
   const [ledger, billing, apiKeys, currenciesRaw, exchangeRatesRaw, accounts] = await Promise.all([
     client.ledgers.get(ledgerId),

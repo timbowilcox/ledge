@@ -8,7 +8,8 @@ export const metadata: Metadata = {
   title: "Kounta — Accounting for Builders",
   description: "Programmable double-entry ledger and reporting engine",
   icons: {
-    icon: "/favicon.ico",
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
   },
 };
 
@@ -20,9 +21,8 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <head>
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" href="/favicon.ico" media="(prefers-color-scheme: light)" />
-        <link rel="icon" href="/favicon-light.ico" media="(prefers-color-scheme: dark)" />
+        <link rel="icon" type="image/png" href="/favicon.png" media="(prefers-color-scheme: light)" />
+        <link rel="icon" type="image/png" href="/favicon_light.png" media="(prefers-color-scheme: dark)" />
       </head>
       <body style={{ WebkitFontSmoothing: "antialiased" }}>
         <Providers>{children}</Providers>

@@ -41,7 +41,7 @@ export function selectModel(plan: string): string {
 // System prompt
 // ---------------------------------------------------------------------------
 
-const SYSTEM_PROMPT = `You are Kounta's financial assistant. You help users understand their accounting data, generate reports, and manage transactions through natural conversation.
+const BASE_SYSTEM_PROMPT = `You are Kounta's financial assistant. You help users understand their accounting data, generate reports, and manage transactions through natural conversation.
 
 You have access to a double-entry accounting ledger via tools. All monetary amounts are integers in the smallest currency unit (e.g., cents). When displaying amounts to the user, divide by 100 and format with the appropriate currency symbol.
 
@@ -52,6 +52,34 @@ Guidelines:
 - When the user asks to post a transaction or reverse one, describe what will happen and wait for their confirmation. Never execute write operations without explicit user approval.
 - If a question is ambiguous, ask a clarifying question rather than guessing.
 - Use accounting terminology correctly but explain it simply when the user seems unfamiliar.`;
+
+/** Build system prompt with dynamic context (date, time, ledger info). */
+function buildSystemPrompt(ledgerContext?: { currency?: string; name?: string }): string {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("en-AU", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    timeZone: "Australia/Brisbane",
+  });
+  const timeStr = now.toLocaleTimeString("en-AU", {
+    timeZone: "Australia/Brisbane",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  let contextBlock = `\n\nToday's date is ${dateStr}.\nThe current time is ${timeStr} AEST.`;
+
+  if (ledgerContext?.name) {
+    contextBlock += `\nThe user's ledger is "${ledgerContext.name}".`;
+  }
+  if (ledgerContext?.currency) {
+    contextBlock += `\nThe ledger currency is ${ledgerContext.currency}.`;
+  }
+
+  return BASE_SYSTEM_PROMPT + contextBlock;
+}
 
 // ---------------------------------------------------------------------------
 // Tool definitions
@@ -470,12 +498,14 @@ export async function chatWithAssistant(opts: {
   ledgerId: string;
   conversationId: string;
   plan: string;
+  ledgerContext?: { currency?: string; name?: string };
   onEvent: (event: SSEEvent) => void;
 }): Promise<ConversationMessage[]> {
-  const { messages, apiKey, ledgerId, conversationId, plan, onEvent } = opts;
+  const { messages, apiKey, ledgerId, conversationId, plan, ledgerContext, onEvent } = opts;
 
   const anthropic = getAnthropicClient();
   const model = selectModel(plan);
+  const systemPrompt = buildSystemPrompt(ledgerContext);
 
   const client = new Kounta({
     baseUrl: process.env.KOUNTA_API_URL ?? "https://api.kounta.ai",
@@ -498,7 +528,7 @@ export async function chatWithAssistant(opts: {
     const response = await anthropic.messages.create({
       model,
       max_tokens: 4096,
-      system: SYSTEM_PROMPT,
+      system: systemPrompt,
       tools,
       messages: anthropicMessages,
     });

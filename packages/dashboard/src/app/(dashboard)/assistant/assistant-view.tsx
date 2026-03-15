@@ -97,25 +97,25 @@ export function AssistantView({ initialConversations }: Props) {
         style={{
           width: 280,
           minWidth: 280,
-          borderRight: "1px solid #E5E5E5",
-          backgroundColor: "#FFFFFF",
+          borderRight: "1px solid var(--border)",
+          backgroundColor: "var(--surface-1)",
           display: "flex",
           flexDirection: "column",
           flexShrink: 0,
         }}
       >
         <div style={{ padding: "20px 16px 12px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <h1 style={{ fontSize: 16, fontWeight: 600, color: "#0A0A0A" }}>
+          <h1 style={{ fontSize: 16, fontWeight: 600, color: "var(--text-primary)" }}>
             Assistant
           </h1>
-          <button onClick={handleNewConversation} className="btn-primary" style={{ height: 28, padding: "0 12px", fontSize: 12 }}>
+          <button onClick={handleNewConversation} className="btn-secondary" style={{ height: 28, padding: "0 12px", fontSize: 12 }}>
             New
           </button>
         </div>
 
         <div style={{ flex: 1, overflowY: "auto", padding: "0 8px" }}>
           {conversations.length === 0 && !activeConvId && (
-            <div style={{ padding: "20px 8px", color: "#999999", fontSize: 13, textAlign: "center" }}>
+            <div style={{ padding: "20px 8px", color: "var(--text-tertiary)", fontSize: 13, textAlign: "center" }}>
               No conversations yet
             </div>
           )}
@@ -132,7 +132,7 @@ export function AssistantView({ initialConversations }: Props) {
                   padding: "10px 12px",
                   borderRadius: 6,
                   border: "none",
-                  backgroundColor: isActive ? "#F0F6FF" : "transparent",
+                  backgroundColor: isActive ? "var(--surface-2)" : "transparent",
                   cursor: "pointer",
                   textAlign: "left",
                   marginBottom: 2,
@@ -143,7 +143,7 @@ export function AssistantView({ initialConversations }: Props) {
                   style={{
                     fontSize: 13,
                     fontWeight: isActive ? 600 : 500,
-                    color: isActive ? "#0066FF" : "#0A0A0A",
+                    color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
@@ -155,7 +155,7 @@ export function AssistantView({ initialConversations }: Props) {
                   <div
                     style={{
                       fontSize: 12,
-                      color: "#999999",
+                      color: "var(--text-tertiary)",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
@@ -177,7 +177,7 @@ export function AssistantView({ initialConversations }: Props) {
           flex: 1,
           display: "flex",
           flexDirection: "column",
-          backgroundColor: "#FAFAFA",
+          backgroundColor: "var(--background)",
           minWidth: 0,
         }}
       >
@@ -195,11 +195,11 @@ export function AssistantView({ initialConversations }: Props) {
           {/* Empty state with suggestions */}
           {messages.length === 0 && (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, paddingTop: 80 }}>
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#D4D4D4" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10" />
                 <path d="M12 6v6l4 2" />
               </svg>
-              <p style={{ color: "#999999", fontSize: 13, textAlign: "center", maxWidth: 320 }}>
+              <p style={{ color: "var(--text-tertiary)", fontSize: 13, textAlign: "center", maxWidth: 320 }}>
                 Ask me about your accounts, transactions, or financial reports.
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%", maxWidth: 340, marginTop: 8 }}>
@@ -210,13 +210,13 @@ export function AssistantView({ initialConversations }: Props) {
                     className="chat-prompt-btn"
                     style={{
                       padding: "8px 12px",
-                      backgroundColor: "#FFFFFF",
-                      border: "1px solid #E5E5E5",
+                      backgroundColor: "var(--surface-1)",
+                      border: "1px solid var(--border)",
                       borderRadius: 8,
                       cursor: "pointer",
                       textAlign: "left",
                       fontSize: 13,
-                      color: "#666666",
+                      color: "var(--text-secondary)",
                       transition: "all 150ms ease",
                     }}
                   >
@@ -241,8 +241,8 @@ export function AssistantView({ initialConversations }: Props) {
                         key={key}
                         className={tc.status === "running" ? "chat-tool-shimmer" : ""}
                         style={{
-                          backgroundColor: "#FFFFFF",
-                          border: "1px solid #E5E5E5",
+                          backgroundColor: "var(--surface-1)",
+                          border: "1px solid var(--border)",
                           borderRadius: 8,
                           overflow: "hidden",
                           maxWidth: 400,
@@ -261,13 +261,13 @@ export function AssistantView({ initialConversations }: Props) {
                             cursor: "pointer",
                             textAlign: "left",
                             fontSize: 12,
-                            color: "#666666",
+                            color: "var(--text-secondary)",
                           }}
                         >
                           {tc.status === "running" ? (
                             <span className="chat-spinner" />
                           ) : (
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00A854" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--positive)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                               <polyline points="20 6 9 17 4 12" />
                             </svg>
                           )}
@@ -277,7 +277,7 @@ export function AssistantView({ initialConversations }: Props) {
                           </svg>
                         </button>
                         {isExpanded && (
-                          <div style={{ padding: "0 12px 10px", fontSize: 11, color: "#666666", overflowX: "auto" }}>
+                          <div style={{ padding: "0 12px 10px", fontSize: 11, color: "var(--text-secondary)", overflowX: "auto" }}>
                             <pre className="font-mono" style={{ margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
                               {JSON.stringify(tc.output ?? tc.input, null, 2)}
                             </pre>
@@ -297,9 +297,9 @@ export function AssistantView({ initialConversations }: Props) {
                     maxWidth: "70%",
                     padding: "10px 16px",
                     borderRadius: msg.role === "user" ? "12px 12px 4px 12px" : "12px 12px 12px 4px",
-                    backgroundColor: msg.role === "user" ? "#0066FF" : "#FFFFFF",
-                    color: msg.role === "user" ? "#FFFFFF" : "#0A0A0A",
-                    border: msg.role === "user" ? "none" : "1px solid #E5E5E5",
+                    backgroundColor: msg.role === "user" ? "var(--surface-2)" : "transparent",
+                    color: "var(--text-primary)",
+                    border: msg.role === "user" ? "1px solid var(--border)" : "none",
                     fontSize: 13,
                     lineHeight: 1.6,
                     whiteSpace: "pre-wrap",
@@ -316,7 +316,7 @@ export function AssistantView({ initialConversations }: Props) {
           {pendingConfirmation && (
             <div
               style={{
-                backgroundColor: "#FFFFFF",
+                backgroundColor: "var(--surface-1)",
                 border: "1px solid #D97706",
                 borderRadius: 8,
                 padding: "12px 16px",
@@ -326,7 +326,7 @@ export function AssistantView({ initialConversations }: Props) {
                 maxWidth: 480,
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, color: "#92400E" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, color: "#D97706" }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
                   <line x1="12" y1="9" x2="12" y2="13" />
@@ -334,7 +334,7 @@ export function AssistantView({ initialConversations }: Props) {
                 </svg>
                 Confirm {pendingConfirmation.toolName === "post_transaction" ? "Transaction" : "Reversal"}
               </div>
-              <pre className="font-mono" style={{ margin: 0, fontSize: 11, color: "#666666", whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
+              <pre className="font-mono" style={{ margin: 0, fontSize: 11, color: "var(--text-secondary)", whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
                 {JSON.stringify(pendingConfirmation.input, null, 2)}
               </pre>
               <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
@@ -364,8 +364,8 @@ export function AssistantView({ initialConversations }: Props) {
         <div
           style={{
             padding: "12px 24px 16px",
-            borderTop: "1px solid #E5E5E5",
-            backgroundColor: "#FFFFFF",
+            borderTop: "1px solid var(--border)",
+            backgroundColor: "var(--surface-1)",
             flexShrink: 0,
           }}
         >
@@ -374,9 +374,9 @@ export function AssistantView({ initialConversations }: Props) {
               display: "flex",
               alignItems: "flex-end",
               gap: 8,
-              backgroundColor: "#FAFAFA",
+              backgroundColor: "var(--background)",
               borderRadius: 8,
-              border: "1px solid #E5E5E5",
+              border: "1px solid var(--border)",
               padding: "8px 12px",
             }}
           >
@@ -396,7 +396,7 @@ export function AssistantView({ initialConversations }: Props) {
                 outline: "none",
                 fontSize: 13,
                 lineHeight: 1.5,
-                color: "#0A0A0A",
+                color: "var(--text-primary)",
                 height: 40,
                 maxHeight: 120,
                 overflowY: "auto",
@@ -414,7 +414,7 @@ export function AssistantView({ initialConversations }: Props) {
                 width: 32,
                 height: 32,
                 borderRadius: 6,
-                backgroundColor: input.trim() && !isStreaming ? "#0066FF" : "#E5E5E5",
+                backgroundColor: input.trim() && !isStreaming ? "var(--text-primary)" : "var(--surface-2)",
                 border: "none",
                 cursor: input.trim() && !isStreaming ? "pointer" : "default",
                 display: "flex",
@@ -425,14 +425,14 @@ export function AssistantView({ initialConversations }: Props) {
               }}
               aria-label="Send message"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={input.trim() && !isStreaming ? "#FFFFFF" : "#999999"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={input.trim() && !isStreaming ? "var(--background)" : "var(--text-tertiary)"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="22" y1="2" x2="11" y2="13" />
                 <polygon points="22 2 15 22 11 13 2 9 22 2" />
               </svg>
             </button>
           </div>
           <div style={{ textAlign: "center", marginTop: 4 }}>
-            <span style={{ fontSize: 11, color: "#999999" }}>
+            <span style={{ fontSize: 11, color: "var(--text-tertiary)" }}>
               Powered by Claude
             </span>
           </div>

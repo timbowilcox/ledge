@@ -83,12 +83,22 @@ export async function POST(request: Request) {
       };
 
       try {
+        // Fetch ledger info for system prompt context
+        let ledgerContext: { currency?: string; name?: string } | undefined;
+        try {
+          const ledger = await client.ledgers.get(ledgerId);
+          ledgerContext = { currency: ledger.currency, name: ledger.name };
+        } catch {
+          // Non-critical — assistant works without ledger context
+        }
+
         const updatedMessages = await chatWithAssistant({
           messages: normalizedMessages,
           apiKey: session.apiKey,
           ledgerId,
           conversationId: conversationId!,
           plan: billing.plan,
+          ledgerContext,
           onEvent: sendEvent,
         });
 

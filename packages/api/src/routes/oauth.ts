@@ -52,98 +52,105 @@ wellKnownRoutes.get("/oauth-authorization-server", (c) => {
 // ---------------------------------------------------------------------------
 
 oauthRoutes.post("/consent", adminAuth, async (c) => {
-  const engine = c.get("engine");
-  const db = engine.getDb();
-  const body = await c.req.json();
+  try {
+    const engine = c.get("engine");
+    const db = engine.getDb();
+    const body = await c.req.json();
 
-  console.log("[oauth] consent received:", { client_id: body.client_id, redirect_uri: body.redirect_uri, user_id: body.user_id, ledger_id: body.ledger_id, approved: body.approved });
+    console.log("[oauth] consent received:", { client_id: body.client_id, redirect_uri: body.redirect_uri, user_id: body.user_id, ledger_id: body.ledger_id, approved: body.approved });
 
-  const {
-    client_id,
-    redirect_uri,
-    scopes,
-    state,
-    code_challenge,
-    code_challenge_method,
-    user_id,
-    ledger_id,
-    approved,
-  } = body;
-
-  if (!client_id || !redirect_uri) {
-    return c.json({ error: { code: "VALIDATION_ERROR", message: "client_id and redirect_uri are required" } }, 400);
-  }
-
-  // Validate client exists
-  const client = await db.get<{ client_id: string; redirect_uris: string | string[]; is_public: boolean | number }>(
-    "SELECT client_id, redirect_uris, is_public FROM oauth_clients WHERE client_id = ?",
-    [client_id]
-  );
-
-  if (!client) {
-    return c.json({ error: { code: "VALIDATION_ERROR", message: "Unknown client_id" } }, 400);
-  }
-
-  // Validate redirect URI (exact match required)
-  const registeredUris = parseRedirectUris(client.redirect_uris);
-  const uriAllowed = registeredUris.some((uri) => {
-    if (uri === "http://localhost") {
-      return redirect_uri.startsWith("http://localhost");
-    }
-    return uri === redirect_uri;
-  });
-
-  if (!uriAllowed) {
-    return c.json({ error: { code: "VALIDATION_ERROR", message: "redirect_uri does not match registered URIs" } }, 400);
-  }
-
-  // If user denied
-  if (!approved) {
-    const separator = redirect_uri.includes("?") ? "&" : "?";
-    const denyUrl = `${redirect_uri}${separator}error=access_denied${state ? `&state=${encodeURIComponent(state)}` : ""}`;
-    return c.json({ redirect_uri: denyUrl });
-  }
-
-  // PKCE required for public clients (BOOLEAN in PG, INTEGER in SQLite)
-  const isPublicClient = client.is_public === true || client.is_public === 1;
-  if (isPublicClient && !code_challenge) {
-    return c.json({ error: { code: "VALIDATION_ERROR", message: "PKCE code_challenge is required for public clients" } }, 400);
-  }
-
-  // Validate scopes
-  const scopeArray = Array.isArray(scopes) ? scopes : parseScopes(scopes || "");
-  if (scopeArray.length > 0 && !validateScopes(scopeArray)) {
-    return c.json({ error: { code: "VALIDATION_ERROR", message: "One or more scopes are not supported" } }, 400);
-  }
-
-  // Generate authorization code
-  const code = randomBytes(32).toString("hex");
-  const id = generateId();
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 minutes
-
-  await db.run(
-    `INSERT INTO oauth_authorization_codes
-     (id, code, client_id, user_id, ledger_id, redirect_uri, scopes, code_challenge, code_challenge_method, state, expires_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      id,
-      code,
+    const {
       client_id,
+      redirect_uri,
+      scopes,
+      state,
+      code_challenge,
+      code_challenge_method,
       user_id,
       ledger_id,
-      redirect_uri,
-      JSON.stringify(scopeArray),
-      code_challenge || null,
-      code_challenge_method || null,
-      state || null,
-      expiresAt,
-    ]
-  );
+      approved,
+    } = body;
 
-  const separator = redirect_uri.includes("?") ? "&" : "?";
-  const successUrl = `${redirect_uri}${separator}code=${code}${state ? `&state=${encodeURIComponent(state)}` : ""}`;
+    if (!client_id || !redirect_uri) {
+      return c.json({ error: { code: "VALIDATION_ERROR", message: "client_id and redirect_uri are required" } }, 400);
+    }
 
-  return c.json({ redirect_uri: successUrl });
+    // Validate client exists
+    const client = await db.get<{ client_id: string; redirect_uris: string | string[]; is_public: boolean | number }>(
+      "SELECT client_id, redirect_uris, is_public FROM oauth_clients WHERE client_id = ?",
+      [client_id]
+    );
+
+    if (!client) {
+      return c.json({ error: { code: "VALIDATION_ERROR", message: "Unknown client_id" } }, 400);
+    }
+
+    // Validate redirect URI (exact match required)
+    const registeredUris = parseRedirectUris(client.redirect_uris);
+    console.log("[oauth] consent redirect_uri check:", { provided: redirect_uri, registered: registeredUris });
+    const uriAllowed = registeredUris.some((uri) => {
+      if (uri === "http://localhost") {
+        return redirect_uri.startsWith("http://localhost");
+      }
+      return uri === redirect_uri;
+    });
+
+    if (!uriAllowed) {
+      return c.json({ error: { code: "VALIDATION_ERROR", message: "redirect_uri does not match registered URIs" } }, 400);
+    }
+
+    // If user denied
+    if (!approved) {
+      const separator = redirect_uri.includes("?") ? "&" : "?";
+      const denyUrl = `${redirect_uri}${separator}error=access_denied${state ? `&state=${encodeURIComponent(state)}` : ""}`;
+      return c.json({ redirect_uri: denyUrl });
+    }
+
+    // PKCE required for public clients (BOOLEAN in PG, INTEGER in SQLite)
+    const isPublicClient = client.is_public === true || client.is_public === 1;
+    if (isPublicClient && !code_challenge) {
+      return c.json({ error: { code: "VALIDATION_ERROR", message: "PKCE code_challenge is required for public clients" } }, 400);
+    }
+
+    // Validate scopes
+    const scopeArray = Array.isArray(scopes) ? scopes : parseScopes(scopes || "");
+    if (scopeArray.length > 0 && !validateScopes(scopeArray)) {
+      return c.json({ error: { code: "VALIDATION_ERROR", message: "One or more scopes are not supported" } }, 400);
+    }
+
+    // Generate authorization code
+    const code = randomBytes(32).toString("hex");
+    const id = generateId();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 minutes
+
+    await db.run(
+      `INSERT INTO oauth_authorization_codes
+       (id, code, client_id, user_id, ledger_id, redirect_uri, scopes, code_challenge, code_challenge_method, state, expires_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        code,
+        client_id,
+        user_id,
+        ledger_id,
+        redirect_uri,
+        formatArrayParam(scopeArray),
+        code_challenge || null,
+        code_challenge_method || null,
+        state || null,
+        expiresAt,
+      ]
+    );
+
+    const separator = redirect_uri.includes("?") ? "&" : "?";
+    const successUrl = `${redirect_uri}${separator}code=${code}${state ? `&state=${encodeURIComponent(state)}` : ""}`;
+
+    console.log("[oauth] consent success, redirecting to:", successUrl);
+    return c.json({ redirect_uri: successUrl });
+  } catch (err) {
+    console.error("[oauth] consent error:", err);
+    return c.json({ error: { code: "INTERNAL_ERROR", message: String(err) } }, 500);
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -433,6 +440,15 @@ const parseArrayColumn = (raw: string | string[]): string[] => {
   return [];
 };
 
+/**
+ * Format a string array for INSERT into a TEXT[] (PG) or TEXT (SQLite) column.
+ * Produces PG array literal format: {"val1","val2"} — accepted by both
+ * PostgreSQL TEXT[] and parseable by parseArrayColumn for SQLite TEXT.
+ */
+const formatArrayParam = (arr: string[]): string => {
+  return "{" + arr.map((v) => '"' + v.replace(/\\/g, "\\\\").replace(/"/g, '\\"') + '"').join(",") + "}";
+};
+
 /** Parse redirect_uris from DB (native PG array, JSON string, or PG TEXT[] string) */
 const parseRedirectUris = (raw: string | string[]): string[] => parseArrayColumn(raw);
 
@@ -535,7 +551,7 @@ const handleAuthCodeGrant = async (
     `INSERT INTO oauth_tokens
      (id, access_token, token_type, refresh_token, client_id, user_id, ledger_id, scopes, expires_at, refresh_expires_at)
      VALUES (?, ?, 'Bearer', ?, ?, ?, ?, ?, ?, ?)`,
-    [tokenId, accessToken, refreshToken, authCode.client_id, authCode.user_id, authCode.ledger_id, JSON.stringify(scopeArray), accessExpiresAt, refreshExpiresAt]
+    [tokenId, accessToken, refreshToken, authCode.client_id, authCode.user_id, authCode.ledger_id, formatArrayParam(scopeArray), accessExpiresAt, refreshExpiresAt]
   );
 
   return c.json({
@@ -607,7 +623,7 @@ const handleRefreshGrant = async (
     `INSERT INTO oauth_tokens
      (id, access_token, token_type, refresh_token, client_id, user_id, ledger_id, scopes, expires_at, refresh_expires_at)
      VALUES (?, ?, 'Bearer', ?, ?, ?, ?, ?, ?, ?)`,
-    [newTokenId, newAccessToken, newRefreshToken, tokenRow.client_id, tokenRow.user_id, tokenRow.ledger_id, JSON.stringify(scopeArray), accessExpiresAt, refreshExpiresAt]
+    [newTokenId, newAccessToken, newRefreshToken, tokenRow.client_id, tokenRow.user_id, tokenRow.ledger_id, formatArrayParam(scopeArray), accessExpiresAt, refreshExpiresAt]
   );
 
   return c.json({

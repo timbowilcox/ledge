@@ -4,6 +4,48 @@ import { Suspense, useEffect, useState, useTransition } from "react";
 import { useSession } from "next-auth/react";
 import { useSearchParams, useRouter } from "next/navigation";
 
+/** Known client brand colors */
+const CLIENT_COLORS: Record<string, string> = {
+  "claude-ai": "#D97757",
+  "mcp-public": "#6B7280",
+};
+
+/** Deterministic color from string for unknown clients */
+const hashColor = (str: string): string => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const h = Math.abs(hash) % 360;
+  return `hsl(${h}, 45%, 55%)`;
+};
+
+/** Colored initial avatar for OAuth clients */
+function ClientAvatar({ name, clientId }: { name: string; clientId: string }) {
+  const bg = CLIENT_COLORS[clientId] ?? hashColor(clientId || name);
+  const initial = (name || clientId || "?").charAt(0).toUpperCase();
+
+  return (
+    <div
+      style={{
+        width: 32,
+        height: 32,
+        borderRadius: 8,
+        background: bg,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "white",
+        fontWeight: 600,
+        fontSize: 14,
+        flexShrink: 0,
+      }}
+    >
+      {initial}
+    </div>
+  );
+}
+
 /**
  * OAuth consent screen — shown when an MCP client (e.g. Claude.ai)
  * redirects a user here for authorization.
@@ -201,12 +243,20 @@ function OAuthAuthorizeContent() {
           backgroundColor: "var(--surface-1)",
         }}
       >
-        {/* Header: Kounta logo + client name */}
+        {/* Header: Kounta logo + client avatar & name */}
         <div className="flex items-center justify-between" style={{ marginBottom: "1.5rem" }}>
           <img src="/logo.svg" alt="Kounta" style={{ height: "1.5rem" }} />
-          <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: "0.8125rem", fontWeight: 500, color: "var(--text-primary)" }}>
-              {clientInfo?.client_name ?? clientId}
+          <div className="flex items-center" style={{ gap: "0.5rem" }}>
+            <ClientAvatar name={clientInfo?.client_name ?? clientId} clientId={clientId} />
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: "0.8125rem", fontWeight: 500, color: "var(--text-primary)" }}>
+                {clientInfo?.client_name ?? clientId}
+              </div>
+              {clientId === "claude-ai" && (
+                <div style={{ fontSize: "0.6875rem", color: "var(--text-tertiary)" }}>
+                  by Anthropic
+                </div>
+              )}
             </div>
           </div>
         </div>

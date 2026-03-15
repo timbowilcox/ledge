@@ -7,6 +7,9 @@ import { Providers } from "@/components/providers";
 export const metadata: Metadata = {
   title: "Kounta — Accounting for Builders",
   description: "Programmable double-entry ledger and reporting engine",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({
@@ -17,6 +20,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <head>
+        <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/favicon.ico" media="(prefers-color-scheme: light)" />
         <link rel="icon" href="/favicon-light.ico" media="(prefers-color-scheme: dark)" />
       </head>

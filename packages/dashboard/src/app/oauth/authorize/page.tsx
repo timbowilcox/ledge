@@ -22,11 +22,11 @@ const hashColor = (str: string): string => {
 
 /** Client icon for the consent header — uses real logo for known clients */
 function ClientAvatar({ name, clientId }: { name: string; clientId: string }) {
-  // Claude.ai — official asterisk mark, matched to Kounta logo height (1.5rem)
+  // Claude.ai — full wordmark logo, matched to Kounta logo height (1.5rem)
   if (clientId === "claude-ai") {
     return (
       <img
-        src="/claude-icon.svg"
+        src="/claude-logo.svg"
         alt="Claude"
         style={{ height: "1.5rem", flexShrink: 0 }}
       />

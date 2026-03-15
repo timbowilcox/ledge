@@ -56,6 +56,8 @@ oauthRoutes.post("/consent", adminAuth, async (c) => {
   const db = engine.getDb();
   const body = await c.req.json();
 
+  console.log("[oauth] consent received:", { client_id: body.client_id, redirect_uri: body.redirect_uri, user_id: body.user_id, ledger_id: body.ledger_id, approved: body.approved });
+
   const {
     client_id,
     redirect_uri,

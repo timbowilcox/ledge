@@ -7,6 +7,7 @@
 // ---------------------------------------------------------------------------
 
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import { generateId } from "@kounta/core";
 import type { LedgerEngine, AttachmentStorage } from "@kounta/core";
 import type { Env } from "./lib/context.js";
@@ -40,6 +41,22 @@ export const createApp = (engine: LedgerEngine, storage?: AttachmentStorage): Ho
   // ---------------------------------------------------------------------------
   // Global middleware — runs on every request
   // ---------------------------------------------------------------------------
+
+  // CORS — allow dashboard origins and local dev
+  app.use(
+    "*",
+    cors({
+      origin: [
+        "https://kounta.ai",
+        "https://www.kounta.ai",
+        "http://localhost:3400",
+      ],
+      allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+      allowHeaders: ["Content-Type", "Authorization", "X-Api-Key"],
+      exposeHeaders: ["X-Request-Id"],
+      maxAge: 86400,
+    })
+  );
 
   // Inject engine and request ID into every request context
   app.use("*", async (c, next) => {

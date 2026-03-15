@@ -81,7 +81,7 @@ export function BillingView({ billing }: { billing: BillingStatus }) {
   const limit = billing.usage.limit ?? Infinity;
   const pct = limit === Infinity ? 0 : Math.min((billing.usage.count / limit) * 100, 100);
   const barColor =
-    pct >= 100 ? "#DC2626" : pct >= 80 ? "#D97706" : "#3B82F6";
+    pct >= 100 ? "#DC2626" : pct >= 80 ? "#D97706" : "var(--accent)";
 
   const handleUpgrade = () => {
     setRedirecting(true);
@@ -140,7 +140,7 @@ export function BillingView({ billing }: { billing: BillingStatus }) {
         className="font-bold"
         style={{
           fontSize: 24,
-          color: "#0A0A0A",
+          color: "var(--text-primary)",
           marginBottom: 28,
           fontFamily: "var(--font-family-display)",
         }}
@@ -159,7 +159,7 @@ export function BillingView({ billing }: { billing: BillingStatus }) {
               className="font-bold"
               style={{
                 fontSize: 28,
-                color: "#0A0A0A",
+                color: "var(--text-primary)",
                 letterSpacing: "-0.02em",
                 fontFamily: "var(--font-family-display)",
               }}
@@ -172,7 +172,7 @@ export function BillingView({ billing }: { billing: BillingStatus }) {
           </div>
           <p
             className="text-sm"
-            style={{ color: "rgba(0,0,0,0.55)", lineHeight: 1.6 }}
+            style={{ color: "var(--text-secondary)", lineHeight: 1.6 }}
           >
             {isFree
               ? "500 transactions per month. Transactions beyond the limit are queued as pending."
@@ -190,18 +190,18 @@ export function BillingView({ billing }: { billing: BillingStatus }) {
               className="font-bold font-mono"
               style={{
                 fontSize: 28,
-                color: pct >= 100 ? "#DC2626" : "#0A0A0A",
+                color: pct >= 100 ? "#DC2626" : "var(--text-primary)",
                 letterSpacing: "-0.02em",
               }}
             >
               {billing.usage.count.toLocaleString()}
             </span>
             {billing.usage.limit != null ? (
-              <span className="text-sm" style={{ color: "rgba(0,0,0,0.36)" }}>
+              <span className="text-sm" style={{ color: "var(--text-tertiary)" }}>
                 / {billing.usage.limit.toLocaleString()} transactions
               </span>
             ) : (
-              <span className="text-sm" style={{ color: "rgba(0,0,0,0.36)" }}>
+              <span className="text-sm" style={{ color: "var(--text-tertiary)" }}>
                 transactions (unlimited)
               </span>
             )}
@@ -214,7 +214,7 @@ export function BillingView({ billing }: { billing: BillingStatus }) {
                 width: "100%",
                 height: 8,
                 borderRadius: 4,
-                backgroundColor: "rgba(0,0,0,0.06)",
+                backgroundColor: "var(--surface-2)",
                 overflow: "hidden",
                 marginBottom: 12,
               }}
@@ -231,7 +231,7 @@ export function BillingView({ billing }: { billing: BillingStatus }) {
             </div>
           )}
 
-          <div className="text-xs" style={{ color: "rgba(0,0,0,0.36)" }}>
+          <div className="text-xs" style={{ color: "var(--text-tertiary)" }}>
             Resets on {formatDate(billing.nextResetDate)}
           </div>
         </div>
@@ -289,7 +289,7 @@ export function BillingView({ billing }: { billing: BillingStatus }) {
             <p
               className="text-sm"
               style={{
-                color: "rgba(0,0,0,0.55)",
+                color: "var(--text-secondary)",
                 lineHeight: 1.6,
                 marginBottom: 20,
               }}
@@ -321,7 +321,7 @@ export function BillingView({ billing }: { billing: BillingStatus }) {
             <p
               className="text-sm"
               style={{
-                color: "rgba(0,0,0,0.55)",
+                color: "var(--text-secondary)",
                 lineHeight: 1.6,
                 marginBottom: 8,
               }}
@@ -331,7 +331,7 @@ export function BillingView({ billing }: { billing: BillingStatus }) {
             {billing.periodEnd && (
               <p
                 className="text-xs"
-                style={{ color: "rgba(0,0,0,0.36)", marginBottom: 20 }}
+                style={{ color: "var(--text-tertiary)", marginBottom: 20 }}
               >
                 Current period: {formatDate(billing.periodStart)} {"\u2014"}{" "}
                 {formatDate(billing.periodEnd)}
@@ -365,11 +365,11 @@ export function BillingView({ billing }: { billing: BillingStatus }) {
                 style={{
                   position: "relative",
                   border: isRecommended
-                    ? "2px solid #3B82F6"
+                    ? "2px solid var(--accent)"
                     : isCurrent
-                      ? "1px solid rgba(59,130,246,0.3)"
-                      : "1px solid rgba(0,0,0,0.10)",
-                  borderLeft: isCurrent ? "3px solid #3B82F6" : undefined,
+                      ? "1px solid var(--border-strong)"
+                      : "1px solid var(--border)",
+                  borderLeft: isCurrent ? "3px solid var(--accent)" : undefined,
                   padding: 20,
                   opacity: tier.comingSoon ? 0.6 : 1,
                 }}
@@ -382,7 +382,7 @@ export function BillingView({ billing }: { billing: BillingStatus }) {
                       top: -10,
                       left: "50%",
                       transform: "translateX(-50%)",
-                      backgroundColor: "#3B82F6",
+                      backgroundColor: "var(--accent)",
                       color: "white",
                       padding: "2px 12px",
                       borderRadius: 10,
@@ -396,7 +396,7 @@ export function BillingView({ billing }: { billing: BillingStatus }) {
                   className="font-bold"
                   style={{
                     fontSize: 16,
-                    color: "#0A0A0A",
+                    color: "var(--text-primary)",
                     marginBottom: 4,
                     fontFamily: "var(--font-family-display)",
                   }}
@@ -408,13 +408,13 @@ export function BillingView({ billing }: { billing: BillingStatus }) {
                     className="font-bold"
                     style={{
                       fontSize: 24,
-                      color: "#0A0A0A",
+                      color: "var(--text-primary)",
                       letterSpacing: "-0.02em",
                     }}
                   >
                     {tier.price}
                   </span>
-                  <span className="text-xs" style={{ color: "rgba(0,0,0,0.36)" }}>
+                  <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>
                     {tier.period}
                   </span>
                 </div>
@@ -423,14 +423,14 @@ export function BillingView({ billing }: { billing: BillingStatus }) {
                     <li
                       key={f}
                       className="text-xs flex items-start gap-2"
-                      style={{ color: "rgba(0,0,0,0.55)", marginBottom: 6, lineHeight: 1.5 }}
+                      style={{ color: "var(--text-secondary)", marginBottom: 6, lineHeight: 1.5 }}
                     >
                       <svg
                         width="14"
                         height="14"
                         viewBox="0 0 14 14"
                         fill="none"
-                        stroke="#3B82F6"
+                        stroke="var(--accent)"
                         strokeWidth="1.5"
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -447,9 +447,9 @@ export function BillingView({ billing }: { billing: BillingStatus }) {
                     className="text-xs font-semibold uppercase tracking-wide"
                     style={{
                       textAlign: "center",
-                      backgroundColor: "rgba(59,130,246,0.1)",
-                      color: "#3B82F6",
-                      border: "1px solid rgba(59,130,246,0.3)",
+                      backgroundColor: "var(--surface-1)",
+                      color: "var(--accent)",
+                      border: "1px solid var(--border-strong)",
                       borderRadius: 9999,
                       padding: "5px 12px",
                     }}
@@ -461,9 +461,9 @@ export function BillingView({ billing }: { billing: BillingStatus }) {
                     className="text-xs font-semibold uppercase tracking-wide"
                     style={{
                       textAlign: "center",
-                      backgroundColor: "rgba(100,116,139,0.1)",
-                      color: "rgba(148,163,184,1)",
-                      border: "1px solid rgba(100,116,139,0.2)",
+                      backgroundColor: "var(--surface-1)",
+                      color: "var(--text-tertiary)",
+                      border: "1px solid var(--border)",
                       borderRadius: 9999,
                       padding: "5px 12px",
                     }}
@@ -540,11 +540,11 @@ function SuccessBanner() {
           borderRadius: 18,
           padding: "20px 24px",
           marginTop: 24,
-          backgroundColor: "rgba(0,0,0,0.03)",
-          border: "1px solid rgba(0,0,0,0.06)",
+          backgroundColor: "var(--surface-1)",
+          border: "1px solid var(--surface-2)",
         }}
       >
-        <span className="text-sm" style={{ color: "rgba(0,0,0,0.55)" }}>
+        <span className="text-sm" style={{ color: "var(--text-secondary)" }}>
           Checkout canceled. You can upgrade anytime.
         </span>
       </div>

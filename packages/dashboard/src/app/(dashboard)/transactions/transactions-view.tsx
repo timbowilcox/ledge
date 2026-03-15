@@ -5,7 +5,6 @@ import { formatCurrency, formatDate, formatDateShort } from "@/lib/format";
 import { fetchTransactions, fetchBankTransactions, markBankTransactionPersonal, fetchAttachments, uploadAttachment, deleteAttachmentAction } from "@/lib/actions";
 import type { BankTransactionSummary, AttachmentSummary } from "@/lib/actions";
 import type { TransactionWithLines, PaginatedResult, AccountWithBalance } from "@kounta/sdk";
-import { ContextualPrompt } from "@/components/contextual-prompt";
 import { usePostTransaction } from "@/components/post-transaction-provider";
 
 interface Props {
@@ -90,7 +89,6 @@ export function TransactionsView({ initialData, accountMap, closedThrough }: Pro
           Transactions
         </h1>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <ContextualPrompt placeholder="Search or ask about transactions..." />
           <button className="btn-primary" onClick={openPostTransaction} style={{ gap: 6, display: "inline-flex", alignItems: "center" }}>
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
               <path d="M7 2v10M2 7h10" />
@@ -492,7 +490,7 @@ function AttachmentsSection({ transactionId }: { transactionId: string }) {
   return (
     <div style={{ padding: "12px 16px", borderTop: "1px solid var(--border)" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+        <span style={{ fontSize: 12, fontWeight: 500, color: "var(--text-secondary)" }}>
           Attachments
           {attachments && attachments.length > 0 && (
             <span style={{ fontWeight: 400, color: "var(--text-tertiary)", marginLeft: 4 }}>({attachments.length})</span>

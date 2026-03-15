@@ -111,11 +111,11 @@ export default function McpPage() {
     <div>
       <h1
         className="font-bold"
-        style={{ fontSize: 24, color: "#0A0A0A", marginBottom: 8, fontFamily: "var(--font-family-display)" }}
+        style={{ fontSize: 24, color: "var(--text-primary)", marginBottom: 8, fontFamily: "var(--font-family-display)" }}
       >
         MCP Connection Guide
       </h1>
-      <p className="text-sm" style={{ color: "rgba(0,0,0,0.55)", marginBottom: 12, lineHeight: 1.6 }}>
+      <p className="text-sm" style={{ color: "var(--text-secondary)", marginBottom: 12, lineHeight: 1.6 }}>
         Connect Kounta to your AI coding assistant. Your agent can then set up ledgers,
         post transactions, generate financial statements, classify bank transactions,
         and more \u2014 all conversationally.
@@ -126,23 +126,23 @@ export default function McpPage() {
         style={{
           padding: "14px 18px",
           borderRadius: 12,
-          backgroundColor: "rgba(59,130,246,0.06)",
-          border: "1px solid rgba(59,130,246,0.15)",
+          backgroundColor: "var(--surface-1)",
+          border: "1px solid var(--border)",
           marginBottom: 32,
           display: "flex",
           alignItems: "center",
           gap: 12,
         }}
       >
-        <span style={{ fontSize: 18 }}>&#x1F310;</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
         <div>
-          <div className="text-sm font-medium" style={{ color: "#1E40AF" }}>
+          <div className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
             Hosted Endpoint
           </div>
-          <code className="text-xs font-mono" style={{ color: "#3B82F6" }}>
+          <code className="text-xs font-mono" style={{ color: "var(--accent)" }}>
             https://mcp.kounta.ai
           </code>
-          <span className="text-xs" style={{ color: "rgba(0,0,0,0.36)", marginLeft: 8 }}>
+          <span className="text-xs" style={{ color: "var(--text-tertiary)", marginLeft: 8 }}>
             39 tools &middot; 4 resources &middot; 3 prompts
           </span>
         </div>
@@ -159,9 +159,9 @@ export default function McpPage() {
               borderRadius: 10,
               fontSize: 13,
               fontWeight: 500,
-              backgroundColor: activeTool === key ? "rgba(59,130,246,0.1)" : "transparent",
-              color: activeTool === key ? "#3B82F6" : "rgba(0,0,0,0.36)",
-              border: activeTool === key ? "1px solid rgba(59,130,246,0.3)" : "1px solid transparent",
+              backgroundColor: activeTool === key ? "var(--surface-1)" : "transparent",
+              color: activeTool === key ? "var(--text-primary)" : "var(--text-tertiary)",
+              border: activeTool === key ? "1px solid var(--border-strong)" : "1px solid transparent",
               cursor: "pointer",
               transition: "all 200ms cubic-bezier(0.16, 1, 0.3, 1)",
             }}
@@ -176,18 +176,17 @@ export default function McpPage() {
         <div className="section-label" style={{ marginBottom: 16 }}>Setup Steps</div>
         <ol style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {config.steps.map((step, i) => (
-            <li key={i} className="flex text-sm" style={{ color: "rgba(0,0,0,0.55)", gap: 14 }}>
+            <li key={i} className="flex text-sm" style={{ color: "var(--text-secondary)", gap: 14 }}>
               <span
-                className="flex-shrink-0 flex items-center justify-center text-xs font-bold"
+                className="flex-shrink-0 flex items-center justify-center"
                 style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: "50%",
-                  backgroundColor: "rgba(59,130,246,0.1)",
-                  color: "#3B82F6",
+                  fontFamily: "var(--font-geist-mono, monospace)",
+                  fontSize: 12,
+                  color: "var(--text-tertiary)",
+                  fontWeight: 500,
                 }}
               >
-                {i + 1}
+                {String(i + 1).padStart(2, "0")}
               </span>
               <span style={{ paddingTop: 4, lineHeight: 1.5 }}>{step}</span>
             </li>
@@ -199,7 +198,7 @@ export default function McpPage() {
       <div style={{ marginBottom: 32 }}>
         <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
           <div className="section-label">
-            Configuration &mdash; <code className="font-mono text-xs" style={{ color: "#3B82F6" }}>{config.file}</code>
+            Configuration &mdash; <code className="font-mono text-xs" style={{ color: "var(--accent)" }}>{config.file}</code>
           </div>
           <CopyButton text={config.config} label="Copy config" />
         </div>
@@ -207,24 +206,24 @@ export default function McpPage() {
           style={{
             borderRadius: 18,
             padding: 24,
-            backgroundColor: "#F3F3F1",
-            border: "1px solid rgba(0,0,0,0.10)",
+            backgroundColor: "var(--surface-1)",
+            border: "1px solid var(--border)",
           }}
         >
-          <pre className="font-mono text-sm overflow-x-auto" style={{ color: "rgba(0,0,0,0.55)", lineHeight: 1.7 }}>
+          <pre className="font-mono text-sm overflow-x-auto" style={{ color: "var(--text-secondary)", lineHeight: 1.7 }}>
             {config.config.split("\n").map((line, i) => {
               if (line.includes("YOUR_API_KEY")) {
                 const parts = line.split("YOUR_API_KEY");
                 return (
                   <div key={i}>
                     <span>{parts[0]}</span>
-                    <span style={{ color: "#D97706", fontWeight: 500 }}>YOUR_API_KEY</span>
+                    <span style={{ color: "var(--warning)", fontWeight: 500 }}>YOUR_API_KEY</span>
                     <span>{parts[1]}</span>
                   </div>
                 );
               }
               if (line.includes('"kounta"') || line.includes('"mcpServers"')) {
-                return <div key={i} style={{ color: "#3B82F6" }}>{line}</div>;
+                return <div key={i} style={{ color: "var(--accent)" }}>{line}</div>;
               }
               return <div key={i}>{line}</div>;
             })}
@@ -239,7 +238,7 @@ export default function McpPage() {
           <button
             onClick={() => setShowAll(!showAll)}
             className="text-xs font-medium"
-            style={{ color: "#3B82F6", cursor: "pointer", background: "none", border: "none" }}
+            style={{ color: "var(--accent)", cursor: "pointer", background: "none", border: "none" }}
           >
             {showAll ? "Show less" : "Show all 39"}
           </button>
@@ -248,7 +247,7 @@ export default function McpPage() {
           {visibleTools.map((tool) => (
             <div key={tool.name} className="card" style={{ padding: 16 }}>
               <div className="flex items-start justify-between" style={{ gap: 8 }}>
-                <code className="font-mono text-xs font-medium" style={{ color: "#3B82F6" }}>
+                <code className="font-mono text-xs font-medium" style={{ color: "var(--accent)" }}>
                   {tool.name}
                 </code>
                 <span
@@ -256,15 +255,15 @@ export default function McpPage() {
                   style={{
                     padding: "2px 8px",
                     borderRadius: 6,
-                    backgroundColor: categoryColors[tool.category] ?? "rgba(0,0,0,0.05)",
-                    color: categoryTextColors[tool.category] ?? "rgba(0,0,0,0.4)",
+                    backgroundColor: categoryColors[tool.category] ?? "var(--surface-1)",
+                    color: categoryTextColors[tool.category] ?? "var(--text-tertiary)",
                     fontWeight: 500,
                   }}
                 >
                   {tool.category}
                 </span>
               </div>
-              <p className="text-xs" style={{ color: "rgba(0,0,0,0.36)", marginTop: 6, lineHeight: 1.5 }}>
+              <p className="text-xs" style={{ color: "var(--text-tertiary)", marginTop: 6, lineHeight: 1.5 }}>
                 {tool.description}
               </p>
             </div>
@@ -278,10 +277,10 @@ export default function McpPage() {
         <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 10 }}>
           {mcpResources.map((r) => (
             <div key={r.uri} className="card" style={{ padding: 16 }}>
-              <code className="font-mono text-xs font-medium" style={{ color: "#059669" }}>
+              <code className="font-mono text-xs font-medium" style={{ color: "var(--positive)" }}>
                 {r.uri}
               </code>
-              <p className="text-xs" style={{ color: "rgba(0,0,0,0.36)", marginTop: 6, lineHeight: 1.5 }}>
+              <p className="text-xs" style={{ color: "var(--text-tertiary)", marginTop: 6, lineHeight: 1.5 }}>
                 {r.description}
               </p>
             </div>
@@ -295,10 +294,10 @@ export default function McpPage() {
         <div className="grid grid-cols-1 md:grid-cols-3" style={{ gap: 10 }}>
           {mcpPrompts.map((p) => (
             <div key={p.name} className="card" style={{ padding: 16 }}>
-              <code className="font-mono text-xs font-medium" style={{ color: "#7C3AED" }}>
+              <code className="font-mono text-xs font-medium" style={{ color: "var(--accent)" }}>
                 {p.name}
               </code>
-              <p className="text-xs" style={{ color: "rgba(0,0,0,0.36)", marginTop: 6, lineHeight: 1.5 }}>
+              <p className="text-xs" style={{ color: "var(--text-tertiary)", marginTop: 6, lineHeight: 1.5 }}>
                 {p.description}
               </p>
             </div>
@@ -317,9 +316,9 @@ export default function McpPage() {
               style={{
                 padding: "12px 16px",
                 borderRadius: 12,
-                backgroundColor: "#F3F3F1",
-                border: "1px solid rgba(0,0,0,0.08)",
-                color: "rgba(0,0,0,0.55)",
+                backgroundColor: "var(--surface-1)",
+                border: "1px solid var(--border)",
+                color: "var(--text-secondary)",
                 lineHeight: 1.5,
               }}
             >
@@ -333,33 +332,33 @@ export default function McpPage() {
 }
 
 const categoryColors: Record<string, string> = {
-  Setup: "rgba(59,130,246,0.1)",
-  Transactions: "rgba(16,185,129,0.1)",
-  Accounts: "rgba(245,158,11,0.1)",
-  Reports: "rgba(139,92,246,0.1)",
-  Import: "rgba(236,72,153,0.1)",
-  "Bank Feeds": "rgba(14,165,233,0.1)",
-  Notifications: "rgba(251,146,60,0.1)",
-  Currencies: "rgba(20,184,166,0.1)",
-  Classification: "rgba(168,85,247,0.1)",
-  Recurring: "rgba(99,102,241,0.1)",
-  Usage: "rgba(107,114,128,0.1)",
-  Stripe: "rgba(99,102,241,0.1)",
+  Setup: "var(--surface-1)",
+  Transactions: "var(--surface-1)",
+  Accounts: "var(--surface-1)",
+  Reports: "var(--surface-1)",
+  Import: "var(--surface-1)",
+  "Bank Feeds": "var(--surface-1)",
+  Notifications: "var(--surface-1)",
+  Currencies: "var(--surface-1)",
+  Classification: "var(--surface-1)",
+  Recurring: "var(--surface-1)",
+  Usage: "var(--surface-1)",
+  Stripe: "var(--surface-1)",
 };
 
 const categoryTextColors: Record<string, string> = {
-  Setup: "#2563EB",
-  Transactions: "#059669",
-  Accounts: "#D97706",
-  Reports: "#7C3AED",
-  Import: "#DB2777",
-  "Bank Feeds": "#0284C7",
-  Notifications: "#EA580C",
-  Currencies: "#0D9488",
-  Classification: "#9333EA",
-  Recurring: "#4F46E5",
-  Usage: "#4B5563",
-  Stripe: "#4F46E5",
+  Setup: "var(--text-secondary)",
+  Transactions: "var(--text-secondary)",
+  Accounts: "var(--text-secondary)",
+  Reports: "var(--text-secondary)",
+  Import: "var(--text-secondary)",
+  "Bank Feeds": "var(--text-secondary)",
+  Notifications: "var(--text-secondary)",
+  Currencies: "var(--text-secondary)",
+  Classification: "var(--text-secondary)",
+  Recurring: "var(--text-secondary)",
+  Usage: "var(--text-secondary)",
+  Stripe: "var(--text-secondary)",
 };
 
 const mcpTools = [

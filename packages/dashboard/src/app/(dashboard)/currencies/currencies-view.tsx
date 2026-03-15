@@ -32,7 +32,7 @@ export function CurrenciesView({ currencies, exchangeRates, error }: CurrenciesV
           <p className="page-subtitle">Multi-currency support for your ledger</p>
         </div>
         <div className="card" style={{ textAlign: "center", padding: 48 }}>
-          <p style={{ color: "rgba(0,0,0,0.55)", marginBottom: 16 }}>
+          <p style={{ color: "var(--text-secondary)", marginBottom: 16 }}>
             Multi-currency is available on the Builder plan and above.
           </p>
           <a href="/settings?tab=billing" className="btn-primary" style={{ display: "inline-block" }}>
@@ -57,17 +57,17 @@ export function CurrenciesView({ currencies, exchangeRates, error }: CurrenciesV
         <div
           style={{
             padding: "20px 24px",
-            borderBottom: "1px solid rgba(0,0,0,0.08)",
+            borderBottom: "1px solid var(--border)",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
           }}
         >
           <div>
-            <h2 style={{ fontSize: 16, fontWeight: 600, color: "#0A0A0A" }}>
+            <h2 style={{ fontSize: 16, fontWeight: 600, color: "var(--text-primary)" }}>
               Enabled Currencies
             </h2>
-            <p style={{ fontSize: 13, color: "rgba(0,0,0,0.45)", marginTop: 2 }}>
+            <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 2 }}>
               Currencies available for transactions in this ledger
             </p>
           </div>
@@ -75,7 +75,7 @@ export function CurrenciesView({ currencies, exchangeRates, error }: CurrenciesV
         </div>
 
         {items.length === 0 ? (
-          <div style={{ padding: 32, textAlign: "center", color: "rgba(0,0,0,0.36)" }}>
+          <div style={{ padding: 32, textAlign: "center", color: "var(--text-tertiary)" }}>
             <p style={{ fontSize: 14 }}>No additional currencies enabled.</p>
             <p style={{ fontSize: 13, marginTop: 4 }}>
               Use the API or MCP to enable currencies for multi-currency transactions.
@@ -108,7 +108,7 @@ export function CurrenciesView({ currencies, exchangeRates, error }: CurrenciesV
                         {c.enabled ? "Active" : "Disabled"}
                       </span>
                     </td>
-                    <td style={{ color: "rgba(0,0,0,0.45)", fontSize: 13 }}>
+                    <td style={{ color: "var(--text-secondary)", fontSize: 13 }}>
                       {formatDate(c.createdAt)}
                     </td>
                   </tr>
@@ -124,17 +124,17 @@ export function CurrenciesView({ currencies, exchangeRates, error }: CurrenciesV
         <div
           style={{
             padding: "20px 24px",
-            borderBottom: "1px solid rgba(0,0,0,0.08)",
+            borderBottom: "1px solid var(--border)",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
           }}
         >
           <div>
-            <h2 style={{ fontSize: 16, fontWeight: 600, color: "#0A0A0A" }}>
+            <h2 style={{ fontSize: 16, fontWeight: 600, color: "var(--text-primary)" }}>
               Exchange Rates
             </h2>
-            <p style={{ fontSize: 13, color: "rgba(0,0,0,0.45)", marginTop: 2 }}>
+            <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 2 }}>
               Stored exchange rates used for currency conversion
             </p>
           </div>
@@ -142,7 +142,7 @@ export function CurrenciesView({ currencies, exchangeRates, error }: CurrenciesV
         </div>
 
         {rates.length === 0 ? (
-          <div style={{ padding: 32, textAlign: "center", color: "rgba(0,0,0,0.36)" }}>
+          <div style={{ padding: 32, textAlign: "center", color: "var(--text-tertiary)" }}>
             <p style={{ fontSize: 14 }}>No exchange rates set.</p>
             <p style={{ fontSize: 13, marginTop: 4 }}>
               Set exchange rates via the API or MCP to enable currency conversion.
@@ -176,7 +176,7 @@ export function CurrenciesView({ currencies, exchangeRates, error }: CurrenciesV
                     <td style={{ fontFamily: "var(--font-family-mono)" }}>
                       {formatRate(r.rate)}
                     </td>
-                    <td style={{ color: "rgba(0,0,0,0.55)", fontSize: 13 }}>
+                    <td style={{ color: "var(--text-secondary)", fontSize: 13 }}>
                       {formatDate(r.effectiveDate)}
                     </td>
                     <td>

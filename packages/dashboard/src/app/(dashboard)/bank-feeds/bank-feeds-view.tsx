@@ -190,15 +190,18 @@ function PageHeader() {
 function EmptyState() {
   return (
     <>
-      <div className="card" style={{ padding: 40, textAlign: "center" }}>
-        <div style={{ margin: "0 auto 16px" }}>
+      <div className="card" style={{ padding: 40, textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <div style={{ marginBottom: 16 }}>
+          {/* Lucide Landmark icon */}
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 21h18" />
-            <path d="M3 7V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2" />
-            <path d="M3 7h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
-            <path d="M8 7V5" />
-            <path d="M16 7V5" />
-            <path d="M12 7V5" />
+            <line x1="3" y1="22" x2="21" y2="22" />
+            <line x1="6" y1="18" x2="6" y2="11" />
+            <line x1="10" y1="18" x2="10" y2="11" />
+            <line x1="14" y1="18" x2="14" y2="11" />
+            <line x1="18" y1="18" x2="18" y2="11" />
+            <polygon points="12 2 20 7 4 7" />
+            <line x1="2" y1="22" x2="22" y2="22" />
+            <rect x="2" y="18" width="20" height="4" rx="0" />
           </svg>
         </div>
         <h2
@@ -207,13 +210,42 @@ function EmptyState() {
         >
           No Bank Connections
         </h2>
-        <p className="text-sm" style={{ color: "var(--text-secondary)", lineHeight: 1.6, maxWidth: 420, margin: "0 auto" }}>
+        <p className="text-sm" style={{ color: "var(--text-secondary)", lineHeight: 1.6, maxWidth: 420, margin: "0 auto 20px" }}>
           Connect a bank account to start syncing transactions automatically.
           Use the REST API or MCP tools to create your first connection.
         </p>
+        <a
+          href="#api-endpoints"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "8px 16px",
+            fontSize: 13,
+            fontWeight: 500,
+            color: "var(--text-primary)",
+            backgroundColor: "transparent",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--radius-md)",
+            textDecoration: "none",
+            cursor: "pointer",
+            transition: "all 150ms ease",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = "var(--border-strong)";
+            e.currentTarget.style.backgroundColor = "var(--surface-1)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = "var(--border)";
+            e.currentTarget.style.backgroundColor = "transparent";
+          }}
+        >
+          Connect your first bank
+          <span style={{ transition: "transform 150ms ease" }}>&rarr;</span>
+        </a>
       </div>
 
-      <div style={{ marginTop: 32 }}>
+      <div id="api-endpoints" style={{ marginTop: 32 }}>
         <ApiGuide />
       </div>
     </>

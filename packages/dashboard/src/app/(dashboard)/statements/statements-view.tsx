@@ -10,8 +10,6 @@ import {
 } from "@/lib/actions";
 import type { ClosedPeriodSummary } from "@/lib/actions";
 import type { StatementResponse } from "@kounta/sdk";
-import { ContextualPrompt } from "@/components/contextual-prompt";
-
 type Tab = "pnl" | "balance_sheet" | "cash_flow";
 
 const tabs: { key: Tab; label: string }[] = [
@@ -99,7 +97,6 @@ export function StatementsView({
         <h1 style={{ fontSize: 20, fontWeight: 600, color: "var(--text-primary)" }}>
           Statements
         </h1>
-        <ContextualPrompt placeholder="Generate or ask about statements..." />
       </div>
 
       {/* Underline tab selector */}
@@ -357,8 +354,7 @@ function SectionRows({ section }: { section: StatementResponse["sections"][numbe
             fontSize: 12,
             fontWeight: 500,
             color: "var(--text-tertiary)",
-            textTransform: "uppercase",
-            letterSpacing: "0.05em",
+            letterSpacing: "0.04em",
           }}
         >
           {section.name}

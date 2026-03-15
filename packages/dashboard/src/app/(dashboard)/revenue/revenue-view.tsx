@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { formatCurrency, formatDate } from "@/lib/format";
-import { ContextualPrompt } from "@/components/contextual-prompt";
+
 import {
   fetchRevenueMetrics,
   fetchRevenueSchedules,
@@ -92,7 +92,6 @@ export function RevenueView({ initialMetrics, initialMrrHistory, initialSchedule
           </p>
         </div>
         <div className="flex items-center" style={{ gap: 8 }}>
-          <ContextualPrompt placeholder="Ask about your revenue..." />
           <button
             onClick={() => setShowCreate(true)}
             className="btn-primary flex items-center"
@@ -354,7 +353,7 @@ function ScheduleRow({
             <div style={{ padding: "16px 20px", backgroundColor: "var(--surface-2)", borderTop: "1px solid var(--surface-2)" }}>
               {/* Actions */}
               <div className="flex items-center" style={{ gap: 8, marginBottom: 16 }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-secondary)", letterSpacing: "0.05em" }}>
                   Schedule detail
                 </span>
                 <div style={{ flex: 1 }} />
@@ -484,7 +483,7 @@ function StatusBadge({ status }: { status: string }) {
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
     <div style={{ padding: "8px 12px", backgroundColor: "var(--surface-1)", border: "1px solid var(--border)", borderRadius: 6 }}>
-      <div style={{ fontSize: 10, fontWeight: 600, color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>
+      <div style={{ fontSize: 10, fontWeight: 500, color: "var(--text-tertiary)", letterSpacing: "0.05em", marginBottom: 2 }}>
         {label}
       </div>
       <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)", fontFamily: "var(--font-geist-mono, monospace)" }}>

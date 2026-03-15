@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from "react";
 import type { Notification, NotificationSeverity, NotificationStatus, NotificationType } from "@kounta/sdk";
-import { ContextualPrompt } from "@/components/contextual-prompt";
 
 interface NotificationsViewProps {
   notifications: readonly unknown[];
@@ -31,19 +30,43 @@ const typeLabels: Record<NotificationType, string> = {
   system: "System",
 };
 
-function typeIcon(type: NotificationType): string {
+function TypeIcon({ type, size = 16 }: { type: NotificationType; size?: number }) {
+  const stroke = "var(--text-tertiary)";
+  const props = { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke, strokeWidth: "1.5", strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
   switch (type) {
-    case "monthly_summary": return "📊";
-    case "cash_position": return "💰";
-    case "anomaly": return "⚠️";
-    case "unclassified_transactions": return "📂";
-    case "sync_complete": return "✅";
-    case "reconciliation_needed": return "🔄";
-    case "receipt_prompt": return "🧾";
-    case "monthly_recognition_summary": return "📈";
-    case "schedule_completion": return "✓";
-    case "large_deferred_balance": return "📋";
-    case "system": return "🔔";
+    case "monthly_summary": return (
+      <svg {...props}><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>
+    );
+    case "cash_position": return (
+      <svg {...props}><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" /><path d="M3 5v14a2 2 0 0 0 2 2h16v-5" /><path d="M18 12a2 2 0 0 0 0 4h4v-4z" /></svg>
+    );
+    case "anomaly": return (
+      <svg {...props}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
+    );
+    case "unclassified_transactions": return (
+      <svg {...props}><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-3" /><path d="M2 8V6a2 2 0 0 1 2-2h16" /></svg>
+    );
+    case "sync_complete": return (
+      <svg {...props}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>
+    );
+    case "reconciliation_needed": return (
+      <svg {...props}><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
+    );
+    case "receipt_prompt": return (
+      <svg {...props}><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" /><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8" /><path d="M12 17.5v-11" /></svg>
+    );
+    case "monthly_recognition_summary": return (
+      <svg {...props}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>
+    );
+    case "schedule_completion": return (
+      <svg {...props}><polyline points="20 6 9 17 4 12" /></svg>
+    );
+    case "large_deferred_balance": return (
+      <svg {...props}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>
+    );
+    case "system": return (
+      <svg {...props}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>
+    );
   }
 }
 
@@ -85,18 +108,7 @@ export function NotificationsView({ notifications, error }: NotificationsViewPro
       <div>
         <PageHeader unreadCount={0} />
         <div className="card" style={{ padding: 40, textAlign: "center" }}>
-          <div
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: "50%",
-              backgroundColor: "rgba(235, 228, 220, 0.06)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 16px",
-            }}
-          >
+          <div style={{ margin: "0 auto 16px" }}>
             <NotificationIconSvg />
           </div>
           <h2
@@ -119,18 +131,7 @@ export function NotificationsView({ notifications, error }: NotificationsViewPro
       <div>
         <PageHeader unreadCount={0} />
         <div className="card" style={{ padding: 40, textAlign: "center" }}>
-          <div
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: "50%",
-              backgroundColor: "rgba(235, 228, 220, 0.06)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 16px",
-            }}
-          >
+          <div style={{ margin: "0 auto 16px" }}>
             <NotificationIconSvg />
           </div>
           <h2
@@ -170,9 +171,9 @@ export function NotificationsView({ notifications, error }: NotificationsViewPro
                 borderRadius: 10,
                 fontSize: 14,
                 fontWeight: 500,
-                backgroundColor: activeFilter === tab ? "rgba(235, 228, 220, 0.06)" : "transparent",
-                color: activeFilter === tab ? "var(--accent)" : "rgba(0,0,0,0.36)",
-                border: activeFilter === tab ? "1px solid rgba(59,130,246,0.3)" : "1px solid transparent",
+                backgroundColor: activeFilter === tab ? "var(--surface-1)" : "transparent",
+                color: activeFilter === tab ? "var(--text-primary)" : "var(--text-tertiary)",
+                border: activeFilter === tab ? "1px solid var(--border-strong)" : "1px solid transparent",
                 cursor: "pointer",
                 transition: "all 200ms cubic-bezier(0.16, 1, 0.3, 1)",
               }}
@@ -208,15 +209,15 @@ export function NotificationsView({ notifications, error }: NotificationsViewPro
               style={{
                 padding: 20,
                 cursor: "pointer",
-                borderLeft: isUnread ? "3px solid #3B82F6" : "3px solid transparent",
+                borderLeft: isUnread ? "3px solid var(--accent)" : "3px solid transparent",
                 transition: "all 200ms cubic-bezier(0.16, 1, 0.3, 1)",
               }}
               onClick={() => setExpandedId(isExpanded ? null : notification.id)}
             >
               <div className="flex items-start" style={{ gap: 14 }}>
                 {/* Icon */}
-                <span style={{ fontSize: 20, flexShrink: 0, lineHeight: 1 }}>
-                  {typeIcon(notification.type)}
+                <span style={{ flexShrink: 0, lineHeight: 0, marginTop: 2 }}>
+                  <TypeIcon type={notification.type} size={16} />
                 </span>
 
                 {/* Content */}
@@ -232,8 +233,8 @@ export function NotificationsView({ notifications, error }: NotificationsViewPro
                     <span
                       className="text-xs"
                       style={{
-                        color: "rgba(0,0,0,0.28)",
-                        backgroundColor: "rgba(0,0,0,0.04)",
+                        color: "var(--text-tertiary)",
+                        backgroundColor: "var(--surface-1)",
                         padding: "2px 8px",
                         borderRadius: 6,
                       }}
@@ -259,7 +260,7 @@ export function NotificationsView({ notifications, error }: NotificationsViewPro
                     {notification.body}
                   </p>
 
-                  <span className="text-xs" style={{ color: "rgba(0,0,0,0.28)" }}>
+                  <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>
                     {timeAgo(notification.createdAt)}
                   </span>
                 </div>
@@ -270,7 +271,7 @@ export function NotificationsView({ notifications, error }: NotificationsViewPro
                   height="16"
                   viewBox="0 0 16 16"
                   fill="none"
-                  stroke="rgba(0,0,0,0.28)"
+                  stroke="var(--text-tertiary)"
                   strokeWidth="1.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -291,7 +292,7 @@ export function NotificationsView({ notifications, error }: NotificationsViewPro
 
       {filtered.length === 0 && (
         <div className="card" style={{ padding: 32, textAlign: "center" }}>
-          <p className="text-sm" style={{ color: "rgba(0,0,0,0.36)" }}>
+          <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>
             No {activeFilter} notifications.
           </p>
         </div>
@@ -307,29 +308,26 @@ export function NotificationsView({ notifications, error }: NotificationsViewPro
 function PageHeader({ unreadCount }: { unreadCount: number }) {
   return (
     <>
-      <div className="flex items-center" style={{ gap: 12, marginBottom: 8, justifyContent: "space-between" }}>
-        <div className="flex items-center" style={{ gap: 12 }}>
-          <h1
-            className="font-bold"
-            style={{ fontSize: 24, color: "var(--text-primary)", fontFamily: "var(--font-family-display)" }}
+      <div className="flex items-center" style={{ gap: 12, marginBottom: 8 }}>
+        <h1
+          className="font-bold"
+          style={{ fontSize: 24, color: "var(--text-primary)", fontFamily: "var(--font-family-display)" }}
+        >
+          Insights
+        </h1>
+        {unreadCount > 0 && (
+          <span
+            className="text-xs font-bold"
+            style={{
+              backgroundColor: "var(--accent)",
+              color: "var(--text-primary)",
+              padding: "2px 10px",
+              borderRadius: 12,
+            }}
           >
-            Insights
-          </h1>
-          {unreadCount > 0 && (
-            <span
-              className="text-xs font-bold"
-              style={{
-                backgroundColor: "var(--accent)",
-                color: "var(--text-primary)",
-                padding: "2px 10px",
-                borderRadius: 12,
-              }}
-            >
-              {unreadCount} new
-            </span>
-          )}
-        </div>
-        <ContextualPrompt placeholder="Ask about trends and insights..." />
+            {unreadCount} new
+          </span>
+        )}
       </div>
       <p className="text-sm" style={{ color: "var(--text-secondary)", marginBottom: 32, lineHeight: 1.6 }}>
         Automated financial insights and alerts generated from your ledger activity.
@@ -341,7 +339,7 @@ function PageHeader({ unreadCount }: { unreadCount: number }) {
 
 function NotificationIconSvg() {
   return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
       <path d="M13.73 21a2 2 0 0 1-3.46 0" />
     </svg>
@@ -351,17 +349,39 @@ function NotificationIconSvg() {
 function InsightTypesGuide() {
   return (
     <div>
-      <div className="section-label" style={{ marginBottom: 16 }}>Insight Types</div>
       <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 12 }}>
         {insightTypes.map((insight) => (
-          <div key={insight.type} className="card" style={{ padding: 20 }}>
-            <div className="flex items-center" style={{ gap: 10, marginBottom: 10 }}>
-              <span style={{ fontSize: 18 }}>{insight.icon}</span>
-              <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+          <div
+            key={insight.type}
+            className="insight-type-card"
+            style={{
+              backgroundColor: "var(--surface-1)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--radius-lg)",
+              padding: "16px 20px",
+              cursor: "default",
+              transition: "all 150ms ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = "var(--border-strong)";
+              const icon = e.currentTarget.querySelector(".insight-type-icon") as HTMLElement;
+              if (icon) icon.style.color = "var(--text-secondary)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = "var(--border)";
+              const icon = e.currentTarget.querySelector(".insight-type-icon") as HTMLElement;
+              if (icon) icon.style.color = "var(--text-tertiary)";
+            }}
+          >
+            <div className="flex items-center" style={{ gap: 10, marginBottom: 6 }}>
+              <span className="insight-type-icon" style={{ color: "var(--text-tertiary)", lineHeight: 0, flexShrink: 0, transition: "color 150ms ease" }}>
+                <TypeIcon type={insight.type as NotificationType} size={16} />
+              </span>
+              <span style={{ fontSize: 14, fontWeight: 500, color: "var(--text-primary)" }}>
                 {insight.label}
               </span>
             </div>
-            <p className="text-xs" style={{ color: "rgba(0,0,0,0.36)", lineHeight: 1.6 }}>
+            <p style={{ fontSize: 12, color: "var(--text-tertiary)", lineHeight: 1.5, marginLeft: 26 }}>
               {insight.description}
             </p>
           </div>
@@ -374,38 +394,32 @@ function InsightTypesGuide() {
 const insightTypes = [
   {
     type: "monthly_summary",
-    icon: "📊",
     label: "Monthly Summary",
-    description: "End-of-month revenue, expenses, and net income with period-over-period comparison.",
+    description: "End-of-month P&L with period-over-period comparison",
   },
   {
     type: "cash_position",
-    icon: "💰",
     label: "Cash Position",
-    description: "Current cash balances, burn rate, and estimated runway across all cash accounts.",
+    description: "Live balance, burn rate, and estimated runway",
   },
   {
     type: "anomaly",
-    icon: "⚠️",
     label: "Anomaly Detection",
-    description: "Unusual transactions, suspected duplicates, and unexpected balance changes.",
+    description: "Unusual transactions and unexpected balance changes",
   },
   {
     type: "unclassified_transactions",
-    icon: "📂",
     label: "Unclassified Transactions",
-    description: "Transactions posted to catch-all or suspense accounts that need proper categorization.",
+    description: "Entries posted to catch-all accounts needing categorisation",
   },
   {
     type: "sync_complete",
-    icon: "✅",
     label: "Sync Complete",
-    description: "Bank feed sync completed with match status summary.",
+    description: "Bank feed sync summary with match status",
   },
   {
     type: "reconciliation_needed",
-    icon: "🔄",
     label: "Reconciliation Needed",
-    description: "Bank transactions that could not be automatically matched to ledger entries.",
+    description: "Transactions that couldn't be automatically matched",
   },
 ];

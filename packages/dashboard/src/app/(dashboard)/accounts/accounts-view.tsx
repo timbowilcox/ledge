@@ -3,8 +3,6 @@
 import { useState } from "react";
 import { formatCurrency } from "@/lib/format";
 import type { AccountWithBalance } from "@kounta/sdk";
-import { ContextualPrompt } from "@/components/contextual-prompt";
-
 const typeOrder: Record<string, number> = {
   asset: 0, liability: 1, equity: 2, revenue: 3, expense: 4,
 };
@@ -45,7 +43,6 @@ export function AccountsView({ accounts }: { accounts: AccountWithBalance[] }) {
         <h1 style={{ fontSize: 20, fontWeight: 600, color: "var(--text-primary)" }}>
           Account Tree
         </h1>
-        <ContextualPrompt placeholder="Ask about account balances..." />
       </div>
 
       <div className="card" style={{ padding: 0 }}>

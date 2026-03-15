@@ -115,7 +115,7 @@ export function FirstClassificationModal({ ledgerId, currency }: ClassificationM
     <ModalOverlay>
       <div
         style={{
-          backgroundColor: "#FFFFFF",
+          backgroundColor: "var(--surface-2)",
           borderRadius: 16,
           padding: 32,
           maxWidth: 520,
@@ -127,7 +127,7 @@ export function FirstClassificationModal({ ledgerId, currency }: ClassificationM
       >
         {/* Header */}
         <div style={{ marginBottom: 24 }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: "#0A0A0A", marginBottom: 8 }}>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>
             I pulled in {stats.total} transactions from the last 30 days.
           </h2>
           <p style={{ fontSize: 14, color: "#666666" }}>
@@ -226,12 +226,12 @@ function TransactionCard({
     >
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
         <div>
-          <div style={{ fontSize: 15, fontWeight: 600, color: "#0A0A0A" }}>
+          <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text-primary)" }}>
             {tx.description}
           </div>
           <div style={{ fontSize: 12, color: "#999999", marginTop: 2 }}>{tx.date}</div>
         </div>
-        <div style={{ fontSize: 16, fontWeight: 600, color: "#0A0A0A", fontFamily: "monospace" }}>
+        <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text-primary)", fontFamily: "monospace" }}>
           ${(tx.amount / 100).toFixed(2)}
         </div>
       </div>
@@ -282,7 +282,7 @@ function FinancialSnapshot({ onClose }: { onClose: () => void }) {
   return (
     <div
       style={{
-        backgroundColor: "#FFFFFF",
+        backgroundColor: "var(--surface-2)",
         borderRadius: 16,
         padding: 32,
         maxWidth: 440,
@@ -291,8 +291,12 @@ function FinancialSnapshot({ onClose }: { onClose: () => void }) {
         boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)",
       }}
     >
-      <div style={{ fontSize: 32, marginBottom: 8 }}>📊</div>
-      <h2 style={{ fontSize: 20, fontWeight: 700, color: "#0A0A0A", marginBottom: 20 }}>
+      <div style={{ marginBottom: 8 }}>
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
+        </svg>
+      </div>
+      <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", marginBottom: 20 }}>
         Your financial snapshot
       </h2>
 

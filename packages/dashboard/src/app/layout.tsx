@@ -7,6 +7,12 @@ import { Providers } from "@/components/providers";
 export const metadata: Metadata = {
   title: "Kounta — Accounting for Builders",
   description: "Programmable double-entry ledger and reporting engine",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", media: "(prefers-color-scheme: light)" },
+      { url: "/favicon-light.ico", media: "(prefers-color-scheme: dark)" },
+    ],
+  },
 };
 
 export default function RootLayout({

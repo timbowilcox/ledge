@@ -4,22 +4,23 @@ import { signIn } from "next-auth/react";
 
 export default function SignInPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
-      {/* Teal radial gradient glow */}
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden" style={{ backgroundColor: "var(--background)" }}>
+      {/* Subtle radial gradient glow */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: "radial-gradient(700px circle at 50% 35%, rgba(59,130,246,0.05), transparent 70%)",
+          background: "radial-gradient(700px circle at 50% 35%, rgba(235,228,220,0.04), transparent 70%)",
         }}
       />
 
       <div
-        className="card relative z-10"
+        className="relative z-10"
         style={{
           width: 420,
           padding: "48px 40px",
           borderRadius: 24,
-          border: "1px solid rgba(0,0,0,0.10)",
+          border: "1px solid var(--border)",
+          backgroundColor: "var(--surface-1)",
         }}
       >
         {/* Logo */}
@@ -27,13 +28,13 @@ export default function SignInPage() {
           <img src="/logo-icon.svg" alt="Kounta" width={38} height={38} />
           <span
             className="font-bold tracking-tight"
-            style={{ fontSize: 26, color: "#0A0A0A", fontFamily: "var(--font-family-display)" }}
+            style={{ fontSize: 26, color: "var(--text-primary)", fontFamily: "var(--font-family-display)" }}
           >
             Kounta
           </span>
         </div>
 
-        <p className="text-center text-sm" style={{ color: "rgba(0,0,0,0.55)", marginBottom: 36 }}>
+        <p className="text-center text-sm" style={{ color: "var(--text-tertiary)", marginBottom: 36 }}>
           Accounting infrastructure for builders
         </p>
 
@@ -46,20 +47,20 @@ export default function SignInPage() {
               gap: 12,
               padding: "14px 16px",
               borderRadius: 14,
-              backgroundColor: "rgba(0,0,0,0.03)",
-              color: "#0A0A0A",
-              border: "1px solid rgba(0,0,0,0.10)",
+              backgroundColor: "var(--surface-2)",
+              color: "var(--text-primary)",
+              border: "1px solid var(--border)",
               cursor: "pointer",
               transition: "all 250ms cubic-bezier(0.16, 1, 0.3, 1)",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = "rgba(0,0,0,0.06)";
-              e.currentTarget.style.borderColor = "rgba(0,0,0,0.14)";
+              e.currentTarget.style.backgroundColor = "var(--surface-3)";
+              e.currentTarget.style.borderColor = "var(--border-strong)";
               e.currentTarget.style.transform = "translateY(-1px)";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = "rgba(0,0,0,0.03)";
-              e.currentTarget.style.borderColor = "rgba(0,0,0,0.10)";
+              e.currentTarget.style.backgroundColor = "var(--surface-2)";
+              e.currentTarget.style.borderColor = "var(--border)";
               e.currentTarget.style.transform = "translateY(0)";
             }}
           >
@@ -74,20 +75,20 @@ export default function SignInPage() {
               gap: 12,
               padding: "14px 16px",
               borderRadius: 14,
-              backgroundColor: "rgba(0,0,0,0.03)",
-              color: "#0A0A0A",
-              border: "1px solid rgba(0,0,0,0.10)",
+              backgroundColor: "var(--surface-2)",
+              color: "var(--text-primary)",
+              border: "1px solid var(--border)",
               cursor: "pointer",
               transition: "all 250ms cubic-bezier(0.16, 1, 0.3, 1)",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = "rgba(0,0,0,0.06)";
-              e.currentTarget.style.borderColor = "rgba(0,0,0,0.14)";
+              e.currentTarget.style.backgroundColor = "var(--surface-3)";
+              e.currentTarget.style.borderColor = "var(--border-strong)";
               e.currentTarget.style.transform = "translateY(-1px)";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = "rgba(0,0,0,0.03)";
-              e.currentTarget.style.borderColor = "rgba(0,0,0,0.10)";
+              e.currentTarget.style.backgroundColor = "var(--surface-2)";
+              e.currentTarget.style.borderColor = "var(--border)";
               e.currentTarget.style.transform = "translateY(0)";
             }}
           >
@@ -96,7 +97,7 @@ export default function SignInPage() {
           </button>
         </div>
 
-        <p className="text-center text-xs" style={{ color: "rgba(0,0,0,0.28)", marginTop: 28 }}>
+        <p className="text-center text-xs" style={{ color: "var(--text-disabled)", marginTop: 28 }}>
           No credit card required. No email verification.
         </p>
       </div>
@@ -110,7 +111,7 @@ function handleOAuth(provider: string) {
 
 function GitHubIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="#0A0A0A">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="var(--text-primary)">
       <path
         fillRule="evenodd"
         clipRule="evenodd"

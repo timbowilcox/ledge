@@ -86,7 +86,7 @@ export function TransactionsView({ initialData, accountMap, closedThrough }: Pro
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 600, color: "#0A0A0A" }}>
+        <h1 style={{ fontSize: 20, fontWeight: 600, color: "var(--text-primary)" }}>
           Transactions
         </h1>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -122,8 +122,8 @@ export function TransactionsView({ initialData, accountMap, closedThrough }: Pro
                 borderRadius: 6,
                 fontSize: 13,
                 fontWeight: 500,
-                backgroundColor: filter === s ? "#F0F6FF" : "transparent",
-                color: filter === s ? "#0066FF" : "#999999",
+                backgroundColor: filter === s ? "var(--surface-3)" : "transparent",
+                color: filter === s ? "var(--accent)" : "var(--text-tertiary)",
                 border: filter === s ? "1px solid rgba(0,102,255,0.2)" : "1px solid transparent",
                 cursor: "pointer",
                 transition: "all 150ms ease",
@@ -132,7 +132,7 @@ export function TransactionsView({ initialData, accountMap, closedThrough }: Pro
               {s}
             </button>
           ))}
-          <div style={{ width: 1, height: 20, backgroundColor: "#E5E5E5", margin: "0 8px" }} />
+          <div style={{ width: 1, height: 20, backgroundColor: "var(--border)", margin: "0 8px" }} />
           <button
             onClick={togglePersonal}
             style={{
@@ -142,7 +142,7 @@ export function TransactionsView({ initialData, accountMap, closedThrough }: Pro
               fontSize: 13,
               fontWeight: 500,
               backgroundColor: showPersonal ? "rgba(220,38,38,0.08)" : "transparent",
-              color: showPersonal ? "#DC2626" : "#999999",
+              color: showPersonal ? "var(--negative)" : "var(--text-tertiary)",
               border: showPersonal ? "1px solid rgba(220,38,38,0.15)" : "1px solid transparent",
               cursor: "pointer",
               transition: "all 150ms ease",
@@ -179,14 +179,14 @@ export function TransactionsView({ initialData, accountMap, closedThrough }: Pro
                     colSpan={4}
                     style={{
                       padding: "10px 16px",
-                      backgroundColor: isClosed ? "#F9FAFB" : "#FAFAFA",
-                      borderBottom: "1px solid #E5E5E5",
-                      borderTop: "1px solid #E5E5E5",
+                      backgroundColor: isClosed ? "var(--surface-2)" : "var(--surface-2)",
+                      borderBottom: "1px solid var(--border)",
+                      borderTop: "1px solid var(--border)",
                     }}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span style={{ fontSize: 12, fontWeight: 600, color: "#666666", letterSpacing: "0.02em" }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", letterSpacing: "0.02em" }}>
                           {group.label}
                         </span>
                         {isClosed && (
@@ -198,7 +198,7 @@ export function TransactionsView({ initialData, accountMap, closedThrough }: Pro
                               fontSize: 10,
                               fontWeight: 600,
                               backgroundColor: "rgba(107,114,128,0.08)",
-                              color: "#6B7280",
+                              color: "var(--text-tertiary)",
                             }}
                           >
                             <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -210,10 +210,10 @@ export function TransactionsView({ initialData, accountMap, closedThrough }: Pro
                         )}
                       </div>
                       <div className="flex items-center gap-3">
-                        <span style={{ fontSize: 12, color: "#999999", fontFamily: "var(--font-geist-mono)", fontVariantNumeric: "tabular-nums" }}>
+                        <span style={{ fontSize: 12, color: "var(--text-tertiary)", fontFamily: "var(--font-geist-mono)", fontVariantNumeric: "tabular-nums" }}>
                           {group.transactions.length} transaction{group.transactions.length !== 1 ? "s" : ""}
                         </span>
-                        <span style={{ fontSize: 12, fontWeight: 500, color: group.netAmount >= 0 ? "#16A34A" : "#DC2626", fontFamily: "var(--font-geist-mono)", fontVariantNumeric: "tabular-nums" }}>
+                        <span style={{ fontSize: 12, fontWeight: 500, color: group.netAmount >= 0 ? "var(--positive)" : "var(--negative)", fontFamily: "var(--font-geist-mono)", fontVariantNumeric: "tabular-nums" }}>
                           {group.netAmount >= 0 ? "+" : ""}{formatCurrency(Math.abs(group.netAmount))}
                         </span>
                       </div>
@@ -238,12 +238,12 @@ export function TransactionsView({ initialData, accountMap, closedThrough }: Pro
                 <td colSpan={4} className="table-cell text-center" style={{ padding: 48 }}>
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, maxWidth: 320, margin: "0 auto" }}>
                     <div style={{ marginBottom: 8 }}>
-                      <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="#D4D4D4" strokeWidth="1.5" strokeLinecap="round">
+                      <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="var(--border-strong)" strokeWidth="1.5" strokeLinecap="round">
                         <path d="M8 14h32M8 24h32M8 34h20" />
                       </svg>
                     </div>
-                    <div style={{ fontSize: 14, fontWeight: 500, color: "#0A0A0A" }}>No transactions found</div>
-                    <div style={{ fontSize: 13, color: "#999999", marginBottom: 4 }}>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: "var(--text-primary)" }}>No transactions found</div>
+                    <div style={{ fontSize: 13, color: "var(--text-tertiary)", marginBottom: 4 }}>
                       {search || filter !== "all" ? "Try adjusting your search or filters." : "Post your first transaction to see it here."}
                     </div>
                     {!search && filter === "all" && (
@@ -282,7 +282,7 @@ export function TransactionsView({ initialData, accountMap, closedThrough }: Pro
         <div style={{ marginTop: 32 }}>
           <div className="section-label" style={{ marginBottom: 12 }}>
             Personal Transactions
-            <span style={{ fontWeight: 400, color: "#999999", marginLeft: 8 }}>
+            <span style={{ fontWeight: 400, color: "var(--text-tertiary)", marginLeft: 8 }}>
               ({personalTxns.length} excluded from ledger)
             </span>
           </div>
@@ -299,10 +299,10 @@ export function TransactionsView({ initialData, accountMap, closedThrough }: Pro
               <tbody>
                 {personalTxns.map((txn) => (
                   <tr key={txn.id} className="table-row">
-                    <td className="table-cell font-mono" style={{ fontSize: 13, color: "rgba(0,0,0,0.36)" }}>
+                    <td className="table-cell font-mono" style={{ fontSize: 13, color: "var(--text-tertiary)" }}>
                       {formatDate(txn.date)}
                     </td>
-                    <td className="table-cell" style={{ fontSize: 13, color: "rgba(0,0,0,0.36)", fontWeight: 500 }}>
+                    <td className="table-cell" style={{ fontSize: 13, color: "var(--text-tertiary)", fontWeight: 500 }}>
                       {txn.description}
                       <span
                         style={{
@@ -313,13 +313,13 @@ export function TransactionsView({ initialData, accountMap, closedThrough }: Pro
                           fontSize: 10,
                           fontWeight: 600,
                           backgroundColor: "rgba(220,38,38,0.08)",
-                          color: "#DC2626",
+                          color: "var(--negative)",
                         }}
                       >
                         Personal
                       </span>
                     </td>
-                    <td className="table-cell text-right font-mono" style={{ fontSize: 13, color: "rgba(0,0,0,0.36)" }}>
+                    <td className="table-cell text-right font-mono" style={{ fontSize: 13, color: "var(--text-tertiary)" }}>
                       {formatCurrency(Math.abs(txn.amount))}
                     </td>
                     <td className="table-cell text-right">
@@ -329,7 +329,7 @@ export function TransactionsView({ initialData, accountMap, closedThrough }: Pro
                 ))}
                 {personalTxns.length === 0 && !loadingPersonal && (
                   <tr>
-                    <td colSpan={4} className="table-cell text-center" style={{ padding: 32, color: "#999999", fontSize: 13 }}>
+                    <td colSpan={4} className="table-cell text-center" style={{ padding: 32, color: "var(--text-tertiary)", fontSize: 13 }}>
                       No personal transactions found.
                     </td>
                   </tr>
@@ -364,9 +364,9 @@ function TransactionRow({
   return (
     <>
       <tr className="table-row cursor-pointer" onClick={onToggle}>
-        <td className="table-cell font-mono" style={{ fontSize: 13, color: "#666666" }}>{formatDate(tx.date)}</td>
-        <td className="table-cell" style={{ fontSize: 13, color: "#0A0A0A", fontWeight: 500 }}>{tx.memo}</td>
-        <td className="table-cell text-right font-mono" style={{ fontSize: 13, color: amount < 0 ? "#DC2626" : undefined }}>
+        <td className="table-cell font-mono" style={{ fontSize: 13, color: "var(--text-secondary)" }}>{formatDate(tx.date)}</td>
+        <td className="table-cell" style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: 500 }}>{tx.memo}</td>
+        <td className="table-cell text-right font-mono" style={{ fontSize: 13, color: amount < 0 ? "var(--negative)" : undefined }}>
           {formatCurrency(amount)}
         </td>
         <td className="table-cell text-right">
@@ -383,8 +383,8 @@ function TransactionRow({
               style={{
                 margin: "0 16px 12px",
                 borderRadius: 8,
-                backgroundColor: "#FAFAFA",
-                border: "1px solid #E5E5E5",
+                backgroundColor: "var(--surface-2)",
+                border: "1px solid var(--border)",
               }}
             >
               <table className="w-full">
@@ -402,7 +402,7 @@ function TransactionRow({
                       <tr key={i}>
                         <td className="table-cell" style={{ fontSize: 13, paddingTop: 8, paddingBottom: 8 }}>
                           {acct && (
-                            <code className="font-mono" style={{ fontSize: 12, color: "#999999", marginRight: 8 }}>
+                            <code className="font-mono" style={{ fontSize: 12, color: "var(--text-tertiary)", marginRight: 8 }}>
                               {acct.code}
                             </code>
                           )}
@@ -490,12 +490,12 @@ function AttachmentsSection({ transactionId }: { transactionId: string }) {
   };
 
   return (
-    <div style={{ padding: "12px 16px", borderTop: "1px solid #E5E5E5" }}>
+    <div style={{ padding: "12px 16px", borderTop: "1px solid var(--border)" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-        <span style={{ fontSize: 12, fontWeight: 600, color: "#666666", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
           Attachments
           {attachments && attachments.length > 0 && (
-            <span style={{ fontWeight: 400, color: "#999999", marginLeft: 4 }}>({attachments.length})</span>
+            <span style={{ fontWeight: 400, color: "var(--text-tertiary)", marginLeft: 4 }}>({attachments.length})</span>
           )}
         </span>
         <button
@@ -509,8 +509,8 @@ function AttachmentsSection({ transactionId }: { transactionId: string }) {
             borderRadius: 6,
             fontSize: 12,
             fontWeight: 500,
-            backgroundColor: "#F0F6FF",
-            color: "#0066FF",
+            backgroundColor: "var(--surface-3)",
+            color: "var(--accent)",
             border: "1px solid rgba(0,102,255,0.2)",
             cursor: uploading ? "wait" : "pointer",
             opacity: uploading ? 0.6 : 1,
@@ -532,12 +532,12 @@ function AttachmentsSection({ transactionId }: { transactionId: string }) {
 
       {/* Loading state */}
       {attachments === null && (
-        <div style={{ fontSize: 12, color: "#999999", padding: "8px 0" }}>Loading attachments...</div>
+        <div style={{ fontSize: 12, color: "var(--text-tertiary)", padding: "8px 0" }}>Loading attachments...</div>
       )}
 
       {/* Empty state */}
       {attachments && attachments.length === 0 && (
-        <div style={{ fontSize: 12, color: "#999999", padding: "8px 0" }}>
+        <div style={{ fontSize: 12, color: "var(--text-tertiary)", padding: "8px 0" }}>
           No receipts or documents attached.
         </div>
       )}
@@ -552,8 +552,8 @@ function AttachmentsSection({ transactionId }: { transactionId: string }) {
                 position: "relative",
                 width: 120,
                 borderRadius: 8,
-                border: "1px solid #E5E5E5",
-                backgroundColor: "#FFFFFF",
+                border: "1px solid var(--border)",
+                backgroundColor: "var(--surface-1)",
                 overflow: "hidden",
               }}
             >
@@ -562,7 +562,7 @@ function AttachmentsSection({ transactionId }: { transactionId: string }) {
                 href={att.downloadUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ display: "block", width: 120, height: 80, backgroundColor: "#F5F5F5", cursor: "pointer" }}
+                style={{ display: "block", width: 120, height: 80, backgroundColor: "var(--surface-3)", cursor: "pointer" }}
               >
                 {isImage(att.mimeType) ? (
                   <img
@@ -572,7 +572,7 @@ function AttachmentsSection({ transactionId }: { transactionId: string }) {
                   />
                 ) : (
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 120, height: 80 }}>
-                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="#DC2626" strokeWidth="1.2" strokeLinecap="round">
+                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="var(--negative)" strokeWidth="1.2" strokeLinecap="round">
                       <rect x="6" y="3" width="16" height="22" rx="2" />
                       <path d="M10 10h8M10 14h8M10 18h4" />
                     </svg>
@@ -582,10 +582,10 @@ function AttachmentsSection({ transactionId }: { transactionId: string }) {
 
               {/* Filename + size */}
               <div style={{ padding: "6px 8px" }}>
-                <div style={{ fontSize: 11, fontWeight: 500, color: "#0A0A0A", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={att.filename}>
+                <div style={{ fontSize: 11, fontWeight: 500, color: "var(--text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={att.filename}>
                   {att.filename}
                 </div>
-                <div style={{ fontSize: 10, color: "#999999" }}>{formatBytes(att.sizeBytes)}</div>
+                <div style={{ fontSize: 10, color: "var(--text-tertiary)" }}>{formatBytes(att.sizeBytes)}</div>
               </div>
 
               {/* Delete button */}
@@ -599,8 +599,8 @@ function AttachmentsSection({ transactionId }: { transactionId: string }) {
                   width: 20,
                   height: 20,
                   borderRadius: 10,
-                  backgroundColor: "rgba(0,0,0,0.5)",
-                  color: "#FFFFFF",
+                  backgroundColor: "rgba(0,0,0,0.6)",
+                  color: "var(--text-primary)",
                   border: "none",
                   cursor: deletingId === att.id ? "wait" : "pointer",
                   display: "flex",

@@ -67,11 +67,11 @@ export function BankFeedsView({ connections, error, initialBankTxns }: BankFeeds
           </div>
           <h2
             className="font-bold"
-            style={{ fontSize: 18, color: "#0A0A0A", marginBottom: 8, fontFamily: "var(--font-family-display)" }}
+            style={{ fontSize: 18, color: "var(--text-primary)", marginBottom: 8, fontFamily: "var(--font-family-display)" }}
           >
             Upgrade to Enable Bank Feeds
           </h2>
-          <p className="text-sm" style={{ color: "rgba(0,0,0,0.55)", lineHeight: 1.6, maxWidth: 420, margin: "0 auto" }}>
+          <p className="text-sm" style={{ color: "var(--text-secondary)", lineHeight: 1.6, maxWidth: 420, margin: "0 auto" }}>
             Bank feed connections require a Builder plan or higher. Upgrade your plan
             to connect your bank accounts and automatically sync transactions.
           </p>
@@ -105,11 +105,11 @@ export function BankFeedsView({ connections, error, initialBankTxns }: BankFeeds
           </div>
           <h2
             className="font-bold"
-            style={{ fontSize: 18, color: "#0A0A0A", marginBottom: 8, fontFamily: "var(--font-family-display)" }}
+            style={{ fontSize: 18, color: "var(--text-primary)", marginBottom: 8, fontFamily: "var(--font-family-display)" }}
           >
             Bank Feed Provider Not Configured
           </h2>
-          <p className="text-sm" style={{ color: "rgba(0,0,0,0.55)", lineHeight: 1.6, maxWidth: 420, margin: "0 auto" }}>
+          <p className="text-sm" style={{ color: "var(--text-secondary)", lineHeight: 1.6, maxWidth: 420, margin: "0 auto" }}>
             The bank feed provider (Basiq) is not configured on this instance. Set the
             BASIQ_API_KEY environment variable to enable bank feed connections.
           </p>
@@ -149,15 +149,15 @@ export function BankFeedsView({ connections, error, initialBankTxns }: BankFeeds
               return (
                 <tr key={conn.id} className="table-row">
                   <td className="table-cell">
-                    <div className="font-medium text-sm" style={{ color: "#0A0A0A" }}>
+                    <div className="font-medium text-sm" style={{ color: "var(--text-primary)" }}>
                       {conn.institutionName || "Unknown Institution"}
                     </div>
-                    <div className="text-xs font-mono" style={{ color: "rgba(0,0,0,0.28)", marginTop: 2 }}>
+                    <div className="text-xs font-mono" style={{ color: "var(--text-tertiary)", marginTop: 2 }}>
                       {conn.id.slice(0, 8)}…
                     </div>
                   </td>
                   <td className="table-cell">
-                    <span className="text-xs font-medium" style={{ color: "rgba(0,0,0,0.55)", textTransform: "capitalize" }}>
+                    <span className="text-xs font-medium" style={{ color: "var(--text-secondary)", textTransform: "capitalize" }}>
                       {conn.provider}
                     </span>
                   </td>
@@ -165,12 +165,12 @@ export function BankFeedsView({ connections, error, initialBankTxns }: BankFeeds
                     <span className={badge.className}>{badge.label}</span>
                   </td>
                   <td className="table-cell">
-                    <span className="text-xs" style={{ color: "rgba(0,0,0,0.55)" }}>
+                    <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
                       {formatDate(conn.lastSyncAt)}
                     </span>
                   </td>
                   <td className="table-cell">
-                    <span className="text-xs" style={{ color: "rgba(0,0,0,0.55)" }}>
+                    <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
                       {formatDate(conn.createdAt)}
                     </span>
                   </td>
@@ -197,11 +197,11 @@ function PageHeader() {
     <>
       <h1
         className="font-bold"
-        style={{ fontSize: 24, color: "#0A0A0A", marginBottom: 8, fontFamily: "var(--font-family-display)" }}
+        style={{ fontSize: 24, color: "var(--text-primary)", marginBottom: 8, fontFamily: "var(--font-family-display)" }}
       >
         Bank Feeds
       </h1>
-      <p className="text-sm" style={{ color: "rgba(0,0,0,0.55)", marginBottom: 32, lineHeight: 1.6 }}>
+      <p className="text-sm" style={{ color: "var(--text-secondary)", marginBottom: 32, lineHeight: 1.6 }}>
         Connect bank accounts to automatically sync transactions and match them
         against your ledger entries. Manage connections via the API or MCP tools.
       </p>
@@ -237,11 +237,11 @@ function EmptyState() {
         </div>
         <h2
           className="font-bold"
-          style={{ fontSize: 18, color: "#0A0A0A", marginBottom: 8, fontFamily: "var(--font-family-display)" }}
+          style={{ fontSize: 18, color: "var(--text-primary)", marginBottom: 8, fontFamily: "var(--font-family-display)" }}
         >
           No Bank Connections
         </h2>
-        <p className="text-sm" style={{ color: "rgba(0,0,0,0.55)", lineHeight: 1.6, maxWidth: 420, margin: "0 auto" }}>
+        <p className="text-sm" style={{ color: "var(--text-secondary)", lineHeight: 1.6, maxWidth: 420, margin: "0 auto" }}>
           Connect a bank account to start syncing transactions automatically.
           Use the REST API or MCP tools to create your first connection.
         </p>
@@ -274,11 +274,11 @@ function ApiGuide() {
               >
                 {i + 1}
               </span>
-              <span className="text-sm font-medium" style={{ color: "#0A0A0A" }}>
+              <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
                 {step.title}
               </span>
             </div>
-            <p className="text-xs" style={{ color: "rgba(0,0,0,0.36)", lineHeight: 1.6 }}>
+            <p className="text-xs" style={{ color: "var(--text-tertiary)", lineHeight: 1.6 }}>
               {step.description}
             </p>
           </div>
@@ -305,12 +305,12 @@ function ApiGuide() {
                     </code>
                   </td>
                   <td className="table-cell">
-                    <code className="font-mono text-xs" style={{ color: "rgba(0,0,0,0.55)" }}>
+                    <code className="font-mono text-xs" style={{ color: "var(--text-secondary)" }}>
                       {ep.path}
                     </code>
                   </td>
                   <td className="table-cell">
-                    <span className="text-xs" style={{ color: "rgba(0,0,0,0.55)" }}>
+                    <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
                       {ep.description}
                     </span>
                   </td>
@@ -368,8 +368,8 @@ function BankTransactionsSection({ initialTxns }: { initialTxns: BankTransaction
                 borderRadius: 6,
                 fontSize: 12,
                 fontWeight: 500,
-                backgroundColor: filter === f ? "#F0F6FF" : "transparent",
-                color: filter === f ? "#0066FF" : "#999999",
+                backgroundColor: filter === f ? "var(--surface-3)" : "transparent",
+                color: filter === f ? "var(--accent)" : "var(--text-tertiary)",
                 border: filter === f ? "1px solid rgba(0,102,255,0.2)" : "1px solid transparent",
                 cursor: "pointer",
                 transition: "all 150ms ease",
@@ -399,11 +399,11 @@ function BankTransactionsSection({ initialTxns }: { initialTxns: BankTransaction
                 <tr key={txn.id} className="table-row">
                   <td
                     className="table-cell font-mono"
-                    style={{ fontSize: 13, color: isPersonal ? "rgba(0,0,0,0.36)" : "#666666" }}
+                    style={{ fontSize: 13, color: isPersonal ? "var(--text-tertiary)" : "var(--text-secondary)" }}
                   >
                     {formatDate(txn.date)}
                   </td>
-                  <td className="table-cell" style={{ fontSize: 13, color: isPersonal ? "rgba(0,0,0,0.36)" : "#0A0A0A", fontWeight: 500 }}>
+                  <td className="table-cell" style={{ fontSize: 13, color: isPersonal ? "var(--text-tertiary)" : "var(--text-primary)", fontWeight: 500 }}>
                     <span>{txn.description}</span>
                     {isPersonal && (
                       <span
@@ -415,7 +415,7 @@ function BankTransactionsSection({ initialTxns }: { initialTxns: BankTransaction
                           fontSize: 10,
                           fontWeight: 600,
                           backgroundColor: "rgba(220,38,38,0.08)",
-                          color: "#DC2626",
+                          color: "var(--negative)",
                         }}
                       >
                         Personal
@@ -424,7 +424,7 @@ function BankTransactionsSection({ initialTxns }: { initialTxns: BankTransaction
                   </td>
                   <td
                     className="table-cell text-right font-mono"
-                    style={{ fontSize: 13, color: isPersonal ? "rgba(0,0,0,0.36)" : undefined }}
+                    style={{ fontSize: 13, color: isPersonal ? "var(--text-tertiary)" : undefined }}
                   >
                     {formatBankAmount(txn.amount)}
                   </td>
@@ -442,9 +442,9 @@ function BankTransactionsSection({ initialTxns }: { initialTxns: BankTransaction
                           fontSize: 11,
                           padding: "2px 8px",
                           borderRadius: 4,
-                          border: "1px solid #E5E5E5",
-                          backgroundColor: "#FFFFFF",
-                          color: "#666666",
+                          border: "1px solid var(--border)",
+                          backgroundColor: "var(--surface-1)",
+                          color: "var(--text-secondary)",
                           cursor: "pointer",
                         }}
                       >
@@ -457,7 +457,7 @@ function BankTransactionsSection({ initialTxns }: { initialTxns: BankTransaction
             })}
             {txns.length === 0 && (
               <tr>
-                <td colSpan={5} className="table-cell text-center" style={{ padding: 32, color: "#999999", fontSize: 13 }}>
+                <td colSpan={5} className="table-cell text-center" style={{ padding: 32, color: "var(--text-tertiary)", fontSize: 13 }}>
                   No {filter === "all" ? "" : filter} bank transactions found.
                 </td>
               </tr>
@@ -489,8 +489,8 @@ function methodColor(method: string): string {
   switch (method) {
     case "POST": return "#16A34A";
     case "GET": return "#3B82F6";
-    case "DELETE": return "#DC2626";
-    default: return "rgba(0,0,0,0.55)";
+    case "DELETE": return "var(--negative)";
+    default: return "var(--text-secondary)";
   }
 }
 

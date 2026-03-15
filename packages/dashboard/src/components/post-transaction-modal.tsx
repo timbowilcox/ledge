@@ -310,10 +310,10 @@ export function PostTransactionModal() {
             height: 36,
             padding: "0 12px",
             borderRadius: 8,
-            border: "1px solid #E5E5E5",
-            backgroundColor: "#FFFFFF",
+            border: "1px solid var(--border)",
+            backgroundColor: "var(--surface-2)",
             fontSize: 13,
-            color: row.accountCode ? "#0A0A0A" : "#999999",
+            color: row.accountCode ? "var(--text-primary)" : "var(--text-tertiary)",
             textAlign: "left",
             cursor: "pointer",
             display: "flex",
@@ -325,7 +325,7 @@ export function PostTransactionModal() {
         >
           {row.accountCode ? (
             <>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "#999999" }}>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-tertiary)" }}>
                 {row.accountCode}
               </span>
               <span>{accounts.find((a) => a.code === row.accountCode)?.name ?? ""}</span>
@@ -337,7 +337,7 @@ export function PostTransactionModal() {
             width="12" height="12" viewBox="0 0 12 12" fill="none"
             style={{ marginLeft: "auto", flexShrink: 0 }}
           >
-            <path d="M3 5l3 3 3-3" stroke="#999" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M3 5l3 3 3-3" stroke="var(--text-tertiary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
 
@@ -352,10 +352,10 @@ export function PostTransactionModal() {
               minWidth: 280,
               maxHeight: 240,
               overflowY: "auto",
-              backgroundColor: "#FFFFFF",
-              border: "1px solid #E5E5E5",
+              backgroundColor: "var(--surface-2)",
+              border: "1px solid var(--border-strong)",
               borderRadius: 8,
-              boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+              boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
               zIndex: 1010,
               padding: 4,
             }}
@@ -372,7 +372,7 @@ export function PostTransactionModal() {
               />
             </div>
             {accountsLoading ? (
-              <div style={{ padding: 16, textAlign: "center", fontSize: 12, color: "#999999" }}>Loading...</div>
+              <div style={{ padding: 16, textAlign: "center", fontSize: 12, color: "var(--text-tertiary)" }}>Loading...</div>
             ) : (
               Object.entries(groupedAccounts).map(([type, items]) => (
                 <div key={type}>
@@ -380,7 +380,7 @@ export function PostTransactionModal() {
                     fontSize: 11,
                     textTransform: "uppercase",
                     letterSpacing: "0.05em",
-                    color: "#999999",
+                    color: "var(--text-tertiary)",
                     fontWeight: 500,
                     padding: "8px 8px 4px",
                   }}>
@@ -402,20 +402,20 @@ export function PostTransactionModal() {
                         padding: "6px 8px",
                         borderRadius: 6,
                         border: "none",
-                        backgroundColor: row.accountCode === acct.code ? "#F0F6FF" : "transparent",
+                        backgroundColor: row.accountCode === acct.code ? "var(--surface-3)" : "transparent",
                         fontSize: 13,
-                        color: "#0A0A0A",
+                        color: "var(--text-primary)",
                         cursor: "pointer",
                         textAlign: "left",
                       }}
                       onMouseEnter={(e) => {
-                        if (row.accountCode !== acct.code) e.currentTarget.style.backgroundColor = "#F5F5F5";
+                        if (row.accountCode !== acct.code) e.currentTarget.style.backgroundColor = "var(--surface-3)";
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = row.accountCode === acct.code ? "#F0F6FF" : "transparent";
+                        e.currentTarget.style.backgroundColor = row.accountCode === acct.code ? "var(--surface-3)" : "transparent";
                       }}
                     >
-                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "#999999", minWidth: 40 }}>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-tertiary)", minWidth: 40 }}>
                         {acct.code}
                       </span>
                       <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -427,7 +427,7 @@ export function PostTransactionModal() {
               ))
             )}
             {!accountsLoading && filteredAccounts.length === 0 && (
-              <div style={{ padding: 16, textAlign: "center", fontSize: 12, color: "#999999" }}>No accounts found</div>
+              <div style={{ padding: 16, textAlign: "center", fontSize: 12, color: "var(--text-tertiary)" }}>No accounts found</div>
             )}
           </div>
         )}
@@ -460,17 +460,17 @@ export function PostTransactionModal() {
           borderRadius: 6,
           border: "none",
           backgroundColor: "transparent",
-          color: rows.length <= 1 ? "#E5E5E5" : "#999999",
+          color: rows.length <= 1 ? "var(--text-disabled)" : "var(--text-tertiary)",
           cursor: rows.length <= 1 ? "default" : "pointer",
           fontSize: 16,
           flexShrink: 0,
         }}
         onMouseEnter={(e) => {
-          if (rows.length > 1) { e.currentTarget.style.backgroundColor = "#FEF2F2"; e.currentTarget.style.color = "#DC2626"; }
+          if (rows.length > 1) { e.currentTarget.style.backgroundColor = "rgba(239, 68, 68, 0.1)"; e.currentTarget.style.color = "#ef4444"; }
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.backgroundColor = "transparent";
-          e.currentTarget.style.color = rows.length <= 1 ? "#E5E5E5" : "#999999";
+          e.currentTarget.style.color = rows.length <= 1 ? "var(--text-disabled)" : "var(--text-tertiary)";
         }}
       >
         ✕
@@ -490,13 +490,13 @@ export function PostTransactionModal() {
         backgroundColor: "transparent",
         fontSize: 12,
         fontWeight: 500,
-        color: "#999999",
+        color: "var(--text-tertiary)",
         cursor: "pointer",
         marginTop: 4,
         transition: "color 150ms ease",
       }}
-      onMouseEnter={(e) => { e.currentTarget.style.color = "#0066FF"; }}
-      onMouseLeave={(e) => { e.currentTarget.style.color = "#999999"; }}
+      onMouseEnter={(e) => { e.currentTarget.style.color = "var(--accent)"; }}
+      onMouseLeave={(e) => { e.currentTarget.style.color = "var(--text-tertiary)"; }}
     >
       <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
         <path d="M6 2v8M2 6h8" />
@@ -517,7 +517,7 @@ export function PostTransactionModal() {
         style={{
           position: "fixed",
           inset: 0,
-          backgroundColor: "rgba(0, 0, 0, 0.4)",
+          backgroundColor: "rgba(0, 0, 0, 0.6)",
           backdropFilter: "blur(4px)",
           zIndex: 1000,
           animation: "modal-fade-in 150ms ease",
@@ -544,17 +544,17 @@ export function PostTransactionModal() {
             maxWidth: 560,
             maxHeight: "calc(100vh - 64px)",
             overflowY: "auto",
-            backgroundColor: "#FFFFFF",
+            backgroundColor: "var(--surface-1)",
             borderRadius: 8,
-            border: "1px solid #E5E5E5",
-            boxShadow: "0 4px 24px rgba(0, 0, 0, 0.12)",
+            border: "1px solid var(--border-strong)",
+            boxShadow: "0 24px 80px rgba(0, 0, 0, 0.5)",
             padding: 24,
             animation: "modal-slide-up 200ms cubic-bezier(0.16, 1, 0.3, 1)",
           }}
         >
           {/* Header */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-            <h2 style={{ fontSize: 16, fontWeight: 600, color: "#0A0A0A" }}>Post Transaction</h2>
+            <h2 style={{ fontSize: 16, fontWeight: 600, color: "var(--text-primary)" }}>Post Transaction</h2>
             <button
               onClick={close}
               style={{
@@ -566,13 +566,13 @@ export function PostTransactionModal() {
                 borderRadius: 6,
                 border: "none",
                 backgroundColor: "transparent",
-                color: "#999999",
+                color: "var(--text-tertiary)",
                 cursor: "pointer",
                 fontSize: 18,
                 lineHeight: 1,
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#F5F5F5"; e.currentTarget.style.color = "#0A0A0A"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; e.currentTarget.style.color = "#999999"; }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--surface-3)"; e.currentTarget.style.color = "var(--text-primary)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; e.currentTarget.style.color = "var(--text-tertiary)"; }}
             >
               ✕
             </button>
@@ -581,7 +581,7 @@ export function PostTransactionModal() {
           {/* Date + Description */}
           <div style={{ display: "grid", gridTemplateColumns: "140px 1fr", gap: 12, marginBottom: 20 }}>
             <div>
-              <label style={{ display: "block", fontSize: 12, textTransform: "uppercase", letterSpacing: "0.05em", color: "#999999", fontWeight: 500, marginBottom: 6 }}>
+              <label style={{ display: "block", fontSize: 12, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-tertiary)", fontWeight: 500, marginBottom: 6 }}>
                 Date
               </label>
               <input
@@ -593,7 +593,7 @@ export function PostTransactionModal() {
               />
             </div>
             <div>
-              <label style={{ display: "block", fontSize: 12, textTransform: "uppercase", letterSpacing: "0.05em", color: "#999999", fontWeight: 500, marginBottom: 6 }}>
+              <label style={{ display: "block", fontSize: 12, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-tertiary)", fontWeight: 500, marginBottom: 6 }}>
                 Description
               </label>
               <input
@@ -610,7 +610,7 @@ export function PostTransactionModal() {
           {/* Quick templates */}
           {accounts.length > 0 && (
             <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.05em", color: "#999999", fontWeight: 500, marginBottom: 8 }}>
+              <div style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-tertiary)", fontWeight: 500, marginBottom: 8 }}>
                 Quick Entry
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -622,23 +622,23 @@ export function PostTransactionModal() {
                       padding: "4px 12px",
                       height: 28,
                       borderRadius: 6,
-                      border: "1px solid #E5E5E5",
-                      backgroundColor: "#FFFFFF",
+                      border: "1px solid var(--border)",
+                      backgroundColor: "var(--surface-2)",
                       fontSize: 12,
                       fontWeight: 500,
-                      color: "#666666",
+                      color: "var(--text-secondary)",
                       cursor: "pointer",
                       transition: "all 150ms ease",
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = "rgba(0,102,255,0.3)";
-                      e.currentTarget.style.backgroundColor = "#F0F6FF";
-                      e.currentTarget.style.color = "#0066FF";
+                      e.currentTarget.style.borderColor = "var(--border-strong)";
+                      e.currentTarget.style.backgroundColor = "var(--surface-3)";
+                      e.currentTarget.style.color = "var(--text-primary)";
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = "#E5E5E5";
-                      e.currentTarget.style.backgroundColor = "#FFFFFF";
-                      e.currentTarget.style.color = "#666666";
+                      e.currentTarget.style.borderColor = "var(--border)";
+                      e.currentTarget.style.backgroundColor = "var(--surface-2)";
+                      e.currentTarget.style.color = "var(--text-secondary)";
                     }}
                   >
                     {tpl.label}
@@ -656,12 +656,12 @@ export function PostTransactionModal() {
               letterSpacing: "0.05em",
               fontWeight: 500,
               marginBottom: 8,
-              color: "#999999",
+              color: "var(--text-tertiary)",
               display: "flex",
               alignItems: "center",
               gap: 6,
             }}>
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#999999" strokeWidth="1.5" strokeLinecap="round">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5" strokeLinecap="round">
                 <path d="M11 7H3M6 4L3 7l3 3" />
               </svg>
               From
@@ -673,7 +673,7 @@ export function PostTransactionModal() {
           </div>
 
           {/* Arrow divider */}
-          <div style={{ display: "flex", justifyContent: "center", margin: "4px 0 12px", color: "#D4D4D4" }}>
+          <div style={{ display: "flex", justifyContent: "center", margin: "4px 0 12px", color: "var(--border-strong)" }}>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
               <path d="M8 3v10M5 10l3 3 3-3" />
             </svg>
@@ -687,12 +687,12 @@ export function PostTransactionModal() {
               letterSpacing: "0.05em",
               fontWeight: 500,
               marginBottom: 8,
-              color: "#999999",
+              color: "var(--text-tertiary)",
               display: "flex",
               alignItems: "center",
               gap: 6,
             }}>
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#999999" strokeWidth="1.5" strokeLinecap="round">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5" strokeLinecap="round">
                 <path d="M3 7h8M8 4l3 3-3 3" />
               </svg>
               To
@@ -708,8 +708,8 @@ export function PostTransactionModal() {
             style={{
               padding: "12px 16px",
               borderRadius: 8,
-              backgroundColor: "#FAFAFA",
-              border: "1px solid #E5E5E5",
+              backgroundColor: "var(--surface-2)",
+              border: "1px solid var(--border)",
               marginBottom: 16,
               display: "flex",
               alignItems: "center",
@@ -718,21 +718,21 @@ export function PostTransactionModal() {
           >
             <div style={{ display: "flex", gap: 20, fontSize: 13 }}>
               <span>
-                <span style={{ color: "#999999", fontWeight: 500, marginRight: 4 }}>From:</span>
-                <span className="font-mono" style={{ fontWeight: 600, color: "#0A0A0A" }}>{formatDollars(totalFrom)}</span>
+                <span style={{ color: "var(--text-tertiary)", fontWeight: 500, marginRight: 4 }}>From:</span>
+                <span className="font-mono" style={{ fontWeight: 600, color: "var(--text-primary)" }}>{formatDollars(totalFrom)}</span>
               </span>
               <span>
-                <span style={{ color: "#999999", fontWeight: 500, marginRight: 4 }}>To:</span>
-                <span className="font-mono" style={{ fontWeight: 600, color: "#0A0A0A" }}>{formatDollars(totalTo)}</span>
+                <span style={{ color: "var(--text-tertiary)", fontWeight: 500, marginRight: 4 }}>To:</span>
+                <span className="font-mono" style={{ fontWeight: 600, color: "var(--text-primary)" }}>{formatDollars(totalTo)}</span>
               </span>
             </div>
             <div style={{ fontSize: 12, fontWeight: 600 }}>
               {totalFrom === 0 && totalTo === 0 ? (
-                <span style={{ color: "#999999" }}>—</span>
+                <span style={{ color: "var(--text-tertiary)" }}>—</span>
               ) : isBalanced ? (
-                <span style={{ color: "#00A854" }}>Balanced ✓</span>
+                <span style={{ color: "var(--positive)" }}>Balanced ✓</span>
               ) : (
-                <span style={{ color: "#DC2626" }}>Difference: {formatDollars(difference)}</span>
+                <span style={{ color: "var(--negative)" }}>Difference: {formatDollars(difference)}</span>
               )}
             </div>
           </div>
@@ -742,10 +742,10 @@ export function PostTransactionModal() {
             <div style={{
               padding: "10px 14px",
               borderRadius: 8,
-              backgroundColor: "#FEF2F2",
-              border: "1px solid #FECACA",
+              backgroundColor: "rgba(239, 68, 68, 0.08)",
+              border: "1px solid rgba(239, 68, 68, 0.25)",
               fontSize: 13,
-              color: "#DC2626",
+              color: "var(--negative)",
               marginBottom: 16,
             }}>
               {error}
@@ -757,10 +757,10 @@ export function PostTransactionModal() {
             <div style={{
               padding: "10px 14px",
               borderRadius: 8,
-              backgroundColor: "#F0FDF4",
-              border: "1px solid #BBF7D0",
+              backgroundColor: "rgba(34, 197, 94, 0.08)",
+              border: "1px solid rgba(34, 197, 94, 0.25)",
               fontSize: 13,
-              color: "#00A854",
+              color: "var(--positive)",
               fontWeight: 500,
               marginBottom: 16,
             }}>

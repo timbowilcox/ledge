@@ -42,7 +42,7 @@ export function AccountsView({ accounts }: { accounts: AccountWithBalance[] }) {
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 600, color: "#0A0A0A" }}>
+        <h1 style={{ fontSize: 20, fontWeight: 600, color: "var(--text-primary)" }}>
           Account Tree
         </h1>
         <ContextualPrompt placeholder="Ask about account balances..." />
@@ -98,13 +98,13 @@ function GroupRows({
       <tr
         className="cursor-pointer table-row"
         onClick={onToggle}
-        style={{ backgroundColor: "#FAFAFA" }}
+        style={{ backgroundColor: "var(--surface-2)" }}
       >
         <td className="table-cell" colSpan={2}>
           <div className="flex items-center gap-2">
             <svg
               width="14" height="14" viewBox="0 0 14 14"
-              fill="none" stroke="#999999" strokeWidth="1.5"
+              fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5"
               style={{
                 transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
                 transition: "transform 150ms ease",
@@ -112,17 +112,17 @@ function GroupRows({
             >
               <path d="M5 3l4 4-4 4" />
             </svg>
-            <span style={{ fontSize: 13, fontWeight: 600, color: "#0A0A0A" }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
               {(typeLabels[type] ?? type).replace(/y$/,"ie")+"s"}
             </span>
-            <span style={{ fontSize: 12, color: "#999999" }}>
+            <span style={{ fontSize: 12, color: "var(--text-tertiary)" }}>
               ({accounts.length})
             </span>
           </div>
         </td>
         <td
           className="table-cell text-right font-mono"
-          style={{ fontSize: 13, fontWeight: 500, color: groupTotal < 0 ? "#DC2626" : "#0A0A0A" }}
+          style={{ fontSize: 13, fontWeight: 500, color: groupTotal < 0 ? "var(--negative)" : "var(--text-primary)" }}
         >
           {formatCurrency(Math.abs(groupTotal))}
         </td>
@@ -132,14 +132,14 @@ function GroupRows({
         accounts.map((account) => (
           <tr key={account.id} className="table-row">
             <td className="table-cell" style={{ paddingLeft: 44 }}>
-              <code className="font-mono" style={{ fontSize: 12, color: "#999999" }}>
+              <code className="font-mono" style={{ fontSize: 12, color: "var(--text-tertiary)" }}>
                 {account.code}
               </code>
             </td>
-            <td className="table-cell" style={{ fontSize: 13, color: "#0A0A0A" }}>{account.name}</td>
+            <td className="table-cell" style={{ fontSize: 13, color: "var(--text-primary)" }}>{account.name}</td>
             <td
               className="table-cell text-right font-mono"
-              style={{ fontSize: 13, color: account.balance < 0 ? "#DC2626" : "#0A0A0A" }}
+              style={{ fontSize: 13, color: account.balance < 0 ? "var(--negative)" : "var(--text-primary)" }}
             >
               {formatCurrency(Math.abs(account.balance))}
             </td>

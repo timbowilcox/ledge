@@ -1,8 +1,27 @@
 @import "tailwindcss";
 
 /* ── Design System: Kounta Dashboard ─────────────────────────────── */
-/* Target aesthetic: Linear / Mercury / Vercel                        */
+/* Target aesthetic: Linear / Vercel / Raycast — dark, monochromatic  */
 /* Fonts: Geist Sans (UI), Geist Mono (numbers/codes/dates)          */
+
+@theme {
+  --color-background: #09090b;
+  --color-surface-1: #0f0f11;
+  --color-surface-2: #141416;
+  --color-surface-3: #1c1c1f;
+  --color-border: #27272a;
+  --color-border-strong: #3f3f46;
+  --color-text-primary: #fafafa;
+  --color-text-secondary: #a1a1aa;
+  --color-text-tertiary: #71717a;
+  --color-text-disabled: #52525b;
+  --color-accent: #ebe4dc;
+  --color-accent-foreground: #0a0a0a;
+  --color-positive: #22c55e;
+  --color-negative: #ef4444;
+  --color-warning: #f59e0b;
+  --color-neutral: #a1a1aa;
+}
 
 :root {
   /* Typography */
@@ -16,21 +35,45 @@
   --font-family-body: var(--font-sans);
   --font-family-mono: var(--font-mono);
 
-  /* Colours */
-  --color-bg-page: #FAFAFA;
-  --color-bg-card: #FFFFFF;
-  --color-text-primary: #0A0A0A;
-  --color-text-secondary: #666666;
-  --color-text-tertiary: #999999;
-  --color-border: #E5E5E5;
-  --color-border-strong: #D4D4D4;
-  --color-accent: #0066FF;
-  --color-accent-hover: #0052CC;
-  --color-accent-bg: #F0F6FF;
-  --color-success: #00A854;
-  --color-danger: #DC2626;
-  --color-amber: #D97706;
-  --color-hover: #F5F5F5;
+  /* Base surfaces */
+  --background: #09090b;
+  --surface-1: #0f0f11;
+  --surface-2: #141416;
+  --surface-3: #1c1c1f;
+  --border: #27272a;
+  --border-strong: #3f3f46;
+
+  /* Text */
+  --text-primary: #fafafa;
+  --text-secondary: #a1a1aa;
+  --text-tertiary: #71717a;
+  --text-disabled: #52525b;
+
+  /* Accent — Kounta brand cream */
+  --accent: #ebe4dc;
+  --accent-foreground: #0a0a0a;
+
+  /* Semantic */
+  --positive: #22c55e;
+  --negative: #ef4444;
+  --warning: #f59e0b;
+  --neutral: #a1a1aa;
+
+  /* Legacy colour aliases (used across existing components) */
+  --color-bg-page: var(--background);
+  --color-bg-card: var(--surface-1);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-accent: var(--accent);
+  --color-accent-hover: #d9d1c8;
+  --color-accent-bg: rgba(235, 228, 220, 0.08);
+  --color-success: var(--positive);
+  --color-danger: var(--negative);
+  --color-amber: var(--warning);
+  --color-hover: var(--surface-3);
 
   /* Brand */
   --color-brand: #ebe4dc;
@@ -39,17 +82,14 @@
   --color-ink: #0a0a0a;
   --color-stone: #c8beb4;
 
-  /* Spacing — 4px increments only */
-  /* 4, 8, 12, 16, 20, 24, 32, 40, 48, 64 */
-
   /* Radius */
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
 
   /* Shadows */
-  --shadow-dropdown: 0 4px 12px rgba(0,0,0,0.08);
-  --shadow-hover: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-dropdown: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-hover: 0 0 0 1px var(--border-strong);
 
   /* Easing */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -66,8 +106,8 @@
 /* ── Base ────────────────────────────────────────────────────────── */
 
 body {
-  background-color: var(--color-bg-page);
-  color: var(--color-text-primary);
+  background-color: var(--background);
+  color: var(--text-primary);
   font-family: var(--font-sans);
   font-size: 14px;
   line-height: 1.5;
@@ -75,10 +115,24 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Noise texture overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+  opacity: 0.03;
+  pointer-events: none;
+  z-index: 0;
+}
+
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-sans);
   font-weight: 600;
   line-height: 1.3;
+  color: var(--text-primary);
 }
 
 a {
@@ -87,8 +141,24 @@ a {
 }
 
 ::selection {
-  background-color: rgba(0, 102, 255, 0.12);
-  color: var(--color-text-primary);
+  background-color: rgba(235, 228, 220, 0.2);
+  color: var(--text-primary);
+}
+
+/* ── Reduced motion ─────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Global transitions for interactive elements ────────────────── */
+
+a, button, input, select, textarea {
+  transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease, opacity 150ms ease;
 }
 
 /* ── Typography ──────────────────────────────────────────────────── */
@@ -104,22 +174,22 @@ a {
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--color-text-tertiary);
+  color: var(--text-tertiary);
   font-weight: 500;
 }
 
 /* ── Cards ───────────────────────────────────────────────────────── */
 
 .card {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
   padding: 24px;
-  transition: box-shadow 200ms ease;
+  transition: border-color 150ms ease;
 }
 
 .card:hover {
-  box-shadow: var(--shadow-hover);
+  border-color: var(--border-strong);
 }
 
 /* ── Buttons ─────────────────────────────────────────────────────── */
@@ -128,33 +198,33 @@ a {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--color-accent);
-  color: white;
+  background-color: var(--text-primary);
+  color: var(--background);
   border-radius: var(--radius-md);
   padding: 0 16px;
-  height: 32px;
+  height: 36px;
   font-weight: 500;
   font-size: 13px;
   font-family: var(--font-sans);
-  transition: background-color 150ms ease;
+  transition: opacity 150ms ease;
   cursor: pointer;
   border: none;
 }
 
 .btn-primary:hover {
-  background-color: var(--color-accent-hover);
+  opacity: 0.9;
 }
 
 .btn-secondary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  color: var(--color-text-secondary);
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
   border-radius: var(--radius-md);
   padding: 0 16px;
-  height: 32px;
+  height: 36px;
   font-weight: 500;
   font-size: 13px;
   font-family: var(--font-sans);
@@ -163,8 +233,8 @@ a {
 }
 
 .btn-secondary:hover {
-  border-color: var(--color-border-strong);
-  color: var(--color-text-primary);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
 }
 
 .btn-ghost {
@@ -173,7 +243,7 @@ a {
   justify-content: center;
   background: transparent;
   border: none;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
   padding: 0 12px;
   height: 32px;
   font-weight: 500;
@@ -185,8 +255,29 @@ a {
 }
 
 .btn-ghost:hover {
-  color: var(--color-text-primary);
-  background: var(--color-hover);
+  color: var(--text-primary);
+  background: var(--surface-3);
+}
+
+.btn-destructive {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: var(--negative);
+  border-radius: var(--radius-md);
+  padding: 0 16px;
+  height: 36px;
+  font-weight: 500;
+  font-size: 13px;
+  font-family: var(--font-sans);
+  transition: all 150ms ease;
+  cursor: pointer;
+}
+
+.btn-destructive:hover {
+  background: rgba(239, 68, 68, 0.1);
 }
 
 /* ── Badges (dot + text) ─────────────────────────────────────────── */
@@ -210,45 +301,45 @@ a {
 }
 
 .badge-green {
-  color: var(--color-success);
+  color: var(--positive);
 }
 
 .badge-green::before {
-  background-color: var(--color-success);
+  background-color: var(--positive);
 }
 
 .badge-red {
-  color: var(--color-danger);
+  color: var(--negative);
 }
 
 .badge-red::before {
-  background-color: var(--color-danger);
+  background-color: var(--negative);
 }
 
 .badge-amber {
-  color: var(--color-amber);
+  color: var(--warning);
 }
 
 .badge-amber::before {
-  background-color: var(--color-amber);
+  background-color: var(--warning);
 }
 
 .badge-blue {
-  color: var(--color-accent);
+  color: var(--accent);
 }
 
 .badge-blue::before {
-  background-color: var(--color-accent);
+  background-color: var(--accent);
 }
 
 /* ── Inputs ──────────────────────────────────────────────────────── */
 
 .input {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 8px 12px;
-  color: var(--color-text-primary);
+  color: var(--text-primary);
   font-size: 13px;
   font-family: var(--font-sans);
   outline: none;
@@ -258,12 +349,12 @@ a {
 }
 
 .input::placeholder {
-  color: var(--color-text-tertiary);
+  color: var(--text-tertiary);
 }
 
 .input:focus {
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 2px rgba(0, 102, 255, 0.08);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(235, 228, 220, 0.1);
 }
 
 /* ── Tables ──────────────────────────────────────────────────────── */
@@ -272,18 +363,18 @@ a {
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--color-text-tertiary);
+  color: var(--text-tertiary);
   font-weight: 500;
   padding: 12px 20px;
   text-align: left;
-  background-color: var(--color-bg-page);
+  background-color: var(--surface-1);
 }
 
 .table-cell {
   padding: 12px 20px;
-  border-top: 1px solid var(--color-hover);
+  border-top: 1px solid var(--border);
   font-size: 13px;
-  color: var(--color-text-secondary);
+  color: var(--text-secondary);
 }
 
 .table-row {
@@ -292,47 +383,48 @@ a {
 }
 
 .table-row:hover {
-  background: var(--color-bg-page);
+  background: var(--surface-1);
 }
 
 /* ── Stat Cards ──────────────────────────────────────────────────── */
 
 .stat-card {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 20px;
-  transition: box-shadow 200ms ease;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
 }
 
 .stat-card:hover {
-  box-shadow: var(--shadow-hover);
+  border-color: var(--border-strong);
+  box-shadow: 0 0 0 1px var(--border-strong);
 }
 
 .stat-card-label {
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--color-text-tertiary);
+  color: var(--text-tertiary);
   font-weight: 500;
   margin-bottom: 8px;
 }
 
 .stat-card-value {
-  font-size: 28px;
-  font-weight: 600;
+  font-size: 24px;
+  font-weight: 700;
   font-family: var(--font-mono);
-  line-height: 1.1;
+  line-height: 1;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
-  color: var(--color-text-primary);
+  color: var(--text-primary);
 }
 
 /* ── Grand Total Row ─────────────────────────────────────────────── */
 
 .grand-total-row td {
-  background-color: var(--color-text-primary);
-  color: white;
+  background-color: var(--text-primary);
+  color: var(--background);
   font-weight: 600;
 }
 
@@ -351,14 +443,14 @@ a {
 }
 
 .quick-action:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  border-color: #D4D4D4 !important;
+  border-color: var(--border-strong) !important;
+  background-color: var(--surface-2) !important;
 }
 
 /* ── Skeleton ────────────────────────────────────────────────────── */
 
 .skeleton {
-  background: linear-gradient(90deg, #F0F0F0 25%, #E5E5E5 50%, #F0F0F0 75%);
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 50%, var(--surface-2) 75%);
   background-size: 200% 100%;
   animation: shimmer 2s infinite;
   border-radius: var(--radius-md);
@@ -390,7 +482,7 @@ a {
   display: inline-block;
   width: 12px;
   height: 12px;
-  border: 2px solid var(--color-accent);
+  border: 2px solid var(--accent);
   border-top-color: transparent;
   border-radius: 50%;
   animation: chat-spin 0.8s linear infinite;
@@ -400,7 +492,7 @@ a {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background-color: var(--color-border-strong);
+  background-color: var(--border-strong);
   animation: chat-pulse 1.5s infinite;
 }
 
@@ -409,14 +501,14 @@ a {
 .chat-dot-3 { animation-delay: 0.6s; }
 
 .chat-tool-shimmer {
-  background: linear-gradient(90deg, var(--color-hover) 25%, var(--color-border) 50%, var(--color-hover) 75%) !important;
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 50%, var(--surface-2) 75%) !important;
   background-size: 200% 100%;
   animation: chat-shimmer 2s infinite;
 }
 
 .chat-prompt-btn:hover {
-  border-color: var(--color-accent) !important;
-  background-color: var(--color-accent-bg) !important;
+  border-color: var(--accent) !important;
+  background-color: rgba(235, 228, 220, 0.06) !important;
 }
 
 /* ── Command Bar ─────────────────────────────────────────────────── */
@@ -450,13 +542,13 @@ a {
 }
 
 .sidebar-nav-link:not(.sidebar-nav-link--active):hover {
-  background-color: var(--color-brand-dark) !important;
-  color: var(--color-ink) !important;
+  background-color: var(--surface-1) !important;
+  color: var(--text-primary) !important;
 }
 
 /* ── Contextual Prompt ───────────────────────────────────────────── */
 
 .contextual-prompt:hover {
-  border-color: var(--color-border-strong) !important;
-  color: var(--color-text-secondary) !important;
+  border-color: var(--border-strong) !important;
+  color: var(--text-secondary) !important;
 }

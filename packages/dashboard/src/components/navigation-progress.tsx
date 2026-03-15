@@ -85,10 +85,10 @@ export function NavigationProgress() {
         style={{
           height: "100%",
           width: progress + "%",
-          backgroundColor: "#0066FF",
+          backgroundColor: "var(--accent)",
           transition: progress === 100 ? "width 150ms ease, opacity 150ms ease 100ms" : "width 200ms ease",
           opacity: progress === 100 ? 0 : 1,
-          boxShadow: "0 0 8px rgba(0, 102, 255, 0.4)",
+          boxShadow: "0 0 8px rgba(235, 228, 220, 0.3)",
         }}
       />
     </div>

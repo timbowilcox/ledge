@@ -23,8 +23,9 @@ export default function DashboardLayout({
               marginLeft: 240,
               padding: "32px 32px",
               maxWidth: 1200,
-              backgroundColor: "#FAFAFA",
               minHeight: "100vh",
+              position: "relative",
+              zIndex: 1,
             }}
           >
             {children}

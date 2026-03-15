@@ -3,7 +3,6 @@ import { formatCurrency, formatDate } from "@/lib/format";
 import { auth } from "@/lib/auth";
 import Link from "next/link";
 import type { TransactionWithLines, AccountWithBalance } from "@kounta/sdk";
-import { ContextualPrompt } from "@/components/contextual-prompt";
 import { PostTransactionButton } from "@/components/post-transaction-button";
 import { ProgressChecklist } from "@/components/progress-checklist";
 import { FirstClassificationModal } from "@/components/first-classification-modal";
@@ -63,6 +62,10 @@ export default async function OverviewPage() {
     })
     .reduce((sum: number, a: AccountWithBalance) => sum + a.balance, 0);
 
+  const totalRevenue = accountsList
+    .filter((a: AccountWithBalance) => a.type === "revenue")
+    .reduce((sum: number, a: AccountWithBalance) => sum + Math.abs(a.balance), 0);
+
   const totalExpenses = accountsList
     .filter((a: AccountWithBalance) => a.type === "expense")
     .reduce((sum: number, a: AccountWithBalance) => sum + Math.abs(a.balance), 0);
@@ -81,22 +84,18 @@ export default async function OverviewPage() {
     // Revenue tables may not exist yet
   }
   const hasRevSchedules = revMetrics.activeSchedules > 0;
+  const hasData = accountsList.length > 0;
 
   return (
     <div>
       {/* Greeting */}
-      <div style={{ marginBottom: 24, display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-        <div>
-          <h1
-            style={{ fontSize: 20, fontWeight: 600, color: "#0A0A0A", marginBottom: 4 }}
-          >
-            {getGreeting()}, {firstName}
-          </h1>
-          <p style={{ fontSize: 13, color: "#999999" }}>
-            {ledger.name} &middot; {ledger.currency} &middot; {ledger.accountingBasis}
-          </p>
-        </div>
-        <ContextualPrompt placeholder="Ask about your financial overview..." />
+      <div style={{ marginBottom: 32 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 600, marginBottom: 4 }}>
+          {getGreeting()}, {firstName}
+        </h1>
+        <p style={{ fontSize: 14, color: "var(--text-secondary)" }}>
+          {ledger.name} &middot; {ledger.currency} &middot; {ledger.accountingBasis}
+        </p>
       </div>
 
       {/* Progress checklist — shown for new users */}
@@ -110,28 +109,29 @@ export default async function OverviewPage() {
         <MetricCard
           label="Cash Balance"
           value={formatCurrency(cashBalance)}
-          icon={<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#10B981" strokeWidth="1.5" strokeLinecap="round"><rect x="2" y="4" width="16" height="12" rx="2" /><path d="M2 8h16" /><path d="M6 12h3" /></svg>}
-          color="#10B981"
+          trend={hasData ? undefined : "—"}
+          trendDirection="neutral"
+          zeroHref={!hasData ? "/bank-feeds" : undefined}
+          zeroCta={!hasData ? "Connect your bank →" : undefined}
         />
         <MetricCard
           label={hasRevSchedules ? "MRR" : "Revenue"}
-          value={hasRevSchedules ? `${formatCurrency(revMetrics.mrr)}/mo` : formatCurrency(accountsList.filter((a: AccountWithBalance) => a.type === "revenue").reduce((s: number, a: AccountWithBalance) => s + Math.abs(a.balance), 0))}
+          value={hasRevSchedules ? `${formatCurrency(revMetrics.mrr)}/mo` : formatCurrency(totalRevenue)}
           subtitle={hasRevSchedules ? `Deferred: ${formatCurrency(revMetrics.deferredRevenueBalance)}` : undefined}
-          icon={<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#0066FF" strokeWidth="1.5" strokeLinecap="round"><path d="M3 17V9M7.5 17V5M12 17V11M16.5 17V3" /></svg>}
-          color="#0066FF"
+          trend={hasData ? undefined : "—"}
+          trendDirection="neutral"
         />
         <MetricCard
           label="Burn Rate"
           value={burnRate > 0 ? `-${formatCurrency(burnRate)}/mo` : formatCurrency(0)}
-          icon={<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#F59E0B" strokeWidth="1.5" strokeLinecap="round"><path d="M10 3c0 3-4 5-4 8a4 4 0 108 0c0-3-4-5-4-8z" /></svg>}
-          color="#F59E0B"
+          trend={hasData ? undefined : "—"}
+          trendDirection={burnRate > 0 ? "negative" : "neutral"}
         />
         <MetricCard
           label="Runway"
           value={runwayMonths !== null ? `${runwayMonths} mo` : "∞"}
-          subtitle={runwayMonths !== null && runwayMonths <= 6 ? "Review spending" : undefined}
-          icon={<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke={runwayMonths !== null && runwayMonths <= 6 ? "#EF4444" : "#8B5CF6"} strokeWidth="1.5" strokeLinecap="round"><circle cx="10" cy="10" r="7" /><path d="M10 6v4l2.5 2.5" /></svg>}
-          color={runwayMonths !== null && runwayMonths <= 6 ? "#EF4444" : "#8B5CF6"}
+          trend={runwayMonths !== null && runwayMonths <= 6 ? "Low" : undefined}
+          trendDirection={runwayMonths !== null && runwayMonths <= 6 ? "negative" : "neutral"}
         />
       </div>
 
@@ -140,24 +140,18 @@ export default async function OverviewPage() {
         <div className="section-label" style={{ marginBottom: 8 }}>Quick Actions</div>
         <div className="flex" style={{ gap: 12 }}>
           <QuickActionButton
-            icon={<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0066FF" strokeWidth="1.5" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>}
+            icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="1.5" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>}
             label="Post transaction"
-            bgColor="#EFF6FF"
-            accentColor="#0066FF"
           />
           <QuickAction
-            icon={<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="1.5" strokeLinecap="round"><path d="M3 18V8M7.5 18V10M12 18V5M16.5 18V12M21 18V14" /></svg>}
+            icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="1.5" strokeLinecap="round"><path d="M3 18V8M7.5 18V10M12 18V5M16.5 18V12M21 18V14" /></svg>}
             label="Generate statement"
             href="/statements"
-            bgColor="#ECFDF5"
-            accentColor="#059669"
           />
           <QuickAction
-            icon={<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="1.5" strokeLinecap="round"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 10h18" /><path d="M7 14h4" /></svg>}
+            icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="1.5" strokeLinecap="round"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 10h18" /><path d="M7 14h4" /></svg>}
             label="Connect bank account"
             href="/bank-feeds"
-            bgColor="#FFFBEB"
-            accentColor="#D97706"
           />
         </div>
       </div>
@@ -190,8 +184,8 @@ export default async function OverviewPage() {
                 .reduce((sum, l) => sum + l.amount, 0);
               return (
                 <tr key={tx.id} className="table-row">
-                  <td className="table-cell font-mono" style={{ fontSize: 13, color: "#666666" }}>{formatDate(tx.date)}</td>
-                  <td className="table-cell" style={{ fontSize: 13, color: "#0A0A0A", fontWeight: 500 }}>{tx.memo}</td>
+                  <td className="table-cell font-mono" style={{ fontSize: 13, color: "var(--text-tertiary)" }}>{formatDate(tx.date)}</td>
+                  <td className="table-cell" style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: 500 }}>{tx.memo}</td>
                   <td className="table-cell text-right font-mono" style={{ fontSize: 13 }}>
                     {formatCurrency(totalDebit)}
                   </td>
@@ -205,13 +199,34 @@ export default async function OverviewPage() {
             })}
             {recentTransactions.length === 0 && (
               <tr>
-                <td colSpan={4} className="table-cell text-center" style={{ padding: 48 }}>
-                  <EmptyState
-                    icon={<svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="#D4D4D4" strokeWidth="1.5" strokeLinecap="round"><path d="M8 14h32M8 24h32M8 34h20" /></svg>}
-                    title="No transactions yet"
-                    description="Post your first transaction to see it here."
-                    useModal
-                  />
+                <td colSpan={4} className="table-cell" style={{ padding: 48 }}>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, maxWidth: 360, margin: "0 auto" }}>
+                    {/* Ghost rows */}
+                    <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 8, opacity: 0.2, marginBottom: 8 }}>
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} style={{ display: "flex", gap: 16, alignItems: "center" }}>
+                          <div className="skeleton" style={{ width: 80, height: 12 }} />
+                          <div className="skeleton" style={{ flex: 1, height: 12 }} />
+                          <div className="skeleton" style={{ width: 60, height: 12 }} />
+                        </div>
+                      ))}
+                    </div>
+                    <svg width="32" height="32" viewBox="0 0 48 48" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5" strokeLinecap="round">
+                      <path d="M8 14h32M8 24h32M8 34h20" />
+                    </svg>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: "var(--text-primary)" }}>Your ledger is ready</div>
+                    <div style={{ fontSize: 13, color: "var(--text-tertiary)", textAlign: "center" }}>
+                      Transactions will appear here once you connect a bank feed or post your first entry.
+                    </div>
+                    <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                      <Link href="/bank-feeds" className="btn-secondary" style={{ fontSize: 13 }}>
+                        Connect bank
+                      </Link>
+                      <PostTransactionButton className="btn-primary" style={{ fontSize: 13, cursor: "pointer" }}>
+                        Add manual entry
+                      </PostTransactionButton>
+                    </div>
+                  </div>
                 </td>
               </tr>
             )}
@@ -226,114 +241,104 @@ function MetricCard({
   label,
   value,
   subtitle,
-  icon,
-  color,
+  trend,
+  trendDirection = "neutral",
+  zeroHref,
+  zeroCta,
 }: {
   label: string;
   value: string;
   subtitle?: string;
-  icon?: React.ReactNode;
-  color?: string;
+  trend?: string;
+  trendDirection?: "positive" | "negative" | "neutral";
+  zeroHref?: string;
+  zeroCta?: string;
 }) {
+  const trendColor =
+    trendDirection === "positive" ? "var(--positive)" :
+    trendDirection === "negative" ? "var(--negative)" :
+    "var(--text-tertiary)";
+
+  const trendIcon =
+    trendDirection === "positive" ? " ↑" :
+    trendDirection === "negative" ? " ↓" :
+    "";
+
   return (
     <div className="stat-card">
-      <div className="flex items-center" style={{ gap: 8, marginBottom: 8 }}>
-        {icon && (
-          <div style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: 32,
-            height: 32,
-            borderRadius: 8,
-            backgroundColor: color ? `${color}14` : "#F5F5F5",
-          }}>
-            {icon}
-          </div>
-        )}
+      <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
         <div className="stat-card-label" style={{ marginBottom: 0 }}>{label}</div>
+        {trend && (
+          <span style={{ fontSize: 12, fontWeight: 500, color: trendColor, fontFamily: "var(--font-mono)" }}>
+            {trend}{trendIcon}
+          </span>
+        )}
       </div>
       <div className="stat-card-value">{value}</div>
       {subtitle && (
-        <div style={{ fontSize: 11, color: "#999999", marginTop: 2, fontFamily: "var(--font-geist-mono, monospace)" }}>
+        <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginTop: 4, fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums" }}>
           {subtitle}
         </div>
+      )}
+      {/* Mini sparkline placeholder — flat line */}
+      <div style={{ height: 40, marginTop: 12, display: "flex", alignItems: "flex-end" }}>
+        <div style={{ width: "100%", height: 1, backgroundColor: "var(--border-strong)", borderRadius: 1 }} />
+      </div>
+      {zeroCta && zeroHref && (
+        <a href={zeroHref} style={{ fontSize: 12, color: "var(--accent)", marginTop: 8, display: "block" }}>
+          {zeroCta}
+        </a>
       )}
     </div>
   );
 }
 
-function QuickAction({ icon, label, href, bgColor, accentColor }: { icon: React.ReactNode; label: string; href: string; bgColor?: string; accentColor?: string }) {
+function QuickAction({ icon, label, href }: { icon: React.ReactNode; label: string; href: string }) {
   return (
     <Link
       href={href}
       className="flex items-center quick-action"
       style={{
         padding: "12px 16px",
-        borderRadius: 10,
-        border: "1px solid #E5E5E5",
-        backgroundColor: bgColor ?? "#FFFFFF",
-        fontSize: 14,
+        borderRadius: "var(--radius-lg)",
+        border: "1px solid var(--border)",
+        backgroundColor: "var(--surface-1)",
+        fontSize: 13,
         fontWeight: 500,
-        color: "#0A0A0A",
-        height: 56,
+        color: "var(--text-primary)",
+        height: 48,
         flex: 1,
-        transition: "box-shadow 0.15s, border-color 0.15s",
         gap: 12,
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: 8, backgroundColor: accentColor ? `${accentColor}18` : "#F0F6FF", flexShrink: 0 }}>
-        {icon}
-      </div>
+      {icon}
       <span style={{ flex: 1 }}>{label}</span>
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke={accentColor ?? "#999"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M6 4l4 4-4 4" /></svg>
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M6 4l4 4-4 4" /></svg>
     </Link>
   );
 }
 
-function QuickActionButton({ icon, label, bgColor, accentColor }: { icon: React.ReactNode; label: string; bgColor?: string; accentColor?: string }) {
+function QuickActionButton({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
     <PostTransactionButton
       className="flex items-center quick-action"
       style={{
         padding: "12px 16px",
-        borderRadius: 10,
-        border: "1px solid #E5E5E5",
-        backgroundColor: bgColor ?? "#FFFFFF",
-        fontSize: 14,
+        borderRadius: "var(--radius-lg)",
+        border: "1px solid var(--border)",
+        backgroundColor: "var(--surface-1)",
+        fontSize: 13,
         fontWeight: 500,
-        color: "#0A0A0A",
-        height: 56,
+        color: "var(--text-primary)",
+        height: 48,
         flex: 1,
         cursor: "pointer",
-        transition: "box-shadow 0.15s, border-color 0.15s",
         gap: 12,
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: 8, backgroundColor: accentColor ? `${accentColor}18` : "#F0F6FF", flexShrink: 0 }}>
-        {icon}
-      </div>
+      {icon}
       <span style={{ flex: 1 }}>{label}</span>
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke={accentColor ?? "#999"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M6 4l4 4-4 4" /></svg>
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M6 4l4 4-4 4" /></svg>
     </PostTransactionButton>
-  );
-}
-
-function EmptyState({ icon, title, description, actionLabel, actionHref, useModal }: { icon: React.ReactNode; title: string; description: string; actionLabel?: string; actionHref?: string; useModal?: boolean }) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, maxWidth: 320, margin: "0 auto" }}>
-      <div style={{ marginBottom: 8 }}>{icon}</div>
-      <div style={{ fontSize: 14, fontWeight: 500, color: "#0A0A0A" }}>{title}</div>
-      <div style={{ fontSize: 13, color: "#999999" }}>{description}</div>
-      {useModal ? (
-        <PostTransactionButton className="btn-primary" style={{ marginTop: 12, cursor: "pointer" }}>
-          Post transaction
-        </PostTransactionButton>
-      ) : actionLabel && actionHref ? (
-        <Link href={actionHref} className="btn-primary" style={{ marginTop: 12 }}>
-          {actionLabel}
-        </Link>
-      ) : null}
-    </div>
   );
 }

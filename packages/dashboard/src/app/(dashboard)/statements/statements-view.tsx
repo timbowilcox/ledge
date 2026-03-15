@@ -96,7 +96,7 @@ export function StatementsView({
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 600, color: "#0A0A0A" }}>
+        <h1 style={{ fontSize: 20, fontWeight: 600, color: "var(--text-primary)" }}>
           Statements
         </h1>
         <ContextualPrompt placeholder="Generate or ask about statements..." />
@@ -107,7 +107,7 @@ export function StatementsView({
         style={{
           display: "flex",
           gap: 0,
-          borderBottom: "1px solid #E5E5E5",
+          borderBottom: "1px solid var(--border)",
           marginBottom: 24,
         }}
       >
@@ -121,10 +121,10 @@ export function StatementsView({
                 padding: "8px 16px",
                 fontSize: 13,
                 fontWeight: isActive ? 600 : 500,
-                color: isActive ? "#0066FF" : "#999999",
+                color: isActive ? "var(--accent)" : "var(--text-tertiary)",
                 background: "none",
                 border: "none",
-                borderBottom: isActive ? "2px solid #0066FF" : "2px solid transparent",
+                borderBottom: isActive ? "2px solid var(--accent)" : "2px solid transparent",
                 cursor: "pointer",
                 transition: "all 150ms ease",
                 marginBottom: -1,
@@ -149,8 +149,8 @@ export function StatementsView({
                 borderRadius: 6,
                 fontSize: 12,
                 fontWeight: 500,
-                color: isActive ? "#0066FF" : "#666666",
-                backgroundColor: isActive ? "#F0F6FF" : "#F5F5F5",
+                color: isActive ? "var(--accent)" : "var(--text-secondary)",
+                backgroundColor: isActive ? "var(--surface-3)" : "var(--surface-3)",
                 border: "none",
                 cursor: "pointer",
                 transition: "all 150ms ease",
@@ -227,18 +227,18 @@ export function StatementsView({
             borderRadius: 8,
             padding: "12px 20px",
             marginBottom: 16,
-            backgroundColor: "#F5F5F5",
-            border: "1px solid #E5E5E5",
+            backgroundColor: "var(--surface-3)",
+            border: "1px solid var(--border)",
             display: "flex",
             alignItems: "center",
             gap: 10,
           }}
         >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#666666" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--text-secondary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="7" width="10" height="8" rx="1.5" />
             <path d="M5 7V5a3 3 0 0 1 6 0v2" />
           </svg>
-          <span style={{ fontSize: 13, fontWeight: 500, color: "#666666" }}>
+          <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-secondary)" }}>
             This period is closed. Numbers are locked.
           </span>
         </div>
@@ -272,11 +272,11 @@ export function StatementsView({
           borderRadius: 8,
           padding: 20,
           marginBottom: 24,
-          backgroundColor: "#FFFFFF",
-          border: "1px solid #E5E5E5",
+          backgroundColor: "var(--surface-1)",
+          border: "1px solid var(--border)",
         }}
       >
-        <p style={{ fontSize: 13, color: "#666666", lineHeight: 1.7 }}>
+        <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.7 }}>
           {statement.plainLanguageSummary}
         </p>
       </div>
@@ -287,7 +287,7 @@ export function StatementsView({
           <h2 style={{ fontSize: 16, fontWeight: 600 }}>
             {formatStatementTitle(statement.statementType)}
           </h2>
-          <span style={{ fontSize: 12, color: "#999999" }}>
+          <span style={{ fontSize: 12, color: "var(--text-tertiary)" }}>
             {activeTab === "balance_sheet"
               ? "As of " + endDate
               : startDate + " to " + endDate}
@@ -309,14 +309,14 @@ export function StatementsView({
             {Object.entries(statement.totals).map(([key, value]) => {
               const isGrand = key === "netIncome" || key === "netChange" || key === "grossProfit";
               return (
-                <tr key={key} className={isGrand ? "grand-total-row" : ""} style={!isGrand ? { backgroundColor: "#FAFAFA" } : undefined}>
+                <tr key={key} className={isGrand ? "grand-total-row" : ""} style={!isGrand ? { backgroundColor: "var(--surface-2)" } : undefined}>
                   <td
                     style={{
                       padding: "12px 20px",
                       fontSize: 13,
                       fontWeight: 600,
-                      borderTop: "1px solid #E5E5E5",
-                      color: isGrand ? "white" : "#0A0A0A",
+                      borderTop: "1px solid var(--border)",
+                      color: isGrand ? "white" : "var(--text-primary)",
                     }}
                   >
                     {formatTotalLabel(key)}
@@ -327,8 +327,8 @@ export function StatementsView({
                       padding: "12px 20px",
                       fontSize: 13,
                       fontWeight: 600,
-                      borderTop: "1px solid #E5E5E5",
-                      color: isGrand ? "white" : "#0A0A0A",
+                      borderTop: "1px solid var(--border)",
+                      color: isGrand ? "white" : "var(--text-primary)",
                     }}
                   >
                     {key === "debtToEquity"
@@ -356,7 +356,7 @@ function SectionRows({ section }: { section: StatementResponse["sections"][numbe
             padding: "16px 20px 8px",
             fontSize: 12,
             fontWeight: 500,
-            color: "#999999",
+            color: "var(--text-tertiary)",
             textTransform: "uppercase",
             letterSpacing: "0.05em",
           }}
@@ -373,17 +373,17 @@ function SectionRows({ section }: { section: StatementResponse["sections"][numbe
         >
           <td className="table-cell" style={{ paddingLeft: 32, fontSize: 13 }}>
             {line.accountCode && (
-              <code className="font-mono" style={{ fontSize: 12, color: "#666666", marginRight: 8 }}>
+              <code className="font-mono" style={{ fontSize: 12, color: "var(--text-secondary)", marginRight: 8 }}>
                 {line.accountCode}
               </code>
             )}
-            <span style={{ color: "#666666" }}>{line.accountName}</span>
+            <span style={{ color: "var(--text-secondary)" }}>{line.accountName}</span>
           </td>
           <td
             className="table-cell text-right font-mono"
             style={{
               fontSize: 13,
-              color: line.currentPeriod < 0 ? "#DC2626" : "#0A0A0A",
+              color: line.currentPeriod < 0 ? "var(--negative)" : "var(--text-primary)",
             }}
           >
             {line.currentPeriod < 0 ? "(" : ""}
@@ -394,12 +394,12 @@ function SectionRows({ section }: { section: StatementResponse["sections"][numbe
       ))}
 
       {/* Section total */}
-      <tr style={{ backgroundColor: "#FAFAFA" }}>
+      <tr style={{ backgroundColor: "var(--surface-2)" }}>
         <td
           style={{
             paddingLeft: 32,
             padding: "10px 20px 10px 32px",
-            borderTop: "1px solid #E5E5E5",
+            borderTop: "1px solid var(--border)",
             fontSize: 13,
             fontWeight: 600,
           }}
@@ -410,10 +410,10 @@ function SectionRows({ section }: { section: StatementResponse["sections"][numbe
           className="text-right font-mono"
           style={{
             padding: "10px 20px",
-            borderTop: "1px solid #E5E5E5",
+            borderTop: "1px solid var(--border)",
             fontSize: 13,
             fontWeight: 600,
-            color: section.total < 0 ? "#DC2626" : "#0A0A0A",
+            color: section.total < 0 ? "var(--negative)" : "var(--text-primary)",
           }}
         >
           {section.total < 0 ? "(" : ""}

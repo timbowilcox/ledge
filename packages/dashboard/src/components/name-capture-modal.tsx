@@ -64,7 +64,8 @@ export function NameCaptureModal() {
       style={{
         position: "fixed",
         inset: 0,
-        backgroundColor: "rgba(0, 0, 0, 0.4)",
+        backgroundColor: "rgba(0, 0, 0, 0.6)",
+        backdropFilter: "blur(4px)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -74,12 +75,13 @@ export function NameCaptureModal() {
     >
       <div
         style={{
-          backgroundColor: "#FFFFFF",
+          backgroundColor: "var(--surface-1)",
           borderRadius: 12,
+          border: "1px solid var(--border-strong)",
           padding: 32,
           width: 400,
           maxWidth: "90vw",
-          boxShadow: "0 8px 32px rgba(0, 0, 0, 0.12)",
+          boxShadow: "0 24px 80px rgba(0, 0, 0, 0.5)",
           animation: "modal-slide-up 200ms ease",
         }}
       >
@@ -87,7 +89,7 @@ export function NameCaptureModal() {
           style={{
             fontSize: 18,
             fontWeight: 600,
-            color: "#0A0A0A",
+            color: "var(--text-primary)",
             marginBottom: 4,
           }}
         >
@@ -96,7 +98,7 @@ export function NameCaptureModal() {
         <p
           style={{
             fontSize: 13,
-            color: "#999999",
+            color: "var(--text-tertiary)",
             marginBottom: 24,
           }}
         >
@@ -109,7 +111,7 @@ export function NameCaptureModal() {
               style={{
                 display: "block",
                 fontSize: 12,
-                color: "#999999",
+                color: "var(--text-tertiary)",
                 marginBottom: 6,
                 textTransform: "uppercase",
                 letterSpacing: "0.05em",
@@ -135,7 +137,7 @@ export function NameCaptureModal() {
               style={{
                 display: "block",
                 fontSize: 12,
-                color: "#999999",
+                color: "var(--text-tertiary)",
                 marginBottom: 6,
                 textTransform: "uppercase",
                 letterSpacing: "0.05em",

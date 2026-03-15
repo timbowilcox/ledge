@@ -81,7 +81,7 @@ export function SettingsView({ ledger, billing, initialKeys, currencies, exchang
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 600, color: "#0A0A0A" }}>
+        <h1 style={{ fontSize: 20, fontWeight: 600, color: "var(--text-primary)" }}>
           Settings
         </h1>
       </div>
@@ -91,7 +91,7 @@ export function SettingsView({ ledger, billing, initialKeys, currencies, exchang
         style={{
           display: "flex",
           gap: 0,
-          borderBottom: "1px solid #E5E5E5",
+          borderBottom: "1px solid var(--border)",
           marginBottom: 24,
         }}
       >
@@ -108,10 +108,10 @@ export function SettingsView({ ledger, billing, initialKeys, currencies, exchang
                 padding: "8px 16px",
                 fontSize: 13,
                 fontWeight: isActive ? 600 : 500,
-                color: isActive ? "#0066FF" : "#999999",
+                color: isActive ? "var(--accent)" : "var(--text-tertiary)",
                 background: "none",
                 border: "none",
-                borderBottom: isActive ? "2px solid #0066FF" : "2px solid transparent",
+                borderBottom: isActive ? "2px solid var(--accent)" : "2px solid transparent",
                 cursor: "pointer",
                 transition: "all 150ms ease",
                 marginBottom: -1,
@@ -177,9 +177,9 @@ function GeneralTab({ ledger, fiscalYearStart, closedThrough, closedPeriods }: {
         <div style={{
           position: "fixed", top: 16, right: 16, zIndex: 50,
           padding: "8px 16px", borderRadius: 6, fontSize: 12, fontWeight: 500,
-          backgroundColor: fySaved ? "#F0FDF4" : "#FAFAFA",
-          color: fySaved ? "#16A34A" : "#999999",
-          border: `1px solid ${fySaved ? "#BBF7D0" : "#E5E5E5"}`,
+          backgroundColor: fySaved ? "rgba(34, 197, 94, 0.08)" : "var(--surface-2)",
+          color: fySaved ? "var(--positive)" : "var(--text-tertiary)",
+          border: `1px solid ${fySaved ? "rgba(34, 197, 94, 0.25)" : "var(--border)"}`,
           transition: "all 200ms ease",
         }}>
           {fySaving ? "Saving..." : "Saved"}
@@ -196,12 +196,12 @@ function GeneralTab({ ledger, fiscalYearStart, closedThrough, closedPeriods }: {
                 <img
                   src={session.user.image}
                   alt=""
-                  style={{ width: 40, height: 40, borderRadius: "50%", border: "1px solid #E5E5E5" }}
+                  style={{ width: 40, height: 40, borderRadius: "50%", border: "1px solid var(--border)" }}
                 />
               )}
               <div>
-                <div style={{ fontSize: 13, fontWeight: 500, color: "#0A0A0A" }}>{session.user.name}</div>
-                <div style={{ fontSize: 12, color: "#999999" }}>{session.user.email}</div>
+                <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)" }}>{session.user.name}</div>
+                <div style={{ fontSize: 12, color: "var(--text-tertiary)" }}>{session.user.email}</div>
               </div>
             </div>
           </div>
@@ -218,7 +218,7 @@ function GeneralTab({ ledger, fiscalYearStart, closedThrough, closedPeriods }: {
           <InfoRow label="Accounting Basis" value={ledger.accountingBasis} />
           <InfoRow label="Created" value={formatDate(ledger.createdAt)} />
           <div>
-            <label style={{ display: "block", fontSize: 12, color: "#999999", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 500 }}>
+            <label style={{ display: "block", fontSize: 12, color: "var(--text-tertiary)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 500 }}>
               Fiscal Year Start
             </label>
             <select
@@ -238,7 +238,7 @@ function GeneralTab({ ledger, fiscalYearStart, closedThrough, closedPeriods }: {
       {/* Period Close */}
       <div className="card">
         <div className="section-label" style={{ marginBottom: 4 }}>Period Close</div>
-        <p style={{ fontSize: 12, color: "#999999", marginBottom: 16 }}>
+        <p style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 16 }}>
           {closedThrough
             ? `Books are closed through ${fmtPeriodEnd(closedThrough)}. No transactions can be posted on or before that date.`
             : "No periods have been closed. Close periods from the Statements page."}
@@ -255,8 +255,8 @@ function GeneralTab({ ledger, fiscalYearStart, closedThrough, closedPeriods }: {
                   style={{
                     padding: "10px 16px",
                     borderRadius: 8,
-                    backgroundColor: "#F9FAFB",
-                    border: "1px solid #E5E5E5",
+                    backgroundColor: "var(--surface-2)",
+                    border: "1px solid var(--border)",
                   }}
                 >
                   <div className="flex items-center gap-3">
@@ -265,10 +265,10 @@ function GeneralTab({ ledger, fiscalYearStart, closedThrough, closedPeriods }: {
                       <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" />
                     </svg>
                     <div>
-                      <span style={{ fontSize: 13, fontWeight: 500, color: "#0A0A0A" }}>
+                      <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)" }}>
                         Through {fmtPeriodEnd(p.periodEnd)}
                       </span>
-                      <span style={{ fontSize: 12, color: "#999999", marginLeft: 12 }}>
+                      <span style={{ fontSize: 12, color: "var(--text-tertiary)", marginLeft: 12 }}>
                         Closed {formatDate(p.closedAt)}
                       </span>
                     </div>
@@ -295,7 +295,7 @@ function GeneralTab({ ledger, fiscalYearStart, closedThrough, closedPeriods }: {
           </div>
         ) : (
           !closedThrough && (
-            <div style={{ fontSize: 13, color: "#999999", padding: "12px 0" }}>
+            <div style={{ fontSize: 13, color: "var(--text-tertiary)", padding: "12px 0" }}>
               No closed periods to manage.
             </div>
           )
@@ -308,10 +308,10 @@ function GeneralTab({ ledger, fiscalYearStart, closedThrough, closedPeriods }: {
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div style={{ fontSize: 12, color: "#999999", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 500 }}>
+      <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 500 }}>
         {label}
       </div>
-      <div style={{ fontSize: 13, fontWeight: 500, color: "#0A0A0A" }}>{value}</div>
+      <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)" }}>{value}</div>
     </div>
   );
 }
@@ -326,20 +326,20 @@ function CurrenciesTab({ currencies, exchangeRates }: { currencies: any[]; excha
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       {/* Enabled currencies */}
       <div className="card" style={{ padding: 0 }}>
-        <div style={{ padding: "16px 20px", borderBottom: "1px solid #E5E5E5" }}>
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)" }}>
           <div className="flex items-center justify-between">
             <div>
-              <h2 style={{ fontSize: 14, fontWeight: 600, color: "#0A0A0A" }}>Enabled Currencies</h2>
-              <p style={{ fontSize: 12, color: "#999999", marginTop: 2 }}>Currencies available for transactions</p>
+              <h2 style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>Enabled Currencies</h2>
+              <p style={{ fontSize: 12, color: "var(--text-tertiary)", marginTop: 2 }}>Currencies available for transactions</p>
             </div>
-            <span style={{ fontSize: 12, color: "#999999", fontWeight: 500 }}>{currencies.length}</span>
+            <span style={{ fontSize: 12, color: "var(--text-tertiary)", fontWeight: 500 }}>{currencies.length}</span>
           </div>
         </div>
 
         {currencies.length === 0 ? (
           <div style={{ padding: 48, textAlign: "center" }}>
-            <p style={{ fontSize: 14, fontWeight: 500, color: "#0A0A0A", marginBottom: 4 }}>No additional currencies</p>
-            <p style={{ fontSize: 13, color: "#999999" }}>Enable currencies via the API or MCP.</p>
+            <p style={{ fontSize: 14, fontWeight: 500, color: "var(--text-primary)", marginBottom: 4 }}>No additional currencies</p>
+            <p style={{ fontSize: 13, color: "var(--text-tertiary)" }}>Enable currencies via the API or MCP.</p>
           </div>
         ) : (
           <table className="w-full">
@@ -355,7 +355,7 @@ function CurrenciesTab({ currencies, exchangeRates }: { currencies: any[]; excha
             <tbody>
               {currencies.map((c: any) => (
                 <tr key={c.id} className="table-row">
-                  <td className="table-cell font-mono" style={{ fontSize: 13, fontWeight: 600, color: "#0A0A0A" }}>{c.currencyCode}</td>
+                  <td className="table-cell font-mono" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{c.currencyCode}</td>
                   <td className="table-cell" style={{ fontSize: 13 }}>{c.symbol}</td>
                   <td className="table-cell" style={{ fontSize: 13 }}>{c.decimalPlaces}</td>
                   <td className="table-cell"><span className={"badge " + (c.enabled ? "badge-green" : "badge-red")}>{c.enabled ? "Active" : "Disabled"}</span></td>
@@ -369,20 +369,20 @@ function CurrenciesTab({ currencies, exchangeRates }: { currencies: any[]; excha
 
       {/* Exchange rates */}
       <div className="card" style={{ padding: 0 }}>
-        <div style={{ padding: "16px 20px", borderBottom: "1px solid #E5E5E5" }}>
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)" }}>
           <div className="flex items-center justify-between">
             <div>
-              <h2 style={{ fontSize: 14, fontWeight: 600, color: "#0A0A0A" }}>Exchange Rates</h2>
-              <p style={{ fontSize: 12, color: "#999999", marginTop: 2 }}>Stored rates for currency conversion</p>
+              <h2 style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>Exchange Rates</h2>
+              <p style={{ fontSize: 12, color: "var(--text-tertiary)", marginTop: 2 }}>Stored rates for currency conversion</p>
             </div>
-            <span style={{ fontSize: 12, color: "#999999", fontWeight: 500 }}>{exchangeRates.length}</span>
+            <span style={{ fontSize: 12, color: "var(--text-tertiary)", fontWeight: 500 }}>{exchangeRates.length}</span>
           </div>
         </div>
 
         {exchangeRates.length === 0 ? (
           <div style={{ padding: 48, textAlign: "center" }}>
-            <p style={{ fontSize: 14, fontWeight: 500, color: "#0A0A0A", marginBottom: 4 }}>No exchange rates</p>
-            <p style={{ fontSize: 13, color: "#999999" }}>Set rates via the API or MCP.</p>
+            <p style={{ fontSize: 14, fontWeight: 500, color: "var(--text-primary)", marginBottom: 4 }}>No exchange rates</p>
+            <p style={{ fontSize: 13, color: "var(--text-tertiary)" }}>Set rates via the API or MCP.</p>
           </div>
         ) : (
           <table className="w-full">
@@ -470,7 +470,7 @@ function ApiKeysTab({ initialKeys }: { initialKeys: ApiKeySafe[] }) {
               {keys.map((key) => (
                 <tr key={key.id} className="table-row">
                   <td className="table-cell" style={{ fontSize: 13, fontWeight: 500 }}>{key.name}</td>
-                  <td className="table-cell font-mono" style={{ fontSize: 12, color: "#0066FF" }}>{key.prefix}...</td>
+                  <td className="table-cell font-mono" style={{ fontSize: 12, color: "var(--accent)" }}>{key.prefix}...</td>
                   <td className="table-cell" style={{ fontSize: 13 }}>{formatDate(key.createdAt)}</td>
                   <td className="table-cell" style={{ fontSize: 13 }}>{key.lastUsedAt ? formatDate(key.lastUsedAt) : "Never"}</td>
                   <td className="table-cell text-right">
@@ -480,8 +480,8 @@ function ApiKeysTab({ initialKeys }: { initialKeys: ApiKeySafe[] }) {
                     {key.status === "active" && (
                       confirmRevoke === key.id ? (
                         <span className="flex items-center justify-end gap-2">
-                          <span style={{ fontSize: 12, color: "#DC2626" }}>Confirm?</span>
-                          <button style={{ fontSize: 12, fontWeight: 500, color: "#DC2626", background: "none", border: "none", cursor: "pointer" }} onClick={() => handleRevoke(key.id)}>Yes</button>
+                          <span style={{ fontSize: 12, color: "var(--negative)" }}>Confirm?</span>
+                          <button style={{ fontSize: 12, fontWeight: 500, color: "var(--negative)", background: "none", border: "none", cursor: "pointer" }} onClick={() => handleRevoke(key.id)}>Yes</button>
                           <button className="btn-ghost" style={{ fontSize: 12 }} onClick={() => setConfirmRevoke(null)}>No</button>
                         </span>
                       ) : (
@@ -493,7 +493,7 @@ function ApiKeysTab({ initialKeys }: { initialKeys: ApiKeySafe[] }) {
               ))}
               {keys.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="table-cell text-center" style={{ fontSize: 13, color: "#999999", padding: 48 }}>
+                  <td colSpan={6} className="table-cell text-center" style={{ fontSize: 13, color: "var(--text-tertiary)", padding: 48 }}>
                     No API keys yet
                   </td>
                 </tr>
@@ -511,11 +511,11 @@ function ApiKeysTab({ initialKeys }: { initialKeys: ApiKeySafe[] }) {
           style={{ padding: "16px 20px", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
         >
           <div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: "#0A0A0A" }}>MCP Connection Guide</div>
-            <div style={{ fontSize: 12, color: "#999999", marginTop: 2 }}>Connect Kounta to Claude Code or Cursor</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>MCP Connection Guide</div>
+            <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginTop: 2 }}>Connect Kounta to Claude Code or Cursor</div>
           </div>
           <svg
-            width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#999999" strokeWidth="1.5"
+            width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5"
             style={{ transform: mcpExpanded ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 150ms ease" }}
           >
             <path d="M4 6l4 4 4-4" />
@@ -523,7 +523,7 @@ function ApiKeysTab({ initialKeys }: { initialKeys: ApiKeySafe[] }) {
         </button>
 
         {mcpExpanded && (
-          <div style={{ padding: "0 20px 20px", borderTop: "1px solid #E5E5E5" }}>
+          <div style={{ padding: "0 20px 20px", borderTop: "1px solid var(--border)" }}>
             <McpGuideContent />
           </div>
         )}
@@ -533,24 +533,24 @@ function ApiKeysTab({ initialKeys }: { initialKeys: ApiKeySafe[] }) {
       {showCreateModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center"
-          style={{ backgroundColor: "rgba(0,0,0,0.4)", backdropFilter: "blur(4px)" }}
+          style={{ backgroundColor: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
           onClick={() => { if (!createdKey) setShowCreateModal(false); }}
         >
           <div
             style={{
               width: 480,
               padding: 32,
-              backgroundColor: "#FFFFFF",
+              backgroundColor: "var(--surface-1)",
               borderRadius: 8,
-              border: "1px solid #E5E5E5",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+              border: "1px solid var(--border)",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.24)",
               transform: "translateY(-20px)",
             }}
             onClick={(e) => e.stopPropagation()}
           >
             {!createdKey ? (
               <>
-                <h2 style={{ fontSize: 16, fontWeight: 600, color: "#0A0A0A", marginBottom: 20 }}>Create API Key</h2>
+                <h2 style={{ fontSize: 16, fontWeight: 600, color: "var(--text-primary)", marginBottom: 20 }}>Create API Key</h2>
                 <input
                   type="text"
                   className="input"
@@ -570,15 +570,15 @@ function ApiKeysTab({ initialKeys }: { initialKeys: ApiKeySafe[] }) {
               </>
             ) : (
               <>
-                <h2 style={{ fontSize: 16, fontWeight: 600, color: "#0A0A0A", marginBottom: 8 }}>Key Created</h2>
+                <h2 style={{ fontSize: 16, fontWeight: 600, color: "var(--text-primary)", marginBottom: 8 }}>Key Created</h2>
                 <p style={{ fontSize: 13, color: "#D97706", marginBottom: 20 }}>
                   Copy this key now. You won&apos;t be able to see it again.
                 </p>
                 <div
                   className="flex items-center justify-between"
-                  style={{ borderRadius: 8, padding: 16, marginBottom: 20, gap: 12, backgroundColor: "#FAFAFA", border: "1px solid #E5E5E5" }}
+                  style={{ borderRadius: 8, padding: 16, marginBottom: 20, gap: 12, backgroundColor: "var(--surface-2)", border: "1px solid var(--border)" }}
                 >
-                  <code className="font-mono" style={{ fontSize: 13, color: "#0066FF", wordBreak: "break-all" }}>{createdKey}</code>
+                  <code className="font-mono" style={{ fontSize: 13, color: "var(--accent)", wordBreak: "break-all" }}>{createdKey}</code>
                   <CopyButton text={createdKey} />
                 </div>
                 <div className="flex justify-end">
@@ -648,8 +648,8 @@ function McpGuideContent() {
               borderRadius: 6,
               fontSize: 13,
               fontWeight: 500,
-              backgroundColor: activeTool === key ? "#F0F6FF" : "transparent",
-              color: activeTool === key ? "#0066FF" : "#999999",
+              backgroundColor: activeTool === key ? "var(--surface-3)" : "transparent",
+              color: activeTool === key ? "var(--accent)" : "var(--text-tertiary)",
               border: activeTool === key ? "1px solid rgba(0,102,255,0.2)" : "1px solid transparent",
               cursor: "pointer",
               transition: "all 150ms ease",
@@ -661,8 +661,8 @@ function McpGuideContent() {
       </div>
 
       <div className="flex items-center justify-between" style={{ marginBottom: 8 }}>
-        <div style={{ fontSize: 12, color: "#999999", fontWeight: 500 }}>
-          <code className="font-mono" style={{ color: "#0066FF" }}>{cfg.file}</code>
+        <div style={{ fontSize: 12, color: "var(--text-tertiary)", fontWeight: 500 }}>
+          <code className="font-mono" style={{ color: "var(--accent)" }}>{cfg.file}</code>
         </div>
         <CopyButton text={cfg.config} label="Copy" />
       </div>
@@ -670,11 +670,11 @@ function McpGuideContent() {
         style={{
           borderRadius: 8,
           padding: 16,
-          backgroundColor: "#FAFAFA",
-          border: "1px solid #E5E5E5",
+          backgroundColor: "var(--surface-2)",
+          border: "1px solid var(--border)",
         }}
       >
-        <pre className="font-mono overflow-x-auto" style={{ fontSize: 12, color: "#666666", lineHeight: 1.7 }}>
+        <pre className="font-mono overflow-x-auto" style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.7 }}>
           {cfg.config}
         </pre>
       </div>
@@ -691,7 +691,7 @@ function BillingTab({ billing }: { billing: BillingStatus }) {
   const isFree = billing.plan === "free";
   const limit = billing.usage.limit ?? Infinity;
   const pct = limit === Infinity ? 0 : Math.min((billing.usage.count / limit) * 100, 100);
-  const barColor = pct >= 100 ? "#DC2626" : pct >= 80 ? "#D97706" : "#0066FF";
+  const barColor = pct >= 100 ? "var(--negative)" : pct >= 80 ? "#D97706" : "var(--accent)";
 
   const handleUpgrade = () => {
     setRedirecting(true);
@@ -733,12 +733,12 @@ function BillingTab({ billing }: { billing: BillingStatus }) {
         <div className="card">
           <div className="section-label" style={{ marginBottom: 12 }}>Current Plan</div>
           <div className="flex items-center gap-3" style={{ marginBottom: 12 }}>
-            <span className="font-mono" style={{ fontSize: 28, fontWeight: 600, color: "#0A0A0A", letterSpacing: "-0.02em" }}>
+            <span className="font-mono" style={{ fontSize: 28, fontWeight: 600, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>
               {planLabel(billing.plan)}
             </span>
             <span className={"badge " + (isFree ? "badge-blue" : "badge-green")}>{planPrice(billing.plan)}</span>
           </div>
-          <p style={{ fontSize: 13, color: "#666666", lineHeight: 1.6 }}>
+          <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6 }}>
             {isFree ? "500 transactions per month." : "Unlimited transactions. All features unlocked."}
           </p>
         </div>
@@ -747,19 +747,19 @@ function BillingTab({ billing }: { billing: BillingStatus }) {
         <div className="card">
           <div className="section-label" style={{ marginBottom: 12 }}>Monthly Usage</div>
           <div className="flex items-baseline gap-2" style={{ marginBottom: 12 }}>
-            <span className="font-mono" style={{ fontSize: 28, fontWeight: 600, color: pct >= 100 ? "#DC2626" : "#0A0A0A", letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }}>
+            <span className="font-mono" style={{ fontSize: 28, fontWeight: 600, color: pct >= 100 ? "var(--negative)" : "var(--text-primary)", letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }}>
               {billing.usage.count.toLocaleString()}
             </span>
-            <span style={{ fontSize: 13, color: "#999999" }}>
+            <span style={{ fontSize: 13, color: "var(--text-tertiary)" }}>
               {billing.usage.limit != null ? `/ ${billing.usage.limit.toLocaleString()} transactions` : "transactions (unlimited)"}
             </span>
           </div>
           {billing.usage.limit != null && (
-            <div style={{ width: "100%", height: 6, borderRadius: 3, backgroundColor: "#E5E5E5", overflow: "hidden", marginBottom: 12 }}>
+            <div style={{ width: "100%", height: 6, borderRadius: 3, backgroundColor: "var(--border)", overflow: "hidden", marginBottom: 12 }}>
               <div style={{ width: pct + "%", height: "100%", borderRadius: 3, backgroundColor: barColor, transition: "width 600ms ease" }} />
             </div>
           )}
-          <div style={{ fontSize: 12, color: "#999999" }}>Resets on {fmtDate(billing.nextResetDate)}</div>
+          <div style={{ fontSize: 12, color: "var(--text-tertiary)" }}>Resets on {fmtDate(billing.nextResetDate)}</div>
         </div>
       </div>
 
@@ -782,7 +782,7 @@ function BillingTab({ billing }: { billing: BillingStatus }) {
         {isFree ? (
           <div>
             <div className="section-label" style={{ marginBottom: 12 }}>Upgrade</div>
-            <p style={{ fontSize: 13, color: "#666666", lineHeight: 1.6, marginBottom: 20 }}>
+            <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6, marginBottom: 20 }}>
               Get unlimited transactions, instant posting, and bank feed integration.
             </p>
             <button className="btn-primary" onClick={handleUpgrade} disabled={isPending || redirecting}>
@@ -792,11 +792,11 @@ function BillingTab({ billing }: { billing: BillingStatus }) {
         ) : (
           <div>
             <div className="section-label" style={{ marginBottom: 12 }}>Manage Subscription</div>
-            <p style={{ fontSize: 13, color: "#666666", lineHeight: 1.6, marginBottom: 8 }}>
+            <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6, marginBottom: 8 }}>
               Update payment method, view invoices, or cancel your subscription.
             </p>
             {billing.periodEnd && (
-              <p style={{ fontSize: 12, color: "#999999", marginBottom: 20 }}>
+              <p style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 20 }}>
                 Current period: {fmtDate(billing.periodStart)} {"\u2014"} {fmtDate(billing.periodEnd)}
               </p>
             )}
@@ -873,7 +873,7 @@ function EmailTab() {
   if (loading) {
     return (
       <div style={{ padding: 48, textAlign: "center" }}>
-        <p style={{ fontSize: 13, color: "#999999" }}>Loading email preferences...</p>
+        <p style={{ fontSize: 13, color: "var(--text-tertiary)" }}>Loading email preferences...</p>
       </div>
     );
   }
@@ -881,8 +881,8 @@ function EmailTab() {
   if (!prefs) {
     return (
       <div style={{ padding: 48, textAlign: "center" }}>
-        <p style={{ fontSize: 14, fontWeight: 500, color: "#0A0A0A", marginBottom: 4 }}>No email preferences found</p>
-        <p style={{ fontSize: 13, color: "#999999" }}>Email preferences will be created automatically on your next sign-in.</p>
+        <p style={{ fontSize: 14, fontWeight: 500, color: "var(--text-primary)", marginBottom: 4 }}>No email preferences found</p>
+        <p style={{ fontSize: 13, color: "var(--text-tertiary)" }}>Email preferences will be created automatically on your next sign-in.</p>
       </div>
     );
   }
@@ -894,9 +894,9 @@ function EmailTab() {
         <div style={{
           position: "fixed", top: 16, right: 16, zIndex: 50,
           padding: "8px 16px", borderRadius: 6, fontSize: 12, fontWeight: 500,
-          backgroundColor: saved ? "#F0FDF4" : "#FAFAFA",
-          color: saved ? "#16A34A" : "#999999",
-          border: `1px solid ${saved ? "#BBF7D0" : "#E5E5E5"}`,
+          backgroundColor: saved ? "rgba(34, 197, 94, 0.08)" : "var(--surface-2)",
+          color: saved ? "var(--positive)" : "var(--text-tertiary)",
+          border: `1px solid ${saved ? "rgba(34, 197, 94, 0.25)" : "var(--border)"}`,
           transition: "all 200ms ease",
         }}>
           {saving ? "Saving..." : "Saved"}
@@ -939,7 +939,7 @@ function EmailTab() {
         <div className="section-label" style={{ marginBottom: 16 }}>Schedule</div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
           <div>
-            <label style={{ display: "block", fontSize: 12, color: "#999999", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 500 }}>
+            <label style={{ display: "block", fontSize: 12, color: "var(--text-tertiary)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 500 }}>
               Timezone
             </label>
             <select
@@ -954,7 +954,7 @@ function EmailTab() {
             </select>
           </div>
           <div>
-            <label style={{ display: "block", fontSize: 12, color: "#999999", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 500 }}>
+            <label style={{ display: "block", fontSize: 12, color: "var(--text-tertiary)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 500 }}>
               Digest Day
             </label>
             <select
@@ -969,7 +969,7 @@ function EmailTab() {
             </select>
           </div>
         </div>
-        <p style={{ fontSize: 12, color: "#999999", marginTop: 12 }}>
+        <p style={{ fontSize: 12, color: "var(--text-tertiary)", marginTop: 12 }}>
           Digests are sent at 9:00 AM in your timezone on the selected day.
         </p>
       </div>
@@ -1034,7 +1034,7 @@ function RecurringTab() {
   if (loading) {
     return (
       <div style={{ padding: 48, textAlign: "center" }}>
-        <p style={{ fontSize: 13, color: "#999999" }}>Loading recurring entries...</p>
+        <p style={{ fontSize: 13, color: "var(--text-tertiary)" }}>Loading recurring entries...</p>
       </div>
     );
   }
@@ -1042,20 +1042,20 @@ function RecurringTab() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <div className="card" style={{ padding: 0 }}>
-        <div style={{ padding: "16px 20px", borderBottom: "1px solid #E5E5E5" }}>
+        <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)" }}>
           <div className="flex items-center justify-between">
             <div>
-              <h2 style={{ fontSize: 14, fontWeight: 600, color: "#0A0A0A" }}>Recurring Entries</h2>
-              <p style={{ fontSize: 12, color: "#999999", marginTop: 2 }}>Automated periodic journal postings</p>
+              <h2 style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>Recurring Entries</h2>
+              <p style={{ fontSize: 12, color: "var(--text-tertiary)", marginTop: 2 }}>Automated periodic journal postings</p>
             </div>
-            <span style={{ fontSize: 12, color: "#999999", fontWeight: 500 }}>{entries.length} entries</span>
+            <span style={{ fontSize: 12, color: "var(--text-tertiary)", fontWeight: 500 }}>{entries.length} entries</span>
           </div>
         </div>
 
         {entries.length === 0 ? (
           <div style={{ padding: 48, textAlign: "center" }}>
-            <p style={{ fontSize: 14, fontWeight: 500, color: "#0A0A0A", marginBottom: 4 }}>No recurring entries</p>
-            <p style={{ fontSize: 13, color: "#999999" }}>Create recurring entries via the API, SDK, or MCP.</p>
+            <p style={{ fontSize: 14, fontWeight: 500, color: "var(--text-primary)", marginBottom: 4 }}>No recurring entries</p>
+            <p style={{ fontSize: 13, color: "var(--text-tertiary)" }}>Create recurring entries via the API, SDK, or MCP.</p>
           </div>
         ) : (
           <table className="w-full">
@@ -1102,7 +1102,7 @@ function RecurringTab() {
                       </button>
                       <button
                         className="btn-ghost"
-                        style={{ fontSize: 12, color: "#DC2626" }}
+                        style={{ fontSize: 12, color: "var(--negative)" }}
                         onClick={() => handleDelete(entry.id)}
                         disabled={isPending}
                       >
@@ -1127,10 +1127,10 @@ function ToggleRow({ label, description, checked, onChange }: {
   onChange: (value: boolean) => void;
 }) {
   return (
-    <div className="flex items-center justify-between" style={{ paddingBottom: 16, borderBottom: "1px solid #F5F5F5" }}>
+    <div className="flex items-center justify-between" style={{ paddingBottom: 16, borderBottom: "1px solid var(--surface-3)" }}>
       <div>
-        <div style={{ fontSize: 13, fontWeight: 500, color: "#0A0A0A" }}>{label}</div>
-        <div style={{ fontSize: 12, color: "#999999", marginTop: 2 }}>{description}</div>
+        <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)" }}>{label}</div>
+        <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginTop: 2 }}>{description}</div>
       </div>
       <button
         onClick={() => onChange(!checked)}
@@ -1140,7 +1140,7 @@ function ToggleRow({ label, description, checked, onChange }: {
           borderRadius: 11,
           border: "none",
           cursor: "pointer",
-          backgroundColor: checked ? "#0066FF" : "#E5E5E5",
+          backgroundColor: checked ? "var(--accent)" : "var(--border)",
           position: "relative",
           transition: "background-color 200ms ease",
           flexShrink: 0,
@@ -1150,12 +1150,12 @@ function ToggleRow({ label, description, checked, onChange }: {
           width: 18,
           height: 18,
           borderRadius: 9,
-          backgroundColor: "#FFFFFF",
+          backgroundColor: "var(--surface-1)",
           position: "absolute",
           top: 2,
           left: checked ? 20 : 2,
           transition: "left 200ms ease",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.24)",
         }} />
       </button>
     </div>
@@ -1204,8 +1204,8 @@ function ConnectionsTab() {
   return (
     <div>
       <div style={{ marginBottom: 24 }}>
-        <h2 style={{ fontSize: 16, fontWeight: 600, color: "#0A0A0A", marginBottom: 4 }}>Connections</h2>
-        <p style={{ fontSize: 13, color: "#999999" }}>Connect external services to automatically import transactions.</p>
+        <h2 style={{ fontSize: 16, fontWeight: 600, color: "var(--text-primary)", marginBottom: 4 }}>Connections</h2>
+        <p style={{ fontSize: 13, color: "var(--text-tertiary)" }}>Connect external services to automatically import transactions.</p>
       </div>
 
       {/* Stripe Connect */}
@@ -1221,8 +1221,8 @@ function ConnectionsTab() {
               </svg>
             </div>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: "#0A0A0A" }}>Stripe</div>
-              <div style={{ fontSize: 12, color: "#999999" }}>Import charges, refunds, and payouts</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>Stripe</div>
+              <div style={{ fontSize: 12, color: "var(--text-tertiary)" }}>Import charges, refunds, and payouts</div>
             </div>
           </div>
           {connection && (
@@ -1231,17 +1231,17 @@ function ConnectionsTab() {
         </div>
 
         {loading ? (
-          <div style={{ fontSize: 13, color: "#999999" }}>Loading...</div>
+          <div style={{ fontSize: 13, color: "var(--text-tertiary)" }}>Loading...</div>
         ) : connection ? (
           <div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
               <div>
-                <div style={{ fontSize: 12, color: "#999999", marginBottom: 2 }}>Account ID</div>
-                <div style={{ fontSize: 13, color: "#0A0A0A", fontFamily: "monospace" }}>{connection.stripeAccountId}</div>
+                <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 2 }}>Account ID</div>
+                <div style={{ fontSize: 13, color: "var(--text-primary)", fontFamily: "monospace" }}>{connection.stripeAccountId}</div>
               </div>
               <div>
-                <div style={{ fontSize: 12, color: "#999999", marginBottom: 2 }}>Last Synced</div>
-                <div style={{ fontSize: 13, color: "#0A0A0A" }}>
+                <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 2 }}>Last Synced</div>
+                <div style={{ fontSize: 13, color: "var(--text-primary)" }}>
                   {connection.lastSyncedAt ? formatDate(connection.lastSyncedAt) : "Never"}
                 </div>
               </div>
@@ -1257,7 +1257,7 @@ function ConnectionsTab() {
               </button>
               <button
                 className="btn-ghost"
-                style={{ fontSize: 12, height: 32, padding: "0 12px", color: "#EF4444" }}
+                style={{ fontSize: 12, height: 32, padding: "0 12px", color: "var(--negative)" }}
                 onClick={handleDisconnect}
                 disabled={isPending}
               >
@@ -1267,7 +1267,7 @@ function ConnectionsTab() {
           </div>
         ) : (
           <div>
-            <p style={{ fontSize: 13, color: "#666666", marginBottom: 12 }}>
+            <p style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 12 }}>
               Connect your Stripe account to automatically import charges, refunds, and payouts as journal entries.
             </p>
             <button

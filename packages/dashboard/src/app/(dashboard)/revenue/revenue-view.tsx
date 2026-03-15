@@ -84,10 +84,10 @@ export function RevenueView({ initialMetrics, initialMrrHistory, initialSchedule
       {/* Header */}
       <div style={{ marginBottom: 24, display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 600, color: "#0A0A0A", marginBottom: 4 }}>
+          <h1 style={{ fontSize: 20, fontWeight: 600, color: "var(--text-primary)", marginBottom: 4 }}>
             Revenue
           </h1>
-          <p style={{ fontSize: 13, color: "#999999" }}>
+          <p style={{ fontSize: 13, color: "var(--text-tertiary)" }}>
             Revenue recognition schedules, MRR, and deferred revenue
           </p>
         </div>
@@ -124,7 +124,7 @@ export function RevenueView({ initialMetrics, initialMrrHistory, initialSchedule
 
       {/* Revenue schedules */}
       <div className="card" style={{ padding: 0 }}>
-        <div className="flex items-center justify-between" style={{ padding: "16px 20px", borderBottom: "1px solid #E5E5E5" }}>
+        <div className="flex items-center justify-between" style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)" }}>
           <div className="flex items-center" style={{ gap: 0 }}>
             {(["active", "completed", "all"] as const).map((tab) => (
               <button
@@ -134,10 +134,10 @@ export function RevenueView({ initialMetrics, initialMrrHistory, initialSchedule
                   padding: "6px 16px",
                   fontSize: 13,
                   fontWeight: filter === tab ? 600 : 400,
-                  color: filter === tab ? "#0066FF" : "#666666",
+                  color: filter === tab ? "var(--accent)" : "var(--text-secondary)",
                   backgroundColor: "transparent",
                   border: "none",
-                  borderBottom: filter === tab ? "2px solid #0066FF" : "2px solid transparent",
+                  borderBottom: filter === tab ? "2px solid var(--accent)" : "2px solid transparent",
                   cursor: "pointer",
                   textTransform: "capitalize",
                 }}
@@ -167,10 +167,10 @@ export function RevenueView({ initialMetrics, initialMrrHistory, initialSchedule
             {filteredSchedules.length === 0 && (
               <tr>
                 <td colSpan={7} className="table-cell text-center" style={{ padding: 48 }}>
-                  <div style={{ fontSize: 14, fontWeight: 500, color: "#0A0A0A", marginBottom: 4 }}>
+                  <div style={{ fontSize: 14, fontWeight: 500, color: "var(--text-primary)", marginBottom: 4 }}>
                     No {filter === "all" ? "" : filter} schedules
                   </div>
-                  <div style={{ fontSize: 13, color: "#999999" }}>
+                  <div style={{ fontSize: 13, color: "var(--text-tertiary)" }}>
                     Revenue schedules are created automatically from Stripe subscriptions or manually.
                   </div>
                 </td>
@@ -254,30 +254,30 @@ function MrrChart({ data }: { data: MrrHistoryPoint[] }) {
     <svg width="100%" viewBox={`0 0 ${width} ${height}`} style={{ overflow: "visible" }}>
       {/* Grid lines */}
       {yTicks.map((t, i) => (
-        <line key={i} x1={padLeft} y1={t.y} x2={width - padRight} y2={t.y} stroke="#F0F0F0" strokeWidth="1" />
+        <line key={i} x1={padLeft} y1={t.y} x2={width - padRight} y2={t.y} stroke="var(--surface-2)" strokeWidth="1" />
       ))}
 
       {/* Y-axis labels */}
       {yTicks.map((t, i) => (
-        <text key={i} x={padLeft - 8} y={t.y + 4} textAnchor="end" fill="#999999" fontSize="10" fontFamily="var(--font-geist-mono, monospace)">
+        <text key={i} x={padLeft - 8} y={t.y + 4} textAnchor="end" fill="var(--text-tertiary)" fontSize="10" fontFamily="var(--font-geist-mono, monospace)">
           {formatCurrency(t.val)}
         </text>
       ))}
 
       {/* Area fill */}
-      <path d={areaPath} fill="#0066FF" opacity="0.06" />
+      <path d={areaPath} fill="var(--accent)" opacity="0.06" />
 
       {/* Line */}
-      <path d={linePath} fill="none" stroke="#0066FF" strokeWidth="2" strokeLinejoin="round" />
+      <path d={linePath} fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinejoin="round" />
 
       {/* Data points */}
       {points.map((p, i) => (
-        <circle key={i} cx={p.x} cy={p.y} r="3" fill="#FFFFFF" stroke="#0066FF" strokeWidth="1.5" />
+        <circle key={i} cx={p.x} cy={p.y} r="3" fill="var(--surface-1)" stroke="var(--accent)" strokeWidth="1.5" />
       ))}
 
       {/* X-axis labels */}
       {points.map((p, i) => (
-        <text key={i} x={p.x} y={height - 4} textAnchor="middle" fill="#999999" fontSize="10" fontFamily="var(--font-geist-mono, monospace)">
+        <text key={i} x={p.x} y={height - 4} textAnchor="middle" fill="var(--text-tertiary)" fontSize="10" fontFamily="var(--font-geist-mono, monospace)">
           {p.month.slice(5)}
         </text>
       ))}
@@ -313,10 +313,10 @@ function ScheduleRow({
         onClick={onExpand}
         style={{ cursor: "pointer" }}
       >
-        <td className="table-cell" style={{ fontSize: 13, fontWeight: 500, color: "#0A0A0A" }}>
+        <td className="table-cell" style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)" }}>
           {s.customerName ?? "—"}
         </td>
-        <td className="table-cell" style={{ fontSize: 13, color: "#666666" }}>
+        <td className="table-cell" style={{ fontSize: 13, color: "var(--text-secondary)" }}>
           {s.description ?? s.sourceRef ?? "—"}
         </td>
         <td className="table-cell text-right font-mono" style={{ fontSize: 13 }}>
@@ -324,10 +324,10 @@ function ScheduleRow({
         </td>
         <td className="table-cell">
           <div className="flex items-center" style={{ gap: 8 }}>
-            <div style={{ flex: 1, height: 6, backgroundColor: "#F0F0F0", borderRadius: 3, overflow: "hidden" }}>
-              <div style={{ width: `${pct}%`, height: "100%", backgroundColor: "#0066FF", borderRadius: 3, transition: "width 300ms ease" }} />
+            <div style={{ flex: 1, height: 6, backgroundColor: "var(--surface-2)", borderRadius: 3, overflow: "hidden" }}>
+              <div style={{ width: `${pct}%`, height: "100%", backgroundColor: "var(--accent)", borderRadius: 3, transition: "width 300ms ease" }} />
             </div>
-            <span style={{ fontSize: 11, color: "#999999", fontFamily: "var(--font-geist-mono, monospace)", whiteSpace: "nowrap" }}>
+            <span style={{ fontSize: 11, color: "var(--text-tertiary)", fontFamily: "var(--font-geist-mono, monospace)", whiteSpace: "nowrap" }}>
               {pct}%
             </span>
           </div>
@@ -335,12 +335,12 @@ function ScheduleRow({
         <td className="table-cell">
           <StatusBadge status={s.status} />
         </td>
-        <td className="table-cell" style={{ fontSize: 12, color: "#999999", fontFamily: "var(--font-geist-mono, monospace)", whiteSpace: "nowrap" }}>
+        <td className="table-cell" style={{ fontSize: 12, color: "var(--text-tertiary)", fontFamily: "var(--font-geist-mono, monospace)", whiteSpace: "nowrap" }}>
           {s.recognitionStart.slice(0, 7)} &rarr; {s.recognitionEnd.slice(0, 7)}
         </td>
         <td className="table-cell text-center">
           <svg
-            width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#999999" strokeWidth="1.5" strokeLinecap="round"
+            width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5" strokeLinecap="round"
             style={{ transform: expanded ? "rotate(180deg)" : "none", transition: "transform 150ms ease" }}
           >
             <path d="M4 6l4 4 4-4" />
@@ -351,10 +351,10 @@ function ScheduleRow({
       {expanded && (
         <tr>
           <td colSpan={7} style={{ padding: 0 }}>
-            <div style={{ padding: "16px 20px", backgroundColor: "#FAFAFA", borderTop: "1px solid #F0F0F0" }}>
+            <div style={{ padding: "16px 20px", backgroundColor: "var(--surface-2)", borderTop: "1px solid var(--surface-2)" }}>
               {/* Actions */}
               <div className="flex items-center" style={{ gap: 8, marginBottom: 16 }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: "#666666", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                   Schedule detail
                 </span>
                 <div style={{ flex: 1 }} />
@@ -371,7 +371,7 @@ function ScheduleRow({
                     <button
                       onClick={(e) => { e.stopPropagation(); onAction(s.id, "cancel"); }}
                       className="btn-ghost"
-                      style={{ fontSize: 12, height: 26, padding: "0 8px", color: "#DC2626" }}
+                      style={{ fontSize: 12, height: 26, padding: "0 8px", color: "var(--negative)" }}
                       disabled={isPending}
                     >
                       Cancel
@@ -382,7 +382,7 @@ function ScheduleRow({
                   <button
                     onClick={(e) => { e.stopPropagation(); onAction(s.id, "resume"); }}
                     className="btn-ghost"
-                    style={{ fontSize: 12, height: 26, padding: "0 8px", color: "#0066FF" }}
+                    style={{ fontSize: 12, height: 26, padding: "0 8px", color: "var(--accent)" }}
                     disabled={isPending}
                   >
                     Resume
@@ -399,7 +399,7 @@ function ScheduleRow({
               </div>
 
               {/* Entries timeline */}
-              <div style={{ borderRadius: 6, border: "1px solid #E5E5E5", backgroundColor: "#FFFFFF", overflow: "hidden" }}>
+              <div style={{ borderRadius: 6, border: "1px solid var(--border)", backgroundColor: "var(--surface-1)", overflow: "hidden" }}>
                 <table className="w-full" style={{ fontSize: 12 }}>
                   <thead>
                     <tr>
@@ -412,35 +412,35 @@ function ScheduleRow({
                   <tbody>
                     {entries.map((e) => (
                       <tr key={e.id} className="table-row">
-                        <td className="table-cell font-mono" style={{ color: "#666666" }}>
+                        <td className="table-cell font-mono" style={{ color: "var(--text-secondary)" }}>
                           {e.periodStart} &rarr; {e.periodEnd}
                         </td>
                         <td className="table-cell text-right font-mono">
                           {formatCurrency(e.amount)}
                         </td>
                         <td className="table-cell text-center">
-                          {e.status === "posted" && <span style={{ color: "#00A854" }}>&#10003;</span>}
-                          {e.status === "pending" && <span style={{ color: "#999999" }}>&#9675;</span>}
-                          {e.status === "skipped" && <span style={{ color: "#DC2626" }}>&#10005;</span>}
+                          {e.status === "posted" && <span style={{ color: "var(--positive)" }}>&#10003;</span>}
+                          {e.status === "pending" && <span style={{ color: "var(--text-tertiary)" }}>&#9675;</span>}
+                          {e.status === "skipped" && <span style={{ color: "var(--negative)" }}>&#10005;</span>}
                         </td>
                         <td className="table-cell">
                           {e.transactionId ? (
                             <Link
                               href={`/transactions?id=${e.transactionId}`}
-                              style={{ color: "#0066FF", fontSize: 11, fontFamily: "var(--font-geist-mono, monospace)" }}
+                              style={{ color: "var(--accent)", fontSize: 11, fontFamily: "var(--font-geist-mono, monospace)" }}
                               onClick={(ev) => ev.stopPropagation()}
                             >
                               {e.transactionId.slice(0, 8)}...
                             </Link>
                           ) : (
-                            <span style={{ color: "#CCCCCC" }}>—</span>
+                            <span style={{ color: "var(--border-strong)" }}>—</span>
                           )}
                         </td>
                       </tr>
                     ))}
                     {entries.length === 0 && (
                       <tr>
-                        <td colSpan={4} className="table-cell text-center" style={{ padding: 24, color: "#999999" }}>
+                        <td colSpan={4} className="table-cell text-center" style={{ padding: 24, color: "var(--text-tertiary)" }}>
                           Loading entries...
                         </td>
                       </tr>
@@ -462,10 +462,10 @@ function ScheduleRow({
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, { dot: string; text: string }> = {
-    active: { dot: "#00A854", text: "#00A854" },
-    completed: { dot: "#999999", text: "#999999" },
+    active: { dot: "var(--positive)", text: "var(--positive)" },
+    completed: { dot: "var(--text-tertiary)", text: "var(--text-tertiary)" },
     paused: { dot: "#D97706", text: "#D97706" },
-    cancelled: { dot: "#DC2626", text: "#DC2626" },
+    cancelled: { dot: "var(--negative)", text: "var(--negative)" },
   };
   const c = colors[status] ?? colors["active"]!;
 
@@ -483,11 +483,11 @@ function StatusBadge({ status }: { status: string }) {
 
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ padding: "8px 12px", backgroundColor: "#FFFFFF", border: "1px solid #E5E5E5", borderRadius: 6 }}>
-      <div style={{ fontSize: 10, fontWeight: 600, color: "#999999", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>
+    <div style={{ padding: "8px 12px", backgroundColor: "var(--surface-1)", border: "1px solid var(--border)", borderRadius: 6 }}>
+      <div style={{ fontSize: 10, fontWeight: 600, color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 2 }}>
         {label}
       </div>
-      <div style={{ fontSize: 13, fontWeight: 500, color: "#0A0A0A", fontFamily: "var(--font-geist-mono, monospace)" }}>
+      <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)", fontFamily: "var(--font-geist-mono, monospace)" }}>
         {value}
       </div>
     </div>

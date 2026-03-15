@@ -22,7 +22,7 @@ const COMMAND_BAR_SUGGESTIONS = [
 ];
 
 function SuggestionIcon({ type }: { type: string }) {
-  const color = "#999999";
+  const color = "var(--text-tertiary)";
   switch (type) {
     case "cash":
       return (
@@ -149,7 +149,8 @@ export function CommandBar() {
         style={{
           position: "fixed",
           inset: 0,
-          backgroundColor: "rgba(0,0,0,0.4)",
+          backgroundColor: "rgba(0,0,0,0.6)",
+          backdropFilter: "blur(4px)",
           zIndex: 100,
         }}
       />
@@ -163,10 +164,11 @@ export function CommandBar() {
           left: "50%",
           transform: "translate(-50%, -50%)",
           width: "90vw",
-          maxWidth: 640,
-          backgroundColor: "#FFFFFF",
+          maxWidth: 600,
+          backgroundColor: "var(--surface-1)",
           borderRadius: 12,
-          boxShadow: "0 24px 80px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05)",
+          border: "1px solid var(--border-strong)",
+          boxShadow: "0 24px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03)",
           zIndex: 101,
           overflow: "hidden",
           display: "flex",
@@ -181,10 +183,10 @@ export function CommandBar() {
             alignItems: "center",
             gap: 12,
             padding: "16px 20px",
-            borderBottom: "1px solid #E5E5E5",
+            borderBottom: "1px solid var(--border)",
           }}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#999999" strokeWidth="2" strokeLinecap="round">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round">
             <circle cx="11" cy="11" r="8" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
@@ -194,14 +196,14 @@ export function CommandBar() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask anything..."
+            placeholder="Ask anything about your finances..."
             disabled={isStreaming}
             style={{
               flex: 1,
               border: "none",
               outline: "none",
-              fontSize: 15,
-              color: "#0A0A0A",
+              fontSize: 16,
+              color: "var(--text-primary)",
               backgroundColor: "transparent",
             }}
           />
@@ -209,9 +211,9 @@ export function CommandBar() {
             className="font-mono"
             style={{
               fontSize: 11,
-              color: "#999999",
-              backgroundColor: "#FAFAFA",
-              border: "1px solid #E5E5E5",
+              color: "var(--text-disabled)",
+              backgroundColor: "var(--surface-2)",
+              border: "1px solid var(--border)",
               borderRadius: 4,
               padding: "2px 6px",
             }}
@@ -239,12 +241,12 @@ export function CommandBar() {
                     border: "none",
                     cursor: "pointer",
                     fontSize: 14,
-                    color: "#0A0A0A",
+                    color: "var(--text-primary)",
                     textAlign: "left",
                     transition: "background-color 100ms ease",
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = "#F5F5F5";
+                    e.currentTarget.style.backgroundColor = "var(--surface-3)";
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = "transparent";
@@ -262,7 +264,7 @@ export function CommandBar() {
             <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
               {/* User's question */}
               {messages.filter((m: ChatMessage) => m.role === "user").slice(-1).map((msg: ChatMessage, i: number) => (
-                <div key={i} style={{ fontSize: 14, color: "#666666", fontStyle: "italic" }}>
+                <div key={i} style={{ fontSize: 14, color: "var(--text-tertiary)", fontStyle: "italic" }}>
                   {msg.content}
                 </div>
               ))}
@@ -278,8 +280,8 @@ export function CommandBar() {
                         key={key}
                         className={tc.status === "running" ? "chat-tool-shimmer" : ""}
                         style={{
-                          backgroundColor: "#FAFAFA",
-                          border: "1px solid #E5E5E5",
+                          backgroundColor: "var(--surface-2)",
+                          border: "1px solid var(--border)",
                           borderRadius: 8,
                           overflow: "hidden",
                         }}
@@ -297,13 +299,13 @@ export function CommandBar() {
                             cursor: "pointer",
                             textAlign: "left",
                             fontSize: 12,
-                            color: "#666666",
+                            color: "var(--text-secondary)",
                           }}
                         >
                           {tc.status === "running" ? (
                             <span className="chat-spinner" />
                           ) : (
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00A854" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--positive)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                               <polyline points="20 6 9 17 4 12" />
                             </svg>
                           )}
@@ -313,7 +315,7 @@ export function CommandBar() {
                           </svg>
                         </button>
                         {isExpanded && (
-                          <div className="font-mono" style={{ padding: "0 12px 10px", fontSize: 11, color: "#666666", overflowX: "auto" }}>
+                          <div className="font-mono" style={{ padding: "0 12px 10px", fontSize: 11, color: "var(--text-tertiary)", overflowX: "auto" }}>
                             <pre style={{ margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
                               {JSON.stringify(tc.output ?? tc.input, null, 2)}
                             </pre>
@@ -331,7 +333,7 @@ export function CommandBar() {
                   style={{
                     fontSize: 14,
                     lineHeight: 1.6,
-                    color: "#0A0A0A",
+                    color: "var(--text-primary)",
                     whiteSpace: "pre-wrap",
                     wordBreak: "break-word",
                   }}
@@ -344,8 +346,8 @@ export function CommandBar() {
               {pendingConfirmation && (
                 <div
                   style={{
-                    backgroundColor: "#FFFBEB",
-                    border: "1px solid #FDE68A",
+                    backgroundColor: "rgba(245, 158, 11, 0.08)",
+                    border: "1px solid rgba(245, 158, 11, 0.25)",
                     borderRadius: 8,
                     padding: "14px 16px",
                     display: "flex",
@@ -353,15 +355,15 @@ export function CommandBar() {
                     gap: 10,
                   }}
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, color: "#92400E" }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, color: "var(--warning)" }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
                       <line x1="12" y1="9" x2="12" y2="13" />
                       <line x1="12" y1="17" x2="12.01" y2="17" />
                     </svg>
                     Confirm {pendingConfirmation.toolName === "post_transaction" ? "Transaction" : "Reversal"}
                   </div>
-                  <pre className="font-mono" style={{ margin: 0, fontSize: 11, color: "#666666", whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
+                  <pre className="font-mono" style={{ margin: 0, fontSize: 11, color: "var(--text-tertiary)", whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
                     {JSON.stringify(pendingConfirmation.input, null, 2)}
                   </pre>
                   <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
@@ -395,11 +397,11 @@ export function CommandBar() {
               alignItems: "center",
               justifyContent: "space-between",
               padding: "10px 20px",
-              borderTop: "1px solid #E5E5E5",
-              backgroundColor: "#FAFAFA",
+              borderTop: "1px solid var(--border)",
+              backgroundColor: "var(--surface-2)",
             }}
           >
-            <span style={{ fontSize: 10, color: "#999999" }}>
+            <span style={{ fontSize: 10, color: "var(--text-disabled)" }}>
               Powered by Claude
             </span>
             <button
@@ -409,7 +411,7 @@ export function CommandBar() {
                 border: "none",
                 cursor: "pointer",
                 fontSize: 12,
-                color: "#0066FF",
+                color: "var(--accent)",
                 fontWeight: 500,
               }}
             >

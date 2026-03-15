@@ -32,10 +32,10 @@ export function Sidebar() {
           href={href}
           className={`flex items-center gap-3 relative sidebar-nav-link${isActive ? " sidebar-nav-link--active" : ""}`}
           style={{
-            padding: "0 12px",
-            height: 36,
+            padding: "0 0.75rem",
+            height: "2.25rem",
             borderRadius: "var(--radius-md)",
-            fontSize: 13,
+            fontSize: "0.8125rem",
             fontWeight: isActive ? 500 : 400,
             color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
             backgroundColor: isActive ? "var(--surface-1)" : "transparent",
@@ -53,52 +53,52 @@ export function Sidebar() {
     <aside
       className="fixed left-0 top-0 h-screen flex flex-col"
       style={{
-        width: 220,
+        width: "var(--sidebar-width)",
         backgroundColor: "var(--background)",
         borderRight: "1px solid var(--border)",
-        paddingTop: 24,
-        paddingBottom: 16,
+        paddingTop: "1.5rem",
+        paddingBottom: "1rem",
         zIndex: 10,
       }}
     >
       {/* Logo */}
-      <div style={{ paddingLeft: 20, paddingRight: 20, marginBottom: 32 }}>
+      <div style={{ paddingLeft: "1.25rem", paddingRight: "1.25rem", marginBottom: "2rem" }}>
         <Link href="/" className="flex items-center">
-          <img src="/logo.svg" alt="Kounta" style={{ height: 33 }} />
+          <img src="/logo.svg" alt="Kounta" style={{ height: "2.0625rem" }} />
         </Link>
       </div>
 
       {/* Main navigation */}
-      <nav className="flex-1" style={{ paddingLeft: 12, paddingRight: 12 }}>
-        <ul style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      <nav className="flex-1" style={{ paddingLeft: "0.75rem", paddingRight: "0.75rem" }}>
+        <ul style={{ display: "flex", flexDirection: "column", gap: "0.125rem" }}>
           {mainNavItems.map(renderNavItem)}
         </ul>
 
         {/* Separator */}
-        <div style={{ margin: "12px 12px", borderTop: "1px solid var(--border)" }} />
+        <div style={{ margin: "0.75rem 0.75rem", borderTop: "1px solid var(--border)" }} />
 
         {/* Settings */}
-        <ul style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        <ul style={{ display: "flex", flexDirection: "column", gap: "0.125rem" }}>
           {bottomNavItems.map(renderNavItem)}
         </ul>
       </nav>
 
       {/* Command bar trigger */}
-      <div style={{ paddingLeft: 12, paddingRight: 12, marginBottom: 8, borderTop: "1px solid var(--border)", paddingTop: 8 }}>
+      <div style={{ paddingLeft: "0.75rem", paddingRight: "0.75rem", marginBottom: "0.5rem", borderTop: "1px solid var(--border)", paddingTop: "0.5rem" }}>
         <button
           onClick={() => openCommandBar()}
           className="flex items-center w-full sidebar-cmd-bar"
           style={{
-            padding: "0 12px",
-            height: 36,
+            padding: "0 0.75rem",
+            height: "2.25rem",
             borderRadius: "var(--radius-md)",
-            fontSize: 13,
+            fontSize: "0.8125rem",
             fontWeight: 400,
             color: "var(--text-tertiary)",
             backgroundColor: "var(--surface-1)",
             border: "1px solid var(--border)",
             cursor: "pointer",
-            gap: 8,
+            gap: "0.5rem",
             transition: "all 150ms ease",
           }}
           onMouseEnter={(e) => {
@@ -112,16 +112,16 @@ export function Sidebar() {
         >
           <span className="sidebar-cmd-star" style={{ transition: "color 150ms ease" }}>✦</span>
           <span style={{ flex: 1, textAlign: "left" }}>Ask Kounta...</span>
-          <kbd className="font-mono" style={{ fontSize: 11, color: "var(--text-disabled)", opacity: 0.8 }}>⌘K</kbd>
+          <kbd className="font-mono" style={{ fontSize: "0.6875rem", color: "var(--text-disabled)", opacity: 0.8 }}>⌘K</kbd>
         </button>
       </div>
 
       {/* Footer */}
       <div
         style={{
-          paddingLeft: 12,
-          paddingRight: 12,
-          paddingTop: 8,
+          paddingLeft: "0.75rem",
+          paddingRight: "0.75rem",
+          paddingTop: "0.5rem",
           borderTop: "1px solid var(--border)",
         }}
       >
@@ -154,32 +154,32 @@ function UserProfileMenu({ session }: { session: NonNullable<ReturnType<typeof u
         <div
           style={{
             position: "absolute",
-            bottom: "calc(100% + 8px)",
+            bottom: "calc(100% + 0.5rem)",
             left: 0,
             right: 0,
             backgroundColor: "var(--surface-2)",
             borderRadius: "var(--radius-lg)",
             boxShadow: "var(--shadow-dropdown)",
             border: "1px solid var(--border-strong)",
-            padding: 12,
+            padding: "0.75rem",
             zIndex: 50,
           }}
         >
-          <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 2 }}>
+          <div style={{ fontSize: "0.8125rem", fontWeight: 500, color: "var(--text-primary)", marginBottom: "0.125rem" }}>
             {session.user?.name ?? "Kounta User"}
           </div>
-          <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 12 }}>
+          <div style={{ fontSize: "0.75rem", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>
             {session.user?.email}
           </div>
-          <div style={{ borderTop: "1px solid var(--border)", paddingTop: 8 }}>
+          <div style={{ borderTop: "1px solid var(--border)", paddingTop: "0.5rem" }}>
             <button
               onClick={() => signOut({ callbackUrl: "/signin" })}
               className="flex items-center gap-2 w-full text-left"
               style={{
-                padding: "6px 8px",
+                padding: "0.375rem 0.5rem",
                 borderRadius: "var(--radius-md)",
                 color: "var(--text-secondary)",
-                fontSize: 13,
+                fontSize: "0.8125rem",
                 fontWeight: 500,
                 border: "none",
                 backgroundColor: "transparent",
@@ -210,8 +210,8 @@ function UserProfileMenu({ session }: { session: NonNullable<ReturnType<typeof u
         onClick={() => setOpen(!open)}
         className="flex items-center gap-3 w-full text-left"
         style={{
-          padding: "8px 12px",
-          height: 44,
+          padding: "0.5rem 0.75rem",
+          height: "2.75rem",
           borderRadius: "var(--radius-md)",
           border: "none",
           backgroundColor: open ? "var(--surface-1)" : "transparent",
@@ -224,11 +224,11 @@ function UserProfileMenu({ session }: { session: NonNullable<ReturnType<typeof u
           <img
             src={session.user.image}
             alt=""
-            style={{ width: 28, height: 28, borderRadius: "50%", border: "1px solid var(--border)", flexShrink: 0 }}
+            style={{ width: "1.75rem", height: "1.75rem", borderRadius: "50%", border: "1px solid var(--border)", flexShrink: 0 }}
           />
         )}
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div className="truncate" style={{ fontSize: 13, fontWeight: 500, color: "var(--text-secondary)" }}>
+          <div className="truncate" style={{ fontSize: "0.8125rem", fontWeight: 500, color: "var(--text-secondary)" }}>
             {session.user?.name ?? "Kounta User"}
           </div>
         </div>

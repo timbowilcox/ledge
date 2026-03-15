@@ -76,10 +76,10 @@ export function NameCaptureModal() {
       <div
         style={{
           backgroundColor: "var(--surface-1)",
-          borderRadius: 12,
+          borderRadius: "0.75rem",
           border: "1px solid var(--border-strong)",
-          padding: 32,
-          width: 400,
+          padding: "2rem",
+          width: "25rem",
           maxWidth: "90vw",
           boxShadow: "0 24px 80px rgba(0, 0, 0, 0.5)",
           animation: "modal-slide-up 200ms ease",
@@ -87,32 +87,32 @@ export function NameCaptureModal() {
       >
         <h2
           style={{
-            fontSize: 18,
+            fontSize: "1.125rem",
             fontWeight: 600,
             color: "var(--text-primary)",
-            marginBottom: 4,
+            marginBottom: "0.25rem",
           }}
         >
           Welcome to Kounta!
         </h2>
         <p
           style={{
-            fontSize: 13,
+            fontSize: "0.8125rem",
             color: "var(--text-tertiary)",
-            marginBottom: 24,
+            marginBottom: "1.5rem",
           }}
         >
           What should we call you?
         </p>
 
-        <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
+        <div style={{ display: "flex", gap: "0.75rem", marginBottom: "1.25rem" }}>
           <div style={{ flex: 1 }}>
             <label
               style={{
                 display: "block",
-                fontSize: 12,
+                fontSize: "0.75rem",
                 color: "var(--text-tertiary)",
-                marginBottom: 6,
+                marginBottom: "0.375rem",
                 textTransform: "uppercase",
                 letterSpacing: "0.05em",
                 fontWeight: 500,
@@ -136,9 +136,9 @@ export function NameCaptureModal() {
             <label
               style={{
                 display: "block",
-                fontSize: 12,
+                fontSize: "0.75rem",
                 color: "var(--text-tertiary)",
-                marginBottom: 6,
+                marginBottom: "0.375rem",
                 textTransform: "uppercase",
                 letterSpacing: "0.05em",
                 fontWeight: 500,
@@ -159,7 +159,7 @@ export function NameCaptureModal() {
           </div>
         </div>
 
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
           <button
             onClick={handleSkip}
             className="btn-ghost"

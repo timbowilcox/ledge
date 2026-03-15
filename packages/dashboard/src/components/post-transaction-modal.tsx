@@ -434,7 +434,7 @@ export function PostTransactionModal() {
       </div>
 
       {/* Amount */}
-      <div style={{ width: 110 }}>
+      <div style={{ width: "6.875rem" }}>
         <input
           type="number"
           className="input font-mono"

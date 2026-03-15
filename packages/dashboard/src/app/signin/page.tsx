@@ -16,31 +16,31 @@ export default function SignInPage() {
       <div
         className="relative z-10"
         style={{
-          width: 420,
-          padding: "48px 40px",
-          borderRadius: 24,
+          width: "26.25rem",
+          padding: "3rem 2.5rem",
+          borderRadius: "1.5rem",
           border: "1px solid var(--border)",
           backgroundColor: "var(--surface-1)",
         }}
       >
         {/* Logo */}
-        <div className="flex items-center justify-center" style={{ marginBottom: 36 }}>
-          <img src="/logo.svg" alt="Kounta" style={{ height: 48 }} />
+        <div className="flex items-center justify-center" style={{ marginBottom: "2.25rem" }}>
+          <img src="/logo.svg" alt="Kounta" style={{ height: "3rem" }} />
         </div>
 
-        <p className="text-center text-sm" style={{ color: "var(--text-tertiary)", marginBottom: 36 }}>
+        <p className="text-center text-sm" style={{ color: "var(--text-tertiary)", marginBottom: "2.25rem" }}>
           Accounting infrastructure for builders
         </p>
 
         {/* OAuth Buttons */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
           <button
             onClick={() => handleOAuth("github")}
             className="w-full flex items-center justify-center text-sm font-medium"
             style={{
-              gap: 12,
-              padding: "14px 16px",
-              borderRadius: 14,
+              gap: "0.75rem",
+              padding: "0.875rem 1rem",
+              borderRadius: "0.875rem",
               backgroundColor: "var(--surface-2)",
               color: "var(--text-primary)",
               border: "1px solid var(--border)",
@@ -66,9 +66,9 @@ export default function SignInPage() {
             onClick={() => handleOAuth("google")}
             className="w-full flex items-center justify-center text-sm font-medium"
             style={{
-              gap: 12,
-              padding: "14px 16px",
-              borderRadius: 14,
+              gap: "0.75rem",
+              padding: "0.875rem 1rem",
+              borderRadius: "0.875rem",
               backgroundColor: "var(--surface-2)",
               color: "var(--text-primary)",
               border: "1px solid var(--border)",
@@ -91,7 +91,7 @@ export default function SignInPage() {
           </button>
         </div>
 
-        <p className="text-center text-xs" style={{ color: "var(--text-disabled)", marginTop: 28 }}>
+        <p className="text-center text-xs" style={{ color: "var(--text-disabled)", marginTop: "1.75rem" }}>
           No credit card required. No email verification.
         </p>
       </div>

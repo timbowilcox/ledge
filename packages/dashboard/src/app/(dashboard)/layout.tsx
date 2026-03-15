@@ -20,9 +20,9 @@ export default function DashboardLayout({
           <main
             className="flex-1 page-content"
             style={{
-              marginLeft: 220,
-              padding: "32px 32px",
-              maxWidth: 1200,
+              marginLeft: "var(--sidebar-width)",
+              padding: "2rem 2rem",
+              maxWidth: "75rem",
               minHeight: "100vh",
               position: "relative",
               zIndex: 1,

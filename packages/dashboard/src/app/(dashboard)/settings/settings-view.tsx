@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { formatDate } from "@/lib/format";
-import { createApiKey, revokeApiKey, fetchApiKeys, createCheckoutSession, createPortalSession, fetchEmailPreferences, updateEmailPreferences, fetchRecurringEntries, deleteRecurringEntryAction, pauseRecurringEntryAction, resumeRecurringEntryAction, updateLedgerAction, reopenPeriodAction, fetchStripeStatus, disconnectStripe, syncStripe, getStripeAuthorizeUrl } from "@/lib/actions";
+import { createApiKey, revokeApiKey, fetchApiKeys, createCheckoutSession, createPortalSession, fetchEmailPreferences, updateEmailPreferences, fetchRecurringEntries, deleteRecurringEntryAction, pauseRecurringEntryAction, resumeRecurringEntryAction, updateLedgerAction, reopenPeriodAction, fetchStripeStatus, disconnectStripe, syncStripe, getStripeAuthorizeUrl, updateUserNameAction } from "@/lib/actions";
 import type { StripeConnectStatus } from "@/lib/actions";
 import type { EmailPreferences, ClosedPeriodSummary } from "@/lib/actions";
 import { CopyButton } from "@/components/copy-button";
@@ -142,12 +142,67 @@ export function SettingsView({ ledger, billing, initialKeys, currencies, exchang
 const MONTH_NAMES = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 function GeneralTab({ ledger, fiscalYearStart, closedThrough, closedPeriods }: { ledger: Props["ledger"]; fiscalYearStart: number; closedThrough: string | null; closedPeriods: ClosedPeriodSummary[] }) {
-  const { data: session } = useSession();
+  const { data: session, update } = useSession();
   const [fyStart, setFyStart] = useState(fiscalYearStart);
   const [fySaving, setFySaving] = useState(false);
   const [fySaved, setFySaved] = useState(false);
   const [periods, setPeriods] = useState(closedPeriods);
   const [reopening, setReopening] = useState<string | null>(null);
+
+  // Display name editing
+  const [displayName, setDisplayName] = useState(session?.user?.name ?? "");
+  const [displayNameSaved, setDisplayNameSaved] = useState(false);
+  const [displayNameSaving, setDisplayNameSaving] = useState(false);
+  const displayNameOriginal = useRef(session?.user?.name ?? "");
+  const displayNameDirty = displayName !== displayNameOriginal.current;
+
+  useEffect(() => {
+    if (session?.user?.name) {
+      setDisplayName(session.user.name);
+      displayNameOriginal.current = session.user.name;
+    }
+  }, [session?.user?.name]);
+
+  const handleDisplayNameSave = async () => {
+    if (!displayName.trim()) return;
+    setDisplayNameSaving(true);
+    const ok = await updateUserNameAction(displayName.trim());
+    if (ok) {
+      await update({ name: displayName.trim() });
+      displayNameOriginal.current = displayName.trim();
+      setDisplayNameSaved(true);
+      setTimeout(() => setDisplayNameSaved(false), 2000);
+    }
+    setDisplayNameSaving(false);
+  };
+
+  // Ledger name editing
+  const [ledgerName, setLedgerName] = useState(ledger.name);
+  const [ledgerNameSaved, setLedgerNameSaved] = useState(false);
+  const [ledgerNameSaving, setLedgerNameSaving] = useState(false);
+  const [ledgerNameError, setLedgerNameError] = useState<string | null>(null);
+  const ledgerNameOriginal = useRef(ledger.name);
+  const ledgerNameDirty = ledgerName !== ledgerNameOriginal.current;
+
+  const handleLedgerNameSave = async () => {
+    if (!ledgerName.trim()) {
+      setLedgerNameError("Name cannot be empty");
+      return;
+    }
+    if (ledgerName.trim().length > 50) {
+      setLedgerNameError("Name must be 50 characters or less");
+      return;
+    }
+    setLedgerNameError(null);
+    setLedgerNameSaving(true);
+    const ok = await updateLedgerAction({ name: ledgerName.trim() });
+    if (ok) {
+      ledgerNameOriginal.current = ledgerName.trim();
+      setLedgerNameSaved(true);
+      setTimeout(() => setLedgerNameSaved(false), 2000);
+    }
+    setLedgerNameSaving(false);
+  };
 
   const handleFyChange = async (month: number) => {
     setFyStart(month);
@@ -166,6 +221,7 @@ function GeneralTab({ ledger, fiscalYearStart, closedThrough, closedPeriods }: {
   };
 
   const activePeriods = periods.filter((p) => !p.reopenedAt);
+  const hasClosedPeriods = activePeriods.length > 0;
   const fmtPeriodEnd = (d: string) => {
     const dt = new Date(d + "T00:00:00");
     return dt.toLocaleDateString("en-US", { month: "long", year: "numeric" });
@@ -173,26 +229,12 @@ function GeneralTab({ ledger, fiscalYearStart, closedThrough, closedPeriods }: {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      {/* Save indicator */}
-      {(fySaving || fySaved) && (
-        <div style={{
-          position: "fixed", top: 16, right: 16, zIndex: 50,
-          padding: "8px 16px", borderRadius: 6, fontSize: 12, fontWeight: 500,
-          backgroundColor: fySaved ? "rgba(34, 197, 94, 0.08)" : "var(--surface-2)",
-          color: fySaved ? "var(--positive)" : "var(--text-tertiary)",
-          border: `1px solid ${fySaved ? "rgba(34, 197, 94, 0.25)" : "var(--border)"}`,
-          transition: "all 200ms ease",
-        }}>
-          {fySaving ? "Saving..." : "Saved"}
-        </div>
-      )}
-
       {/* Account info */}
       <div className="card">
         <div className="section-label" style={{ marginBottom: 16 }}>Account</div>
         {session?.user && (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+          <div>
+            <div className="flex items-center gap-3" style={{ marginBottom: 20 }}>
               {session.user.image && (
                 <img
                   src={session.user.image}
@@ -205,6 +247,55 @@ function GeneralTab({ ledger, fiscalYearStart, closedThrough, closedPeriods }: {
                 <div style={{ fontSize: 12, color: "var(--text-tertiary)" }}>{session.user.email}</div>
               </div>
             </div>
+
+            {/* Display name editable field */}
+            <div>
+              <label style={{ display: "block", fontSize: 11, color: "var(--text-tertiary)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 500 }}>
+                Display Name
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="text"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && displayNameDirty) handleDisplayNameSave(); }}
+                  style={{
+                    flex: 1,
+                    maxWidth: 280,
+                    backgroundColor: "var(--surface-2)",
+                    border: "1px solid var(--border)",
+                    borderRadius: "var(--radius-md)",
+                    padding: "8px 12px",
+                    fontSize: 14,
+                    color: "var(--text-primary)",
+                    outline: "none",
+                    transition: "border-color 150ms ease",
+                  }}
+                  onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; }}
+                  onBlur={(e) => { e.currentTarget.style.borderColor = "var(--border)"; }}
+                />
+                {displayNameDirty && !displayNameSaved && (
+                  <button
+                    onClick={handleDisplayNameSave}
+                    disabled={displayNameSaving}
+                    className="btn-primary"
+                    style={{
+                      height: 32,
+                      padding: "0 16px",
+                      fontSize: 13,
+                      animation: "fadeIn 150ms ease",
+                    }}
+                  >
+                    {displayNameSaving ? "Saving..." : "Save"}
+                  </button>
+                )}
+                {displayNameSaved && (
+                  <span style={{ fontSize: 13, color: "var(--positive)", animation: "fade-in 150ms ease" }}>
+                    Saved ✓
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -213,7 +304,62 @@ function GeneralTab({ ledger, fiscalYearStart, closedThrough, closedPeriods }: {
       <div className="card">
         <div className="section-label" style={{ marginBottom: 16 }}>Ledger</div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-          <InfoRow label="Name" value={ledger.name} />
+          {/* Editable ledger name */}
+          <div>
+            <label style={{ display: "block", fontSize: 11, color: "var(--text-tertiary)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 500 }}>
+              Name
+            </label>
+            <div className="flex items-center gap-3">
+              <input
+                type="text"
+                value={ledgerName}
+                onChange={(e) => {
+                  setLedgerName(e.target.value);
+                  if (e.target.value.trim()) setLedgerNameError(null);
+                }}
+                onKeyDown={(e) => { if (e.key === "Enter" && ledgerNameDirty) handleLedgerNameSave(); }}
+                maxLength={50}
+                style={{
+                  flex: 1,
+                  backgroundColor: "var(--surface-2)",
+                  border: `1px solid ${ledgerNameError ? "var(--negative)" : "var(--border)"}`,
+                  borderRadius: "var(--radius-md)",
+                  padding: "8px 12px",
+                  fontSize: 14,
+                  color: "var(--text-primary)",
+                  outline: "none",
+                  transition: "border-color 150ms ease",
+                }}
+                onFocus={(e) => { if (!ledgerNameError) e.currentTarget.style.borderColor = "var(--accent)"; }}
+                onBlur={(e) => { if (!ledgerNameError) e.currentTarget.style.borderColor = "var(--border)"; }}
+              />
+              {ledgerNameDirty && !ledgerNameSaved && (
+                <button
+                  onClick={handleLedgerNameSave}
+                  disabled={ledgerNameSaving}
+                  className="btn-primary"
+                  style={{
+                    height: 32,
+                    padding: "0 16px",
+                    fontSize: 13,
+                    animation: "fadeIn 150ms ease",
+                  }}
+                >
+                  {ledgerNameSaving ? "Saving..." : "Save"}
+                </button>
+              )}
+              {ledgerNameSaved && (
+                <span style={{ fontSize: 13, color: "var(--positive)", animation: "fade-in 150ms ease" }}>
+                  Saved ✓
+                </span>
+              )}
+            </div>
+            {ledgerNameError && (
+              <div style={{ fontSize: 11, color: "var(--negative)", marginTop: 4 }}>
+                {ledgerNameError}
+              </div>
+            )}
+          </div>
           <InfoRow label="Template" value={getTemplateName(ledger.templateId)} />
           <InfoRow label="Currency" value={ledger.currency} />
           <InfoRow label="Accounting Basis" value={ledger.accountingBasis} />
@@ -222,16 +368,37 @@ function GeneralTab({ ledger, fiscalYearStart, closedThrough, closedPeriods }: {
             <label style={{ display: "block", fontSize: 11, color: "var(--text-tertiary)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 500 }}>
               Fiscal Year Start
             </label>
-            <select
-              className="input"
-              value={fyStart}
-              onChange={(e) => handleFyChange(Number(e.target.value))}
-              style={{ fontSize: 13, width: "100%" }}
-            >
-              {MONTH_NAMES.slice(1).map((name, i) => (
-                <option key={i + 1} value={i + 1}>{name}</option>
-              ))}
-            </select>
+            {hasClosedPeriods ? (
+              /* Locked fiscal year — read-only display */
+              <div>
+                <FiscalYearLocked month={fyStart} />
+                <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginTop: 6 }}>
+                  Fiscal year is locked after periods are closed.
+                </div>
+              </div>
+            ) : (
+              /* Editable fiscal year dropdown */
+              <div>
+                <select
+                  className="input"
+                  value={fyStart}
+                  onChange={(e) => handleFyChange(Number(e.target.value))}
+                  style={{ fontSize: 13, width: "100%" }}
+                >
+                  {MONTH_NAMES.slice(1).map((name, i) => (
+                    <option key={i + 1} value={i + 1}>{name}</option>
+                  ))}
+                </select>
+                <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginTop: 6 }}>
+                  This can be changed until your first period is closed.
+                </div>
+                {(fySaving || fySaved) && (
+                  <div style={{ fontSize: 13, marginTop: 6, color: fySaved ? "var(--positive)" : "var(--text-tertiary)" }}>
+                    {fySaving ? "Saving..." : "Saved ✓"}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -242,10 +409,10 @@ function GeneralTab({ ledger, fiscalYearStart, closedThrough, closedPeriods }: {
         <p style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 16 }}>
           {closedThrough
             ? `Books are closed through ${fmtPeriodEnd(closedThrough)}. No transactions can be posted on or before that date.`
-            : "No periods have been closed. Close periods from the Statements page."}
+            : <>No closed periods yet. Close periods from the <a href="/statements" style={{ color: "var(--accent)", textDecoration: "none" }}>Statements page →</a></>}
         </p>
 
-        {activePeriods.length > 0 ? (
+        {activePeriods.length > 0 && (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {activePeriods
               .sort((a, b) => b.periodEnd.localeCompare(a.periodEnd))
@@ -261,7 +428,7 @@ function GeneralTab({ ledger, fiscalYearStart, closedThrough, closedPeriods }: {
                   }}
                 >
                   <div className="flex items-center gap-3">
-                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#6B7280" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                       <rect x="3" y="7" width="10" height="7" rx="1.5" />
                       <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" />
                     </svg>
@@ -294,12 +461,55 @@ function GeneralTab({ ledger, fiscalYearStart, closedThrough, closedPeriods }: {
                 </div>
               ))}
           </div>
-        ) : (
-          !closedThrough && (
-            <div style={{ fontSize: 13, color: "var(--text-tertiary)", padding: "12px 0" }}>
-              No closed periods to manage.
-            </div>
-          )
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Locked fiscal year display with lock icon and tooltip */
+function FiscalYearLocked({ month }: { month: number }) {
+  const [showTooltip, setShowTooltip] = useState(false);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+
+  return (
+    <div className="flex items-center gap-2" style={{ position: "relative" }}>
+      <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)" }}>
+        {MONTH_NAMES[month]}
+      </span>
+      <div
+        style={{ position: "relative", display: "inline-flex", cursor: "help" }}
+        onMouseEnter={() => setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
+      >
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="7" width="10" height="7" rx="1.5" />
+          <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" />
+        </svg>
+        {showTooltip && (
+          <div
+            ref={tooltipRef}
+            style={{
+              position: "absolute",
+              bottom: "calc(100% + 8px)",
+              left: "50%",
+              transform: "translateX(-50%)",
+              backgroundColor: "var(--surface-2)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--radius-md)",
+              padding: "8px 12px",
+              fontSize: 12,
+              color: "var(--text-secondary)",
+              maxWidth: 240,
+              whiteSpace: "normal",
+              lineHeight: 1.5,
+              zIndex: 10,
+              boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+              pointerEvents: "none",
+            }}
+          >
+            Changing fiscal year after closing periods would break your historical statements. Contact support if restructuring is needed.
+          </div>
         )}
       </div>
     </div>

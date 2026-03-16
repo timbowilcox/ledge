@@ -15,6 +15,8 @@ import type {
   CapitalisationCheckResult,
 } from "@/lib/actions";
 import type { AccountWithBalance } from "@kounta/sdk";
+import { usePostTransaction } from "@/components/post-transaction-provider";
+import type { TransactionPrefill } from "@/components/post-transaction-provider";
 
 // ---------------------------------------------------------------------------
 // Asset type data — matches JURISDICTION_THRESHOLDS in engine.ts
@@ -201,6 +203,8 @@ function AddAssetModal({
   onCreated: () => void;
   accounts: AccountWithBalance[];
 }) {
+  const { openWithPrefill } = usePostTransaction();
+
   // Form state — initial fields
   const [name, setName] = useState("");
   const [assetType, setAssetType] = useState("");
@@ -811,6 +815,28 @@ function AddAssetModal({
                         {capCheck.reason}
                       </div>
                       <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
+                        <button
+                          className="btn-primary"
+                          style={{ fontSize: 12, height: 28, padding: "0 12px" }}
+                          onClick={() => {
+                            // Find a suitable expense account and bank/cash account for pre-fill
+                            const expenseAcct = accounts.find((a) => a.type === "expense");
+                            const bankAcct = accounts.find(
+                              (a) => a.type === "asset" && /bank|cash|checking|savings/i.test(a.name),
+                            ) ?? accounts.find((a) => a.type === "asset" && a.normalBalance === "debit");
+                            const prefill: TransactionPrefill = {
+                              date: purchaseDate,
+                              memo: name ? `Expense: ${name}` : "",
+                              fromAccountCode: bankAcct?.code ?? "",
+                              toAccountCode: expenseAcct?.code ?? "",
+                              amount: costDollars,
+                            };
+                            onClose();
+                            openWithPrefill(prefill);
+                          }}
+                        >
+                          Record as expense
+                        </button>
                         <button
                           className="btn-secondary"
                           style={{ fontSize: 12, height: 28, padding: "0 12px" }}

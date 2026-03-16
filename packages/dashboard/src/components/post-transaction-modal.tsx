@@ -96,7 +96,7 @@ function sumCents(rows: EntryRow[]): number {
 /* ── Component ──────────────────────────────────────────────────────── */
 
 export function PostTransactionModal() {
-  const { isOpen, close } = usePostTransaction();
+  const { isOpen, prefill, close } = usePostTransaction();
   const router = useRouter();
 
   // Form state — from/to model
@@ -137,7 +137,7 @@ export function PostTransactionModal() {
       .finally(() => setAccountsLoading(false));
   }, [isOpen]);
 
-  // Reset form when modal closes
+  // Reset form when modal closes, apply pre-fill when opening
   useEffect(() => {
     if (!isOpen) {
       setDate(todayISO());
@@ -148,8 +148,17 @@ export function PostTransactionModal() {
       setSuccessMsg(null);
       setOpenDropdownId(null);
       setDropdownSearch("");
+    } else if (prefill) {
+      if (prefill.date) setDate(prefill.date);
+      if (prefill.memo) setMemo(prefill.memo);
+      if (prefill.fromAccountCode || prefill.amount) {
+        setFromRows([{ id: makeRowId(), accountCode: prefill.fromAccountCode ?? "", amount: prefill.amount ?? "" }]);
+      }
+      if (prefill.toAccountCode || prefill.amount) {
+        setToRows([{ id: makeRowId(), accountCode: prefill.toAccountCode ?? "", amount: prefill.amount ?? "" }]);
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, prefill]);
 
   // Close dropdown on outside click
   useEffect(() => {

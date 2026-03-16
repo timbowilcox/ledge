@@ -3,18 +3,29 @@ import {
   fetchInvoiceSummary,
   fetchARAging,
   fetchAccounts,
+  fetchJurisdictionSettings,
+  fetchJurisdictions,
 } from "@/lib/actions";
 import { InvoicesView } from "./invoices-view";
 
 export const dynamic = "force-dynamic";
 
 export default async function InvoicesPage() {
-  const [invoices, summary, aging, accounts] = await Promise.allSettled([
+  const [invoices, summary, aging, accounts, jurisdictionSettings, jurisdictions] = await Promise.allSettled([
     fetchInvoices(),
     fetchInvoiceSummary(),
     fetchARAging(),
     fetchAccounts(),
+    fetchJurisdictionSettings(),
+    fetchJurisdictions(),
   ]);
+
+  // Resolve tax config from jurisdiction
+  const jCode = jurisdictionSettings.status === "fulfilled" ? jurisdictionSettings.value.jurisdiction : "AU";
+  const jList = jurisdictions.status === "fulfilled" ? jurisdictions.value : [];
+  const jMatch = jList.find((j) => j.code === jCode);
+  const taxLabel = jMatch?.vatName ?? "Tax";
+  const taxRate = jMatch?.vatRate ?? 0;
 
   return (
     <InvoicesView
@@ -35,6 +46,8 @@ export default async function InvoicesPage() {
       }
       initialAging={aging.status === "fulfilled" ? aging.value : []}
       accounts={accounts.status === "fulfilled" ? accounts.value : []}
+      taxLabel={taxLabel}
+      taxRate={taxRate}
     />
   );
 }

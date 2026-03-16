@@ -135,6 +135,8 @@ interface Props {
   initialSummary: InvoiceSummary;
   initialAging: ARAgingBucket[];
   accounts: AccountWithBalance[];
+  taxLabel: string;
+  taxRate: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -156,7 +158,7 @@ const TABS: { key: StatusTab; label: string }[] = [
 // Main view
 // ---------------------------------------------------------------------------
 
-export function InvoicesView({ initialInvoices, initialSummary, initialAging, accounts }: Props) {
+export function InvoicesView({ initialInvoices, initialSummary, initialAging, accounts, taxLabel, taxRate }: Props) {
   const [invoices, setInvoices] = useState(initialInvoices);
   const [summary, setSummary] = useState(initialSummary);
   const [activeTab, setActiveTab] = useState<StatusTab>("all");
@@ -365,6 +367,8 @@ export function InvoicesView({ initialInvoices, initialSummary, initialAging, ac
       {(showCreate || editInvoice) && (
         <CreateInvoiceModal
           editInvoice={editInvoice}
+          taxLabel={taxLabel}
+          taxRate={taxRate}
           onClose={() => { setShowCreate(false); setEditInvoice(null); }}
           onCreated={(inv) => {
             setShowCreate(false);
@@ -411,10 +415,14 @@ export function InvoicesView({ initialInvoices, initialSummary, initialAging, ac
 
 function CreateInvoiceModal({
   editInvoice,
+  taxLabel,
+  taxRate,
   onClose,
   onCreated,
 }: {
   editInvoice: InvoiceListItem | null;
+  taxLabel: string;
+  taxRate: number;
   onClose: () => void;
   onCreated: (inv: InvoiceListItem | null) => void;
 }) {
@@ -459,6 +467,18 @@ function CreateInvoiceModal({
     return sum + Math.round(qty * price);
   }, 0);
 
+  const hasTax = taxRate > 0;
+  const taxAmount = hasTax
+    ? taxInclusive
+      ? Math.round(subtotal - subtotal / (1 + taxRate))
+      : Math.round(subtotal * taxRate)
+    : 0;
+  const total = hasTax
+    ? taxInclusive
+      ? subtotal
+      : subtotal + taxAmount
+    : subtotal;
+
   const isValid = customerName.trim().length > 0 && lineItems.length > 0 &&
     lineItems.every((li) => li.description.trim() && parseFloat(li.quantity) > 0 && parseFloat(li.unitPriceDollars) > 0);
 
@@ -474,6 +494,7 @@ function CreateInvoiceModal({
           description: li.description,
           quantity: parseFloat(li.quantity) || 1,
           unitPrice: dollarsToCents(li.unitPriceDollars),
+          taxRate: hasTax ? taxRate : undefined,
         })),
         notes: notes || undefined,
         taxInclusive,
@@ -625,26 +646,34 @@ function CreateInvoiceModal({
           </button>
         </div>
 
+        {/* Tax option */}
+        {hasTax && (
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--text-secondary)", cursor: "pointer" }}>
+              <input type="checkbox" checked={taxInclusive} onChange={(e) => setTaxInclusive(e.target.checked)} />
+              Prices include {taxLabel}
+            </label>
+          </div>
+        )}
+
         {/* Totals */}
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
-          <div style={{ width: 200 }}>
+          <div style={{ width: 240 }}>
             <div className="flex justify-between" style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 6 }}>
               <span>Subtotal</span>
               <span style={{ fontFamily: "var(--font-mono)" }}>{formatCurrency(subtotal)}</span>
             </div>
+            {hasTax && (
+              <div className="flex justify-between" style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 6 }}>
+                <span>{taxInclusive ? `Includes ${taxLabel} of` : `${taxLabel} at ${Math.round(taxRate * 100)}%`}</span>
+                <span style={{ fontFamily: "var(--font-mono)" }}>{formatCurrency(taxAmount)}</span>
+              </div>
+            )}
             <div className="flex justify-between" style={{ fontSize: 15, fontWeight: 600, color: "var(--text-primary)", paddingTop: 6, borderTop: "1px solid var(--border)" }}>
               <span>Total</span>
-              <span style={{ fontFamily: "var(--font-mono)" }}>{formatCurrency(subtotal)}</span>
+              <span style={{ fontFamily: "var(--font-mono)" }}>{formatCurrency(total)}</span>
             </div>
           </div>
-        </div>
-
-        {/* Options */}
-        <div style={{ marginBottom: 16 }}>
-          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--text-secondary)", cursor: "pointer" }}>
-            <input type="checkbox" checked={taxInclusive} onChange={(e) => setTaxInclusive(e.target.checked)} />
-            Prices include tax
-          </label>
         </div>
 
         {/* Notes */}

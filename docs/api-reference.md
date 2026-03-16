@@ -43,6 +43,8 @@ Complete reference for the Kounta REST API.
   - [Email](#email)
   - [Onboarding](#onboarding)
   - [Admin](#admin)
+  - [Fixed Assets](#fixed-assets)
+  - [Jurisdiction](#jurisdiction)
 - [Quick Reference](#quick-reference)
 
 ---
@@ -1676,6 +1678,183 @@ Provision a new user with a ledger in one step.
 | `templateSlug`     | string | No       | Template to apply to the new ledger     |
 
 **Response:** `201 Created` — Returns the created user, ledger, and API key.
+
+---
+
+### Fixed Assets
+
+#### `GET /v1/fixed-assets`
+
+List fixed assets.
+
+**Auth:** API Key
+
+**Query parameters:**
+
+| Parameter | Type   | Default | Description                                  |
+|-----------|--------|---------|----------------------------------------------|
+| `status`  | string | —       | Filter by status (e.g., `active`, `disposed`) |
+| `cursor`  | string | —       | Pagination cursor                            |
+| `limit`   | number | 50      | Items per page (max 200)                     |
+
+**Response:** `200 OK` — Paginated array of fixed assets.
+
+---
+
+#### `POST /v1/fixed-assets`
+
+Create a fixed asset.
+
+**Auth:** API Key
+
+**Request body:**
+
+| Field                               | Type    | Required | Description                                          |
+|-------------------------------------|---------|----------|------------------------------------------------------|
+| `name`                              | string  | Yes      | Asset display name                                   |
+| `assetType`                         | string  | Yes      | Type of asset (e.g., `equipment`, `vehicle`)         |
+| `costAmount`                        | integer | Yes      | Purchase cost in smallest currency unit              |
+| `purchaseDate`                      | string  | Yes      | Date of purchase (ISO 8601)                          |
+| `depreciationMethod`                | string  | Yes      | Depreciation method (e.g., `straight-line`, `diminishing-value`) |
+| `usefulLifeMonths`                  | integer | Yes      | Useful life in months                                |
+| `salvageValue`                      | integer | Yes      | Residual value in smallest currency unit             |
+| `assetAccountId`                    | string  | Yes      | UUID of the asset account                            |
+| `accumulatedDepreciationAccountId`  | string  | Yes      | UUID of the accumulated depreciation account         |
+| `depreciationExpenseAccountId`      | string  | Yes      | UUID of the depreciation expense account             |
+| `description`                       | string  | No       | Optional description of the asset                    |
+
+**Response:** `201 Created` — Returns the created fixed asset.
+
+---
+
+#### `GET /v1/fixed-assets/summary`
+
+Get asset register summary.
+
+**Auth:** API Key
+
+**Response:** `200 OK` — Returns a summary of all fixed assets including total cost, accumulated depreciation, and net book value.
+
+---
+
+#### `GET /v1/fixed-assets/pending`
+
+Get pending depreciation entries.
+
+**Auth:** API Key
+
+**Response:** `200 OK` — Returns array of depreciation entries that are due but not yet posted.
+
+---
+
+#### `POST /v1/fixed-assets/capitalisation-check`
+
+Check if an amount should be capitalised as a fixed asset.
+
+**Auth:** API Key
+
+**Request body:**
+
+| Field             | Type    | Required | Description                              |
+|-------------------|---------|----------|------------------------------------------|
+| `amount`          | integer | Yes      | Amount in smallest currency unit         |
+| `asset_type`      | string  | Yes      | Type of asset                            |
+| `purchase_date`   | string  | Yes      | Date of purchase (ISO 8601)              |
+| `annual_turnover` | integer | Yes      | Annual turnover in smallest currency unit |
+
+**Response:** `200 OK` — Returns capitalisation recommendation with threshold and reasoning.
+
+---
+
+#### `GET /v1/fixed-assets/:id`
+
+Get a fixed asset by ID, including its depreciation schedule.
+
+**Auth:** API Key
+
+**Response:** `200 OK` — Returns the fixed asset with its full depreciation schedule.
+
+---
+
+#### `GET /v1/fixed-assets/:id/schedule`
+
+Get the depreciation schedule for a fixed asset.
+
+**Auth:** API Key
+
+**Response:** `200 OK` — Returns the depreciation schedule with period-by-period breakdown.
+
+---
+
+#### `POST /v1/fixed-assets/:id/dispose`
+
+Dispose of a fixed asset. Records the disposal and posts the necessary journal entries for any gain or loss.
+
+**Auth:** API Key
+
+**Request body:**
+
+| Field              | Type    | Required | Description                                      |
+|--------------------|---------|----------|--------------------------------------------------|
+| `disposalDate`     | string  | Yes      | Date of disposal (ISO 8601)                      |
+| `disposalProceeds` | integer | Yes      | Proceeds from disposal in smallest currency unit |
+| `proceedsAccountId`| string  | Yes      | UUID of the account to record proceeds           |
+| `gainAccountId`    | string  | Yes      | UUID of the account for gains on disposal        |
+| `lossAccountId`    | string  | Yes      | UUID of the account for losses on disposal       |
+| `notes`            | string  | No       | Optional notes about the disposal                |
+
+**Response:** `201 Created` — Returns the disposal record and any generated transactions.
+
+---
+
+#### `POST /v1/fixed-assets/run-depreciation`
+
+Post all pending depreciation entries. Creates journal entries for each asset with depreciation due.
+
+**Auth:** API Key
+
+**Response:** `201 Created` — Returns the posted depreciation transactions.
+
+---
+
+### Jurisdiction
+
+#### `GET /v1/ledgers/:ledgerId/jurisdiction`
+
+Get jurisdiction settings for a ledger.
+
+**Auth:** API Key
+
+**Response:** `200 OK`
+
+```json
+{
+  "data": {
+    "jurisdiction": "AU",
+    "taxId": "12345678901",
+    "taxBasis": "accrual",
+    "fiscalYearStart": "07-01"
+  }
+}
+```
+
+---
+
+#### `PATCH /v1/ledgers/:ledgerId/jurisdiction`
+
+Update jurisdiction settings for a ledger.
+
+**Auth:** API Key
+
+**Request body:**
+
+| Field          | Type   | Required | Description                                  |
+|----------------|--------|----------|----------------------------------------------|
+| `jurisdiction` | string | No       | Jurisdiction code (e.g., `AU`, `US`, `GB`)   |
+| `taxId`        | string | No       | Tax identification number                    |
+| `taxBasis`     | string | No       | Tax basis (`accrual` or `cash`)              |
+
+**Response:** `200 OK` — Returns the updated jurisdiction settings.
 
 ---
 

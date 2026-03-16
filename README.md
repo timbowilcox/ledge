@@ -10,7 +10,7 @@
 
 | | |
 |---|---|
-| **39** MCP tools | AI-powered accounting |
+| **55** MCP tools | AI-powered accounting |
 | **17** SDK modules | Full TypeScript client |
 | **80+** REST API endpoints | Complete programmatic access |
 | **8** business templates | SaaS, marketplace, agency, ecommerce, creator, consulting, property, nonprofit |
@@ -29,6 +29,7 @@
 - **Multi-currency support** with exchange rates
 - **Period close/reopen**
 - **File attachments** on transactions
+- **Fixed asset depreciation** — multi-jurisdiction (AU, US, UK, NZ, CA, SG), 12 depreciation methods, automatic schedule generation, capitalisation advisory, asset disposal with gain/loss
 - **Smart notifications and insights**
 - **Full audit trail** — every mutation is logged with actor, action, and entity snapshot
 - **Cursor-based pagination** on all list endpoints
@@ -42,7 +43,7 @@ Monorepo powered by Turborepo:
 packages/
   core/       # @kounta/core — Double-entry engine, domain logic
   api/        # @kounta/api — REST API (Hono, 80+ endpoints)
-  mcp/        # @kounta/mcp — MCP server (39 tools)
+  mcp/        # @kounta/mcp — MCP server (55 tools)
   sdk/        # @kounta/sdk — TypeScript client SDK (17 modules)
   dashboard/  # @kounta/dashboard — Next.js dashboard
 ```

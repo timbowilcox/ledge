@@ -1,7 +1,7 @@
 # MCP Server Guide
 
 ## Overview
-The Kounta MCP server exposes 39 tools, 4 resources, and 3 prompt templates for AI-powered accounting. Two transport modes:
+The Kounta MCP server exposes 55 tools, 4 resources, and 3 prompt templates for AI-powered accounting. Two transport modes:
 - **Hosted (SSE)**: Connect to `https://mcp.kounta.ai` with your API key
 - **Local (stdio)**: Run locally with `npx @kounta/mcp` for development
 
@@ -73,7 +73,7 @@ Health check: GET `https://mcp.kounta.ai/health`
 }
 ```
 
-## All 39 Tools
+## All 55 Tools
 
 ### Ledger Setup
 1. **setup_ledger** — Auto-provision a ledger from a business description. Params: `description` (string, required)
@@ -137,6 +137,26 @@ Health check: GET `https://mcp.kounta.ai/health`
 ### Stripe
 38. **get_stripe_status** — Get Stripe connection status. Params: `ledgerId`
 39. **sync_stripe** — Trigger Stripe data sync. Params: `ledgerId`
+
+### Revenue Recognition
+40. **list_revenue_schedules** — List revenue recognition schedules. Params: `ledgerId`, `status?`, `customerName?`, `limit?`, `cursor?`
+41. **get_revenue_schedule** — Get a single revenue schedule with all recognition entries. Params: `scheduleId`
+42. **create_revenue_schedule** — Create a manual revenue recognition schedule (spreads payment over a service period). Params: `ledgerId`, `totalAmount`, `recognitionStart`, `recognitionEnd`, `currency?`, `customerName?`, `description?`, `sourceRef?`, `deferredRevenueAccountId?`, `revenueAccountId?`
+43. **get_mrr** — Get MRR, ARR, and other revenue metrics including deferred revenue balance. Params: `ledgerId`
+44. **get_deferred_revenue** — Get current deferred revenue balance with breakdown by schedule. Params: `ledgerId`
+
+### Fixed Assets
+45. **check_capitalisation** — Check whether an amount should be capitalised or expensed. Params: `ledgerId`, `amountCents`, `assetType`, `purchaseDate`, `annualTurnoverCents?`
+46. **create_fixed_asset** — Register a fixed asset and generate depreciation schedule. Params: `ledgerId`, `name`, `assetType`, `costCents`, `purchaseDate`, `depreciationMethod?`, `usefulLifeMonths?`, `salvageValueCents?`, `assetAccountId`, `accumulatedDepreciationAccountId?`, `depreciationExpenseAccountId?`, `description?`
+47. **list_fixed_assets** — List all fixed assets with current NBV. Params: `ledgerId`, `status?`
+48. **get_depreciation_schedule** — Get full depreciation schedule for an asset. Params: `assetId`
+49. **get_depreciation_due** — Get pending depreciation entries. Params: `ledgerId`
+50. **run_depreciation** — Post all pending depreciation entries. Params: `ledgerId`
+51. **get_asset_register_summary** — Get asset register summary for reporting. Params: `ledgerId`
+52. **dispose_fixed_asset** — Record asset disposal with gain/loss calculation. Params: `assetId`, `disposalDate`, `disposalProceedsCents`, `proceedsAccountId?`, `gainAccountId?`, `lossAccountId?`, `notes?`
+53. **update_fixed_asset** — Update asset details (name, useful life, method, etc.). Params: `assetId`, `name?`, `description?`, `usefulLifeMonths?`, `salvageValueCents?`, `depreciationMethod?`, `assetType?`
+54. **update_jurisdiction** — Update ledger jurisdiction and tax settings. Params: `ledgerId`, `jurisdiction?`, `taxId?`, `taxBasis?`
+55. **get_setup_guide** — Get jurisdiction-aware setup guide for fixed assets. Params: `ledgerId`
 
 ## Resources (4)
 1. `ledger://{id}/chart-of-accounts` — Full chart of accounts as JSON

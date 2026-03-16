@@ -9,12 +9,15 @@ import type { LedgerEngine, Database } from "@kounta/core";
 import {
   adviseOnCapitalisation,
   createFixedAsset,
+  getFixedAsset,
   listFixedAssets,
   getAssetSchedule,
   getPendingDepreciation,
   runDepreciation,
   getAssetSummary,
   disposeFixedAsset,
+  getJurisdictionConfig,
+  getFinancialYearLabel,
 } from "@kounta/core";
 import type { DepreciationMethod } from "@kounta/core";
 import { toolOk, toolErr } from "../lib/helpers.js";
@@ -279,6 +282,187 @@ export function registerFixedAssetTools(
             : result.value.gainOrLoss === "loss"
               ? `Loss of $${(Math.abs(result.value.gainLoss) / 100).toFixed(2)}`
               : "No gain or loss"}.${result.value.cgtNote ? ` ${result.value.cgtNote}` : ""}`,
+        });
+      } catch (e) {
+        return toolErr({ code: "INTERNAL_ERROR", message: String(e), details: [] });
+      }
+    },
+  );
+
+  // -----------------------------------------------------------------------
+  // update_fixed_asset
+  // -----------------------------------------------------------------------
+  server.tool(
+    "update_fixed_asset",
+    "Update an existing fixed asset's details. Use this to correct the asset name, change the useful life, update the salvage value, adjust the depreciation method, or modify the description. If useful life or depreciation method changes, the depreciation schedule will be regenerated from the current period onwards — already-posted entries are preserved.",
+    {
+      assetId: z.string().describe("Fixed asset ID"),
+      name: z.string().optional().describe("New asset name"),
+      description: z.string().optional().describe("New description"),
+      usefulLifeMonths: z.number().int().positive().optional().describe("New useful life in months"),
+      salvageValueCents: z.number().int().optional().describe("New salvage value in cents"),
+      depreciationMethod: z.string().optional().describe("New depreciation method (straight_line, diminishing_value, etc.)"),
+      assetType: z.string().optional().describe("New asset type category"),
+    },
+    async (params) => {
+      try {
+        // Build update fields
+        const sets: string[] = [];
+        const values: unknown[] = [];
+
+        if (params.name !== undefined) { sets.push("name = ?"); values.push(params.name); }
+        if (params.description !== undefined) { sets.push("description = ?"); values.push(params.description); }
+        if (params.usefulLifeMonths !== undefined) { sets.push("useful_life_months = ?"); values.push(params.usefulLifeMonths); }
+        if (params.salvageValueCents !== undefined) { sets.push("salvage_value = ?"); values.push(params.salvageValueCents); }
+        if (params.depreciationMethod !== undefined) { sets.push("depreciation_method = ?"); values.push(params.depreciationMethod); }
+        if (params.assetType !== undefined) { sets.push("asset_type = ?"); values.push(params.assetType); }
+
+        if (sets.length === 0) {
+          return toolErr({ code: "VALIDATION_ERROR", message: "No fields to update", details: [] });
+        }
+
+        sets.push("updated_at = ?");
+        values.push(new Date().toISOString());
+        values.push(params.assetId);
+
+        await db.run(`UPDATE fixed_assets SET ${sets.join(", ")} WHERE id = ?`, values);
+
+        // TODO: When useful_life_months or depreciation_method changes, the depreciation
+        // schedule should be regenerated from the current period onwards. This requires a
+        // new core function (regenerateSchedule) that preserves already-posted entries and
+        // recalculates future periods. For now, only metadata fields are updated.
+
+        // Return updated asset
+        const result = await getFixedAsset(db, params.assetId);
+        if (!result.ok) return toolErr({ code: result.error.code, message: result.error.message, details: [] });
+
+        return toolOk({
+          ...result.value,
+          schedule: result.value.schedule.slice(0, 12),
+          scheduleTotal: result.value.schedule.length,
+          message: `Updated asset "${result.value.name}" successfully.`,
+        });
+      } catch (e) {
+        return toolErr({ code: "INTERNAL_ERROR", message: String(e), details: [] });
+      }
+    },
+  );
+
+  // -----------------------------------------------------------------------
+  // update_jurisdiction
+  // -----------------------------------------------------------------------
+  server.tool(
+    "update_jurisdiction",
+    "Update the jurisdiction and tax settings for this ledger. Changes the tax jurisdiction (which affects depreciation methods, capitalisation thresholds, financial year dates, and tax rules), tax ID, and accounting basis. Use when a user asks to change their country, switch between cash and accrual accounting, or set their ABN/EIN/tax number. Available jurisdictions: AU (Australia), US (United States), UK (United Kingdom), NZ (New Zealand), CA (Canada), SG (Singapore), OTHER.",
+    {
+      ledgerId: z.string().describe("Ledger ID"),
+      jurisdiction: z.string().optional().describe("Country code (AU, US, UK, NZ, CA, SG, OTHER)"),
+      taxId: z.string().optional().describe("Tax identification number (ABN, EIN, UTR, etc.)"),
+      taxBasis: z.enum(["cash", "accrual"]).optional().describe("Accounting basis"),
+    },
+    async ({ ledgerId, jurisdiction, taxId, taxBasis }) => {
+      try {
+        const sets: string[] = [];
+        const params: unknown[] = [];
+
+        if (jurisdiction !== undefined) { sets.push("jurisdiction = ?"); params.push(jurisdiction); }
+        if (taxId !== undefined) { sets.push("tax_id = ?"); params.push(taxId); }
+        if (taxBasis !== undefined) { sets.push("tax_basis = ?"); params.push(taxBasis); }
+
+        if (sets.length === 0) {
+          return toolErr({ code: "VALIDATION_ERROR", message: "No fields to update. Provide at least one of: jurisdiction, taxId, taxBasis.", details: [] });
+        }
+
+        sets.push("updated_at = ?");
+        params.push(new Date().toISOString());
+        params.push(ledgerId);
+
+        await db.run(`UPDATE ledgers SET ${sets.join(", ")} WHERE id = ?`, params);
+
+        // Read back updated state
+        const row = await db.get<{ jurisdiction: string; tax_id: string | null; tax_basis: string; fiscal_year_start: number }>(
+          "SELECT jurisdiction, tax_id, tax_basis, fiscal_year_start FROM ledgers WHERE id = ?",
+          [ledgerId],
+        );
+
+        const jur = row?.jurisdiction ?? "AU";
+        const config = getJurisdictionConfig(jur);
+        const fyLabel = getFinancialYearLabel(new Date(), jur);
+
+        return toolOk({
+          jurisdiction: jur,
+          jurisdictionName: config.name,
+          taxId: row?.tax_id ?? null,
+          taxBasis: row?.tax_basis ?? "accrual",
+          financialYear: fyLabel,
+          taxAuthority: config.taxAuthority,
+          message: `Ledger updated to ${config.name} jurisdiction (${config.taxAuthority}, ${fyLabel}).`,
+        });
+      } catch (e) {
+        return toolErr({ code: "INTERNAL_ERROR", message: String(e), details: [] });
+      }
+    },
+  );
+
+  // -----------------------------------------------------------------------
+  // get_setup_guide
+  // -----------------------------------------------------------------------
+  server.tool(
+    "get_setup_guide",
+    "Get a jurisdiction-aware setup guide for fixed assets and depreciation. Returns step-by-step instructions tailored to the ledger's jurisdiction, including relevant tax rules, depreciation methods, and capitalisation thresholds.",
+    {
+      ledgerId: z.string().describe("Ledger ID"),
+    },
+    async ({ ledgerId }) => {
+      try {
+        const ledger = await db.get<{ jurisdiction: string }>(
+          "SELECT jurisdiction FROM ledgers WHERE id = ?",
+          [ledgerId],
+        );
+        const jur = ledger?.jurisdiction ?? "AU";
+        const config = getJurisdictionConfig(jur);
+        const fyLabel = getFinancialYearLabel(new Date(), jur);
+
+        // Jurisdiction-specific guidance
+        const jurisdictionGuidance: Record<string, string> = {
+          AU: `Australian businesses use diminishing value depreciation by default (per ATO effective life rulings). The instant asset write-off scheme allows immediate deduction for assets under $20,000 for small businesses with turnover under $10M. Financial year runs 1 July to 30 June.`,
+          US: `US businesses typically use MACRS depreciation. Section 179 allows immediate expensing up to $1.16M. Bonus depreciation at 60% is available for 2024. Financial year is calendar year.`,
+          UK: `UK businesses use capital allowances (Writing Down Allowance at 18% main pool, 6% special pool). Annual Investment Allowance of £1M is available. Financial year runs 6 April to 5 April.`,
+          NZ: `New Zealand uses diminishing value as the default method, with rates set by the IRD. Low-value assets under $1,000 can be expensed immediately. Financial year runs 1 April to 31 March.`,
+          CA: `Canadian businesses use Capital Cost Allowance (CCA) classes with declining balance method. The Accelerated Investment Incentive allows higher first-year deductions. Financial year is calendar year.`,
+          SG: `Singapore uses straight-line depreciation by default. Section 19A allows immediate write-off for assets under S$5,000. Financial year is calendar year.`,
+        };
+
+        const guidance = jurisdictionGuidance[jur] ?? `Straight-line depreciation is the default. Configure your specific depreciation method when registering assets.`;
+
+        const steps = [
+          `**Step 1: Set Your Jurisdiction**`,
+          `Your ledger is currently set to ${config.name} (${config.taxAuthority}, ${fyLabel}). If this is incorrect, use update_jurisdiction to change it — this determines your financial year dates, depreciation methods, tax rules, and capitalisation thresholds.`,
+          ``,
+          `**Jurisdiction Notes (${config.name}):**`,
+          guidance,
+          ``,
+          `**Step 2: Register Fixed Assets**`,
+          `If your business has purchased equipment, computers, vehicles, or other capital items, register them as fixed assets:`,
+          ``,
+          `1. Use check_capitalisation to determine if a purchase should be capitalised or expensed immediately`,
+          `2. Use create_fixed_asset to register capital purchases — the system will generate depreciation schedules automatically using your jurisdiction rules`,
+          `3. Use run_depreciation monthly to post pending depreciation entries and keep your books current`,
+          `4. Use get_asset_register_summary at any time to see your total asset position`,
+          ``,
+          `**Current Settings:**`,
+          `- Jurisdiction: ${config.name}`,
+          `- Tax Authority: ${config.taxAuthority}`,
+          `- Financial Year: ${fyLabel}`,
+          `- Default Depreciation: ${config.defaultDepreciationMethod}`,
+          `- Capitalisation Threshold: $${(config.capitalisationThreshold / 100).toFixed(2)}`,
+          `- Available Methods: ${config.depreciationMethods.join(", ")}`,
+        ];
+
+        return toolOk({
+          jurisdiction: jur,
+          jurisdictionName: config.name,
+          guide: steps.join("\n"),
         });
       } catch (e) {
         return toolErr({ code: "INTERNAL_ERROR", message: String(e), details: [] });

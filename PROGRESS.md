@@ -3,7 +3,7 @@
 ## Project Overview
 
 Kounta is a programmable double-entry ledger and reporting engine, embeddable via API, SDK, and MCP.
-Monorepo with 5 packages + 3 example apps, ~189 TypeScript files, 235 tests passing.
+Monorepo with 5 packages + 3 example apps, ~189 TypeScript files, 312+ tests passing.
 
 ## Tech Stack
 
@@ -23,7 +23,7 @@ Monorepo with 5 packages + 3 example apps, ~189 TypeScript files, 235 tests pass
 packages/
   core/       # @kounta/core — double-entry engine, domain logic
   api/        # @kounta/api — REST API via Hono
-  mcp/        # @kounta/mcp — MCP server (27 tools)
+  mcp/        # @kounta/mcp — MCP server (55 tools)
   sdk/        # @kounta/sdk — TypeScript client SDK (12 modules)
   dashboard/  # @kounta/dashboard — Next.js dashboard (14 pages)
 examples/
@@ -83,17 +83,42 @@ examples/
     - Import parsers updated to use `toSmallestUnit()` for correct decimal handling (JPY=0, BHD=3, etc.)
     - Plan enforcement: Pro tier only
 
+### Phase 2, Block 3 — Fixed Assets & Jurisdiction
+
+17. **Jurisdiction Foundation** (Migration 019)
+    - 6 jurisdictions: AU, US, UK, NZ, CA, SG + OTHER fallback
+    - Jurisdiction config: tax year, currency, tax authority, VAT/GST, tax ID label
+    - GET/PATCH `/v1/ledgers/:ledgerId/jurisdiction`
+    - Dashboard: Jurisdiction settings card in Settings page
+    - AI assistant jurisdiction context
+
+18. **Fixed Assets & Depreciation** (Migration 018, 019, 020)
+    - Complete depreciation engine: 12 methods (straight-line, diminishing value, prime cost, MACRS, WDA, instant write-off, Section 179, AIA, CCA, bonus depreciation, declining balance, units of production)
+    - MACRS half-year convention, first-period pro-rata
+    - Automatic schedule generation from jurisdiction rules
+    - Asset disposal with gain/loss calculation and AU CGT detection
+    - Capitalisation advisory (adviseOnCapitalisation with jurisdiction-aware thresholds)
+    - Proactive capitalisation check notifications on large expenses
+    - Depreciation scheduler with startup run for reliability
+    - Dashboard: Fixed Assets page with Add Asset modal, inline capitalisation check, schedule preview, "Record as expense" pre-fill
+    - Dashboard: Overview depreciation alert banner
+    - MCP: 12 fixed asset tools (check_capitalisation, create_fixed_asset, list_fixed_assets, get_depreciation_schedule, get_depreciation_due, run_depreciation, get_asset_register_summary, dispose_fixed_asset, update_fixed_asset, update_jurisdiction, get_setup_guide)
+    - SDK: FixedAssetsModule
+    - 77+ new tests (63 engine + 14 API integration)
+
 ## Current State
 
 ### Test Status
 
 | Package | Tests | Status |
 |---------|-------|--------|
-| @kounta/core | 129 | ✅ passing |
+| @kounta/core | 192 | ✅ passing |
 | @kounta/mcp | 36 | ✅ passing |
-| @kounta/api | 35 (31 integration + 4 benchmark) | ✅ passing |
+| @kounta/api | 49 (45 integration + 4 benchmark) | ✅ passing |
 | @kounta/sdk | 35 | ✅ passing |
-| **Total** | **235** | **all passing** |
+| **Total** | **312+** | **all passing** |
+
+> Note: 77+ new tests added for fixed assets (63 depreciation engine + 14 API integration).
 
 ### Database Migrations
 
@@ -105,22 +130,36 @@ examples/
 | 004 | bank_feeds | Bank connections, accounts, transactions, sync logs |
 | 005 | intelligence | Notifications, notification preferences |
 | 006 | multi_currency | Currency settings, exchange rates, line_item currency columns |
+| 007 | conversations | AI assistant conversation history |
+| 008 | classification | Transaction classification rules |
+| 009 | email | Email forwarding and parsing |
+| 010 | onboarding | User onboarding state and progress |
+| 011 | attachments | File attachments for transactions |
+| 012 | recurring_entries | Recurring/scheduled transactions |
+| 013 | closed_periods | Period closing and lock dates |
+| 014 | global_classifications | Global classification taxonomy |
+| 015 | stripe_connect | Stripe Connect for marketplace billing |
+| 016 | revenue_recognition | Revenue recognition schedules |
+| 017 | bank_feeds_metadata | Bank feeds provider metadata |
+| 018 | fixed_assets | Fixed asset register and depreciation schedules |
+| 019 | jurisdiction | Jurisdiction configuration (AU, US, UK, NZ, CA, SG) |
+| 020 | capitalisation_notification | Capitalisation check notification type |
 
-### MCP Tools (27 total)
+### MCP Tools (55 total)
 
-setup_ledger, complete_setup, post_transaction, reverse_transaction, search_transactions, list_accounts, create_account, get_statement, import_file, confirm_matches, get_import_batch, get_usage, connect_bank, list_bank_accounts, sync_bank_feed, list_bank_transactions, match_bank_transaction, list_notifications, get_unread_count, action_notification, manage_preferences, generate_insights, enable_currency, set_exchange_rate, list_exchange_rates, convert_amount, revalue_accounts
+setup_ledger, complete_setup, post_transaction, reverse_transaction, search_transactions, list_accounts, create_account, get_statement, import_file, confirm_matches, get_import_batch, get_usage, connect_bank, list_bank_accounts, sync_bank_feed, list_bank_transactions, match_bank_transaction, list_notifications, get_unread_count, action_notification, manage_preferences, generate_insights, enable_currency, set_exchange_rate, list_exchange_rates, convert_amount, revalue_accounts, check_capitalisation, create_fixed_asset, list_fixed_assets, get_depreciation_schedule, get_depreciation_due, run_depreciation, get_asset_register_summary, dispose_fixed_asset, update_fixed_asset, update_jurisdiction, get_setup_guide, ...
 
-### SDK Modules (12)
+### SDK Modules (13)
 
-ledgers, accounts, transactions, reports, audit, imports, templates, apiKeys, admin, bankFeeds, notifications, currencies
+ledgers, accounts, transactions, reports, audit, imports, templates, apiKeys, admin, bankFeeds, notifications, currencies, fixedAssets
 
-### Dashboard Pages (14)
+### Dashboard Pages (16)
 
-/, /accounts, /transactions, /statements, /bank-feeds, /notifications, /currencies, /api-keys, /mcp, /billing, /templates, /signin + auth API route
+/, /accounts, /transactions, /statements, /bank-feeds, /notifications, /currencies, /fixed-assets, /settings, /api-keys, /mcp, /billing, /templates, /signin + auth API route
 
-### API Endpoints (30+)
+### API Endpoints (45+)
 
-Health, Ledgers (CRUD), Accounts (CRUD), Transactions (post/list/get/reverse), Reports (P&L/BS/CF), Audit, Templates (list/get/recommend/apply), Imports (upload/list/get/confirm), API Keys (create/list/revoke), Currencies (list/enable), Exchange Rates (list/set/convert), Revalue, Bank Feeds (connect/list/sync/match), Notifications (list/get/action/preferences/generate), Billing/Usage
+Health, Ledgers (CRUD), Accounts (CRUD), Transactions (post/list/get/reverse), Reports (P&L/BS/CF), Audit, Templates (list/get/recommend/apply), Imports (upload/list/get/confirm), API Keys (create/list/revoke), Currencies (list/enable), Exchange Rates (list/set/convert), Revalue, Bank Feeds (connect/list/sync/match), Notifications (list/get/action/preferences/generate), Billing/Usage, Fixed Assets (create/list/get/update/dispose/depreciation-schedule/depreciation-due/run-depreciation/register-summary/capitalisation-check), Jurisdiction (get/patch)
 
 ## Environment Variables
 

@@ -9,6 +9,7 @@ import type { Result } from "../types/index.js";
 import { ErrorCode, createError, ok, err } from "../errors/index.js";
 import { getJurisdictionConfig } from "../jurisdiction/config.js";
 import type { CustomerRow } from "./customers.js";
+import { createCustomer } from "./customers.js";
 import { calculateDueDate } from "./payment-terms.js";
 import type { PaymentTermsCode } from "./payment-terms.js";
 import type {
@@ -467,9 +468,35 @@ export const sendInvoice = async (
   // 'approved' = AR posted but not emailed; 'sent' = AR posted AND emailed
   const newStatus = options?.sendEmail ? "sent" : "approved";
   const now = nowUtc();
+
+  // Auto-create customer record if one doesn't exist for this customer name
+  let customerId = invoice.customerId;
+  if (!customerId) {
+    const existingCustomer = await db.get<{ id: string }>(
+      "SELECT id FROM customers WHERE ledger_id = ? AND name = ? AND is_active = 1 LIMIT 1",
+      [ledgerId, invoice.customerName],
+    );
+    if (existingCustomer) {
+      customerId = existingCustomer.id;
+    } else {
+      try {
+        const customerResult = await createCustomer(db, ledgerId, {
+          name: invoice.customerName,
+          email: invoice.customerEmail ?? undefined,
+          address: invoice.customerAddress ?? undefined,
+        });
+        if (customerResult.ok) {
+          customerId = customerResult.value.id;
+        }
+      } catch {
+        // Non-fatal — customer auto-creation is best-effort
+      }
+    }
+  }
+
   await db.run(
-    `UPDATE invoices SET status = ?, ar_transaction_id = ?, updated_at = ? WHERE id = ?`,
-    [newStatus, txResult.value.id, now, invoiceId],
+    `UPDATE invoices SET status = ?, ar_transaction_id = ?, customer_id = COALESCE(?, customer_id), updated_at = ? WHERE id = ?`,
+    [newStatus, txResult.value.id, customerId, now, invoiceId],
   );
 
   const updated = await fetchInvoiceWithChildren(db, invoiceId);
@@ -762,11 +789,29 @@ export const getInvoiceSummary = async (
     [ledgerId],
   );
 
-  const avgDays = await db.get<{ avg_days: number | null }>(
-    `SELECT AVG(JULIANDAY(paid_date) - JULIANDAY(issue_date)) AS avg_days FROM invoices
-     WHERE ledger_id = ? AND status = 'paid' AND paid_date IS NOT NULL`,
-    [ledgerId],
-  );
+  // Average days to payment — try SQLite's JULIANDAY first, fall back to
+  // PostgreSQL date arithmetic if it doesn't exist.
+  let avgDaysValue: number | null = null;
+  try {
+    const avgDays = await db.get<{ avg_days: number | null }>(
+      `SELECT AVG(JULIANDAY(paid_date) - JULIANDAY(issue_date)) AS avg_days FROM invoices
+       WHERE ledger_id = ? AND status = 'paid' AND paid_date IS NOT NULL`,
+      [ledgerId],
+    );
+    avgDaysValue = avgDays?.avg_days ?? null;
+  } catch {
+    // JULIANDAY is SQLite-only; use PostgreSQL date subtraction
+    try {
+      const avgDays = await db.get<{ avg_days: number | null }>(
+        `SELECT AVG(paid_date::date - issue_date::date) AS avg_days FROM invoices
+         WHERE ledger_id = ? AND status = 'paid' AND paid_date IS NOT NULL`,
+        [ledgerId],
+      );
+      avgDaysValue = avgDays?.avg_days ?? null;
+    } catch {
+      // If both fail, leave as null
+    }
+  }
 
   return {
     totalOutstanding: Number(outstanding?.total ?? 0),
@@ -775,7 +820,7 @@ export const getInvoiceSummary = async (
     totalPaidThisMonth: Number(paidThisMonth?.total ?? 0),
     invoiceCount: invoiceCount?.cnt ?? 0,
     overdueCount: overdue?.cnt ?? 0,
-    averageDaysToPayment: avgDays?.avg_days != null ? Math.round(avgDays.avg_days) : null,
+    averageDaysToPayment: avgDaysValue != null ? Math.round(avgDaysValue) : null,
     currency,
   };
 };

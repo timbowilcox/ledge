@@ -418,8 +418,9 @@ function TransactionRow({
                 </tbody>
               </table>
 
-              {/* Attachments */}
-              <AttachmentsSection transactionId={tx.id} />
+              {/* Attachments — hidden for invoice-related transactions */}
+              {/* TODO: Use a source_type field on transactions for more robust detection instead of description string matching. */}
+              <AttachmentsSection transactionId={tx.id} memo={tx.memo} />
             </div>
           </td>
         </tr>
@@ -432,7 +433,15 @@ function TransactionRow({
 // Attachments section — shown inside expanded transaction row
 // ---------------------------------------------------------------------------
 
-function AttachmentsSection({ transactionId }: { transactionId: string }) {
+function AttachmentsSection({ transactionId, memo }: { transactionId: string; memo?: string }) {
+  // Hide attachments for invoice-related transactions (AR entries, payments, voids)
+  const isInvoiceTransaction = memo != null && (
+    memo.startsWith("Invoice ") ||
+    memo.startsWith("Payment received — Invoice") ||
+    memo.startsWith("Void invoice ") ||
+    memo.startsWith("Void — Invoice")
+  );
+  if (isInvoiceTransaction) return null;
   const [attachments, setAttachments] = useState<AttachmentSummary[] | null>(null);
   const [uploading, setUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);

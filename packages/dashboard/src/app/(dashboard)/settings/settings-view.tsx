@@ -255,6 +255,8 @@ function GeneralTab({ ledger, ledgerId, fiscalYearStart, closedThrough, closedPe
       ledgerNameOriginal.current = ledgerName.trim();
       setLedgerNameSaved(true);
       setTimeout(() => setLedgerNameSaved(false), 2000);
+      // Refresh server components so the ledger switcher dropdown shows the new name
+      router.refresh();
     }
     setLedgerNameSaving(false);
   };

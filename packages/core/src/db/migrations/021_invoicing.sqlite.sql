@@ -38,6 +38,9 @@ CREATE TABLE IF NOT EXISTS invoices (
 
   -- Payment tracking
   paid_date               TEXT,
+  -- NOTE: payment_transaction_id is deprecated.
+  -- Use invoice_payments.transaction_id instead.
+  -- Column retained for backwards compatibility.
   payment_transaction_id  TEXT REFERENCES transactions(id),
 
   -- AR journal entry (posted when invoice is sent/approved)

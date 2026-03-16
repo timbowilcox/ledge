@@ -538,9 +538,9 @@ export const recordPayment = async (
   await db.run(
     `UPDATE invoices SET
       amount_paid = ?, amount_due = ?, status = ?,
-      paid_date = ?, payment_transaction_id = ?, updated_at = ?
+      paid_date = ?, updated_at = ?
     WHERE id = ?`,
-    [newAmountPaid, newAmountDue, newStatus, paidDate, txResult.value.id, now, invoiceId],
+    [newAmountPaid, newAmountDue, newStatus, paidDate, now, invoiceId],
   );
 
   const updated = await fetchInvoiceWithChildren(db, invoiceId);

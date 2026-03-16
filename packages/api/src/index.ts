@@ -22,6 +22,7 @@ import { createApp } from "./app.js";
 import { checkAndSendDigests, checkAndSendMonthlyClose, checkOnboardingSequence, processRecurringEntries, processAllPendingRecognition, runDepreciation, checkOverdueInvoices } from "@kounta/core";
 
 const SYSTEM_USER_ID = "00000000-0000-0000-0000-000000000001";
+let lastOverdueCheckDate: string | null = null;
 
 const main = async () => {
   const databaseUrl = process.env["DATABASE_URL"];
@@ -148,14 +149,18 @@ const main = async () => {
       console.error("Depreciation scheduler error:", err);
     }
 
-    // Check for overdue invoices — mark sent invoices past due date as overdue
+    // Check for overdue invoices — only once per day (date comparison only)
     try {
-      const ledgers = await engine.getDb().all<{ id: string }>("SELECT id FROM ledgers");
-      for (const ledger of ledgers) {
-        const overdueCount = await checkOverdueInvoices(engine.getDb(), ledger.id);
-        if (overdueCount > 0) {
-          console.log(`Overdue invoices: marked ${overdueCount} invoice(s) overdue for ledger ${ledger.id}`);
+      const today = new Date().toISOString().slice(0, 10);
+      if (today !== lastOverdueCheckDate) {
+        const ledgers = await engine.getDb().all<{ id: string }>("SELECT id FROM ledgers");
+        for (const ledger of ledgers) {
+          const overdueCount = await checkOverdueInvoices(engine.getDb(), ledger.id);
+          if (overdueCount > 0) {
+            console.log(`Overdue invoices: marked ${overdueCount} invoice(s) overdue for ledger ${ledger.id}`);
+          }
         }
+        lastOverdueCheckDate = today;
       }
     } catch (err) {
       console.error("Overdue invoices scheduler error:", err);

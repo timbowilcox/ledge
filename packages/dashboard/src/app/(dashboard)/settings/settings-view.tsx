@@ -1193,7 +1193,7 @@ function BillingTab({ billing, tierUsage }: { billing: BillingStatus; tierUsage:
         <UsageBar label="Transactions" used={tierUsage.transactions.used} limit={tierUsage.transactions.limit} />
         <UsageBar label="Invoices" used={tierUsage.invoices.used} limit={tierUsage.invoices.limit} />
         <UsageBar label="Customers" used={tierUsage.customers.used} limit={tierUsage.customers.limit} />
-        <UsageBar label="Ledgers" used={tierUsage.ledgerCount} limit={isFree ? 1 : tierUsage.tier === "builder" ? 3 : tierUsage.tier === "pro" ? 10 : null} />
+        <UsageBar label="Ledgers" used={tierUsage.ledgers.used} limit={tierUsage.ledgers.limit} />
         <UsageBar label="Fixed Assets" used={tierUsage.fixedAssets.used} limit={tierUsage.fixedAssets.limit} />
 
         {isFree && (

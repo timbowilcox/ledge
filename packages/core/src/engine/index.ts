@@ -296,6 +296,8 @@ interface BalanceRow {
   balance: number | string;
 }
 
+// DEPRECATED: Used only by deprecated getUsage/incrementUsage/resetUsage methods below.
+// New code should use usage_tracking table via @kounta/core tiers/usage.ts.
 interface UsagePeriodRow {
   id: string;
   ledger_id: string;
@@ -1950,6 +1952,8 @@ export class LedgerEngine {
   // Billing — usage tracking and plan management
   // -------------------------------------------------------------------------
 
+  // DEPRECATED: Use getUsageSummary from @kounta/core tiers/usage.ts instead.
+  // Reads from old usage_periods table. Retained for backward compat; not called by any route.
   async getUsage(ledgerId: string): Promise<Result<{ count: number; limit: number; plan: string; periodStart: string; periodEnd: string }>> {
     // Get the user's plan via ledger owner
     const ledger = await this.db.get<LedgerRow>("SELECT * FROM ledgers WHERE id = ?", [ledgerId]);
@@ -1981,6 +1985,8 @@ export class LedgerEngine {
     });
   }
 
+  // DEPRECATED: Use incrementUsage from @kounta/core tiers/usage.ts instead.
+  // Writes to old usage_periods table. Retained for backward compat; not called by any route.
   async incrementUsage(ledgerId: string): Promise<void> {
     const now = new Date();
     const periodStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
@@ -2094,6 +2100,8 @@ export class LedgerEngine {
     return ok(toUser(row));
   }
 
+  // DEPRECATED: Usage resets automatically via new period in usage_tracking table.
+  // Writes to old usage_periods table. Retained for backward compat; not called by any route.
   async resetUsage(ledgerId: string): Promise<void> {
     const now = new Date();
     const periodStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];

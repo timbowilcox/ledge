@@ -121,6 +121,7 @@ export interface UsageSummary {
   tier: string;
   period: { start: string; end: string };
   ledgerCount: number;
+  ledgers: UsageSummaryResource;
   transactions: UsageSummaryResource;
   invoices: UsageSummaryResource;
   customers: UsageSummaryResource;
@@ -173,6 +174,7 @@ export async function getUsageSummary(db: Database, userId: string): Promise<Usa
     tier,
     period: { start: periodStart, end: periodEnd },
     ledgerCount,
+    ledgers: makeResource(ledgerCount, config.limits.maxLedgers),
     transactions: makeResource(
       usageRow?.total_transactions ?? 0,
       config.limits.maxTransactionsPerMonth,

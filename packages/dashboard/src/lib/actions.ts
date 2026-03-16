@@ -233,6 +233,7 @@ export interface TierUsage {
   tier: string;
   period: { start: string; end: string };
   ledgerCount: number;
+  ledgers: UsageResource;
   transactions: UsageResource;
   invoices: UsageResource;
   customers: UsageResource;
@@ -249,6 +250,7 @@ export async function fetchCurrentUsage(): Promise<TierUsage> {
         end: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split("T")[0]!,
       },
       ledgerCount: 1,
+      ledgers: { used: 1, limit: 1, remaining: 0 },
       transactions: { used: 0, limit: 100, remaining: 100 },
       invoices: { used: 0, limit: 5, remaining: 5 },
       customers: { used: 0, limit: 3, remaining: 3 },

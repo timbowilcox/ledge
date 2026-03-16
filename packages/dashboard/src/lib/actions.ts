@@ -221,6 +221,64 @@ export async function createPortalSession(): Promise<string> {
   return json.data.url;
 }
 
+// --- Tier Usage (new tier system) --------------------------------------------
+
+export interface UsageResource {
+  used: number;
+  limit: number | null;
+  remaining: number | null;
+}
+
+export interface TierUsage {
+  tier: string;
+  period: { start: string; end: string };
+  ledgerCount: number;
+  transactions: UsageResource;
+  invoices: UsageResource;
+  customers: UsageResource;
+  fixedAssets: UsageResource;
+}
+
+export async function fetchCurrentUsage(): Promise<TierUsage> {
+  const res = await billingFetch("/v1/usage");
+  if (!res.ok) {
+    return {
+      tier: "free",
+      period: {
+        start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split("T")[0]!,
+        end: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split("T")[0]!,
+      },
+      ledgerCount: 1,
+      transactions: { used: 0, limit: 100, remaining: 100 },
+      invoices: { used: 0, limit: 5, remaining: 5 },
+      customers: { used: 0, limit: 3, remaining: 3 },
+      fixedAssets: { used: 0, limit: 3, remaining: 3 },
+    };
+  }
+  const json = await res.json();
+  return json.data;
+}
+
+export interface TierConfig {
+  name: string;
+  price: number;
+  limits: {
+    maxLedgers: number | null;
+    maxTransactionsPerMonth: number | null;
+    maxInvoicesPerMonth: number | null;
+    maxCustomers: number | null;
+    maxFixedAssets: number | null;
+  };
+  features: Record<string, boolean>;
+}
+
+export async function fetchTiers(): Promise<Record<string, TierConfig>> {
+  const res = await billingFetch("/v1/usage/tiers");
+  if (!res.ok) return {};
+  const json = await res.json();
+  return json.data;
+}
+
 // --- Email Preferences -------------------------------------------------------
 
 export interface EmailPreferences {

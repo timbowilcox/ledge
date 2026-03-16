@@ -9,7 +9,7 @@ import { Hono } from "hono";
 import type { Env } from "../lib/context.js";
 import { apiKeyAuth } from "../middleware/auth.js";
 import { success, errorResponse } from "../lib/responses.js";
-import { createError, ErrorCode } from "@kounta/core";
+import { createError, ErrorCode, getUsageSummary } from "@kounta/core";
 
 const DASHBOARD_URL = process.env["NEXT_PUBLIC_APP_URL"] || "https://kounta.ai";
 const STRIPE_SECRET_KEY = process.env["STRIPE_SECRET_KEY"];
@@ -127,13 +127,7 @@ billingRoutes.post("/webhook", async (c) => {
               periodEnd,
             );
 
-            // Reset usage counters for all user ledgers
-            const ledgers = await engine.findLedgersByOwner(userResult.value.id);
-            if (ledgers.ok) {
-              for (const ledger of ledgers.value) {
-                await engine.resetUsage(ledger.id);
-              }
-            }
+            // Usage resets automatically with new period in usage_tracking table
           }
         } catch (e) {
           console.error("Error handling invoice.payment_succeeded:", e);
@@ -164,13 +158,6 @@ billingRoutes.post("/webhook", async (c) => {
               customerId,
               subscription.id,
             );
-            // Update plan_updated_at
-            try {
-              await engine.getDb().run(
-                "UPDATE users SET plan_updated_at = ? WHERE id = ?",
-                [new Date().toISOString(), userResult.value.id],
-              );
-            } catch { /* column may not exist yet */ }
             console.log(`Updated user ${userResult.value.id} to ${plan} plan (${event.type})`);
           }
         } catch (e) {
@@ -191,13 +178,6 @@ billingRoutes.post("/webhook", async (c) => {
               userResult.value.id,
               "free",
             );
-            // Update plan_updated_at
-            try {
-              await engine.getDb().run(
-                "UPDATE users SET plan_updated_at = ? WHERE id = ?",
-                [new Date().toISOString(), userResult.value.id],
-              );
-            } catch { /* column may not exist yet */ }
             console.log("Downgraded user " + userResult.value.id + " to free plan after subscription deletion");
           }
         } catch (e) {
@@ -309,29 +289,29 @@ billingRoutes.get("/status", apiKeyAuth, async (c) => {
   const engine = c.get("engine");
   const apiKeyInfo = c.get("apiKeyInfo")!;
 
-  const userResult = await engine.getUserByLedger(apiKeyInfo.ledgerId);
-  if (!userResult.ok || !userResult.value) {
-    return errorResponse(c, createError(ErrorCode.INTERNAL_ERROR, "User not found"));
+  try {
+    const summary = await getUsageSummary(engine.getDb(), apiKeyInfo.userId);
+
+    // Calculate next reset date (1st of next month)
+    const endDate = new Date(summary.period.end || new Date());
+    endDate.setDate(endDate.getDate() + 1);
+    const nextResetDate = endDate.toISOString().split("T")[0];
+
+    return success(c, {
+      plan: summary.tier,
+      usage: {
+        count: summary.transactions.used,
+        limit: summary.transactions.limit,
+      },
+      periodStart: summary.period.start,
+      periodEnd: summary.period.end,
+      nextResetDate,
+    });
+  } catch (e) {
+    return errorResponse(c, createError(
+      ErrorCode.INTERNAL_ERROR,
+      `Failed to get billing status: ${e instanceof Error ? e.message : String(e)}`,
+    ));
   }
-  const user = userResult.value;
-
-  const usageResult = await engine.getUsage(apiKeyInfo.ledgerId);
-  const usage = usageResult.ok ? usageResult.value : { count: 0, limit: 500, periodStart: "", periodEnd: "" };
-
-  // Calculate next reset date
-  const endDate = new Date(usage.periodEnd || new Date());
-  endDate.setDate(endDate.getDate() + 1);
-  const nextResetDate = endDate.toISOString().split("T")[0];
-
-  return success(c, {
-    plan: user.plan,
-    usage: {
-      count: usage.count,
-      limit: usage.limit === -1 ? null : usage.limit,
-    },
-    periodStart: usage.periodStart,
-    periodEnd: usage.periodEnd,
-    nextResetDate,
-  });
 });
 

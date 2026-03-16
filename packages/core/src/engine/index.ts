@@ -2063,9 +2063,10 @@ export class LedgerEngine {
         stripe_subscription_id = COALESCE(?, stripe_subscription_id),
         plan_period_start = COALESCE(?, plan_period_start),
         plan_period_end = COALESCE(?, plan_period_end),
+        plan_updated_at = ?,
         updated_at = ?
        WHERE id = ?`,
-      [plan, stripeCustomerId ?? null, stripeSubscriptionId ?? null, periodStart ?? null, periodEnd ?? null, now, userId]
+      [plan, stripeCustomerId ?? null, stripeSubscriptionId ?? null, periodStart ?? null, periodEnd ?? null, now, now, userId]
     );
 
     const row = await this.db.get<UserRow>("SELECT * FROM users WHERE id = ?", [userId]);

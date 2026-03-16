@@ -7,8 +7,9 @@ import type { TransactionWithLines, AccountWithBalance } from "@kounta/sdk";
 import { PostTransactionButton } from "@/components/post-transaction-button";
 import { ProgressChecklist } from "@/components/progress-checklist";
 import { FirstClassificationModal } from "@/components/first-classification-modal";
-import { fetchRevenueMetrics, fetchPendingDepreciation, fetchInvoiceSummary, fetchARAging } from "@/lib/actions";
-import type { InvoiceSummary, ARAgingBucket } from "@/lib/actions";
+import { fetchRevenueMetrics, fetchPendingDepreciation, fetchInvoiceSummary, fetchARAging, fetchCurrentUsage } from "@/lib/actions";
+import type { InvoiceSummary, ARAgingBucket, TierUsage } from "@/lib/actions";
+import { UsageLimitBanner } from "@/components/usage-limit-banner";
 
 export const dynamic = "force-dynamic";
 
@@ -111,8 +112,43 @@ export default async function OverviewPage() {
     // Invoice tables may not exist yet
   }
 
+  // Tier usage for limit banner
+  let tierUsage: TierUsage | null = null;
+  try {
+    tierUsage = await fetchCurrentUsage();
+  } catch {
+    // Tier usage not available yet
+  }
+
+  // Find the resource closest to its limit (priority order)
+  const usageBanner = (() => {
+    if (!tierUsage) return null;
+    const resources: { key: string; used: number; limit: number | null }[] = [
+      { key: "transactions", used: tierUsage.transactions.used, limit: tierUsage.transactions.limit },
+      { key: "invoices", used: tierUsage.invoices.used, limit: tierUsage.invoices.limit },
+      { key: "customers", used: tierUsage.customers.used, limit: tierUsage.customers.limit },
+      { key: "fixedAssets", used: tierUsage.fixedAssets.used, limit: tierUsage.fixedAssets.limit },
+    ];
+    for (const r of resources) {
+      if (r.limit !== null && r.limit > 0 && (r.used / r.limit) >= 0.8) {
+        return r;
+      }
+    }
+    return null;
+  })();
+
   return (
     <div>
+      {/* Usage limit banner */}
+      {usageBanner && tierUsage && (
+        <UsageLimitBanner
+          resource={usageBanner.key}
+          used={usageBanner.used}
+          limit={usageBanner.limit}
+          tier={tierUsage.tier}
+        />
+      )}
+
       {/* Greeting */}
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 24, fontWeight: 600, marginBottom: 4 }}>

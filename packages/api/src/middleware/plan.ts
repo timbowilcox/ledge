@@ -1,6 +1,8 @@
 // ---------------------------------------------------------------------------
-// Plan enforcement — checks usage limits before transaction posting.
+// DEPRECATED: Replaced by tier-enforcement.ts
+// Keeping for reference only. Remove in next cleanup.
 //
+// Plan enforcement — checks usage limits before transaction posting.
 // Free plan: 0–499 post normally, 500–599 accepted as pending, 600+ rejected.
 // Paid plans: no limit.
 // ---------------------------------------------------------------------------

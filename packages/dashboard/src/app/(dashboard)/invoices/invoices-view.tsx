@@ -21,6 +21,7 @@ import type {
   CustomerListItem,
 } from "@/lib/actions";
 import type { AccountWithBalance } from "@kounta/sdk";
+import { UpgradePrompt } from "@/components/upgrade-prompt";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -141,6 +142,7 @@ interface Props {
   customers: CustomerListItem[];
   taxLabel: string;
   taxRate: number;
+  currentTier?: string;
 }
 
 const PAYMENT_TERMS_OPTIONS = [
@@ -174,7 +176,7 @@ const TABS: { key: StatusTab; label: string }[] = [
 // Main view
 // ---------------------------------------------------------------------------
 
-export function InvoicesView({ initialInvoices, initialSummary, initialAging, accounts, customers, taxLabel, taxRate }: Props) {
+export function InvoicesView({ initialInvoices, initialSummary, initialAging, accounts, customers, taxLabel, taxRate, currentTier = "free" }: Props) {
   const [invoices, setInvoices] = useState(initialInvoices);
   const [summary, setSummary] = useState(initialSummary);
   const [activeTab, setActiveTab] = useState<StatusTab>("all");
@@ -223,6 +225,7 @@ export function InvoicesView({ initialInvoices, initialSummary, initialAging, ac
   };
 
   const handleEmailInvoice = (id: string) => {
+    if (!canEmail) { setShowEmailUpgrade(true); return; }
     startTransition(async () => {
       const result = await emailInvoiceAction(id);
       if (result) {
@@ -252,13 +255,20 @@ export function InvoicesView({ initialInvoices, initialSummary, initialAging, ac
     });
   };
 
+  const [showPdfUpgrade, setShowPdfUpgrade] = useState(false);
+  const [showEmailUpgrade, setShowEmailUpgrade] = useState(false);
+  const canPdf = currentTier !== "free";
+  const canEmail = currentTier !== "free";
+
   const handleDownloadPDF = (id: string) => {
+    if (!canPdf) { setShowPdfUpgrade(true); return; }
     window.open(`/api/invoices/${id}/pdf`, "_blank");
   };
 
   const [previewPDF, setPreviewPDF] = useState<string | null>(null);
 
   const handlePreviewPDF = (id: string) => {
+    if (!canPdf) { setShowPdfUpgrade(true); return; }
     setPreviewPDF(`/api/invoices/${id}/pdf`);
   };
 
@@ -465,6 +475,32 @@ export function InvoicesView({ initialInvoices, initialSummary, initialAging, ac
             refresh();
           }}
         />
+      )}
+
+      {/* PDF upgrade prompt */}
+      {showPdfUpgrade && (
+        <>
+          <div onClick={() => setShowPdfUpgrade(false)} style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", zIndex: 200 }} />
+          <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 201, width: 440 }}>
+            <UpgradePrompt feature="pdfExport" message="PDF invoice export is available on Builder ($19/month). Upgrade to download and preview invoice PDFs." currentTier={currentTier} requiredTier="builder" />
+            <button onClick={() => setShowPdfUpgrade(false)} style={{ marginTop: 12, width: "100%", padding: "8px 0", fontSize: 13, color: "var(--text-tertiary)", backgroundColor: "transparent", border: "1px solid var(--border)", borderRadius: 8, cursor: "pointer" }}>
+              Maybe later
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* Email upgrade prompt */}
+      {showEmailUpgrade && (
+        <>
+          <div onClick={() => setShowEmailUpgrade(false)} style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", zIndex: 200 }} />
+          <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 201, width: 440 }}>
+            <UpgradePrompt feature="invoiceEmail" message="Invoice email requires Builder plan. Upgrade to send invoices directly to your customers." currentTier={currentTier} requiredTier="builder" />
+            <button onClick={() => setShowEmailUpgrade(false)} style={{ marginTop: 12, width: "100%", padding: "8px 0", fontSize: 13, color: "var(--text-tertiary)", backgroundColor: "transparent", border: "1px solid var(--border)", borderRadius: 8, cursor: "pointer" }}>
+              Maybe later
+            </button>
+          </div>
+        </>
       )}
 
       {/* PDF preview modal */}

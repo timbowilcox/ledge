@@ -1,5 +1,5 @@
 import { getSessionClient } from "@/lib/kounta";
-import { fetchBillingStatus, fetchApiKeys, fetchClosedPeriods, fetchJurisdictions, fetchJurisdictionSettings } from "@/lib/actions";
+import { fetchBillingStatus, fetchCurrentUsage, fetchApiKeys, fetchClosedPeriods, fetchJurisdictions, fetchJurisdictionSettings } from "@/lib/actions";
 import type { ClosedPeriodSummary, JurisdictionOption, JurisdictionSettings } from "@/lib/actions";
 import { SettingsView } from "./settings-view";
 import type { ApiKeySafe, AccountWithBalance } from "@kounta/sdk";
@@ -20,9 +20,10 @@ export default async function SettingsPage() {
     redirect("/signin?callbackUrl=/settings");
   }
 
-  const [ledger, billing, apiKeys, currenciesRaw, exchangeRatesRaw, accounts] = await Promise.all([
+  const [ledger, billing, tierUsage, apiKeys, currenciesRaw, exchangeRatesRaw, accounts] = await Promise.all([
     client.ledgers.get(ledgerId),
     fetchBillingStatus(),
+    fetchCurrentUsage(),
     fetchApiKeys(),
     client.currencies.list(ledgerId).catch(() => []),
     client.currencies.listRates(ledgerId).catch(() => ({ data: [], nextCursor: null })),
@@ -58,6 +59,7 @@ export default async function SettingsPage() {
     <SettingsView
       ledger={ledger}
       billing={billing}
+      tierUsage={tierUsage}
       initialKeys={[...apiKeys] as ApiKeySafe[]}
       currencies={currencies as any[]}
       exchangeRates={exchangeRates as any[]}

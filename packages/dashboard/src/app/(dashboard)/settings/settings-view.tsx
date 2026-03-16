@@ -9,8 +9,9 @@ import type { StripeConnectStatus, OAuthConnection } from "@/lib/actions";
 import type { EmailPreferences, ClosedPeriodSummary, JurisdictionOption, JurisdictionSettings } from "@/lib/actions";
 import { CopyButton } from "@/components/copy-button";
 import type { ApiKeySafe, AccountWithBalance } from "@kounta/sdk";
-import type { BillingStatus } from "@/lib/actions";
+import type { BillingStatus, TierUsage } from "@/lib/actions";
 import { AccountsView } from "@/app/(dashboard)/accounts/accounts-view";
+import { UpgradePrompt } from "@/components/upgrade-prompt";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -19,6 +20,7 @@ type SettingsTab = "general" | "accounts" | "currencies" | "api-keys" | "billing
 interface Props {
   ledger: { name: string; currency: string; accountingBasis: string; templateId: string | null; createdAt: string };
   billing: BillingStatus;
+  tierUsage: TierUsage;
   initialKeys: ApiKeySafe[];
   currencies: any[];
   exchangeRates: any[];
@@ -75,7 +77,7 @@ const TABS: { key: SettingsTab; label: string }[] = [
 
 // ── Main component ─────────────────────────────────────────────────────────
 
-export function SettingsView({ ledger, billing, initialKeys, currencies, exchangeRates, fiscalYearStart, closedThrough, closedPeriods, accounts, jurisdictions, jurisdictionSettings }: Props) {
+export function SettingsView({ ledger, billing, tierUsage, initialKeys, currencies, exchangeRates, fiscalYearStart, closedThrough, closedPeriods, accounts, jurisdictions, jurisdictionSettings }: Props) {
   const searchParams = useSearchParams();
   const initialTab = (searchParams.get("tab") as SettingsTab) || "general";
   const [activeTab, setActiveTab] = useState<SettingsTab>(TABS.some(t => t.key === initialTab) ? initialTab : "general");
@@ -130,8 +132,8 @@ export function SettingsView({ ledger, billing, initialKeys, currencies, exchang
       {activeTab === "general" && <GeneralTab ledger={ledger} fiscalYearStart={fiscalYearStart} closedThrough={closedThrough} closedPeriods={closedPeriods} jurisdictions={jurisdictions} jurisdictionSettings={jurisdictionSettings} />}
       {activeTab === "accounts" && <AccountsView accounts={accounts} />}
       {activeTab === "currencies" && <CurrenciesTab currencies={currencies} exchangeRates={exchangeRates} />}
-      {activeTab === "api-keys" && <ApiKeysTab initialKeys={initialKeys} />}
-      {activeTab === "billing" && <BillingTab billing={billing} />}
+      {activeTab === "api-keys" && <ApiKeysTab initialKeys={initialKeys} currentTier={tierUsage.tier} />}
+      {activeTab === "billing" && <BillingTab billing={billing} tierUsage={tierUsage} />}
       {activeTab === "email" && <EmailTab />}
       {activeTab === "recurring" && <RecurringTab />}
       {activeTab === "connections" && <ConnectionsTab />}
@@ -782,7 +784,21 @@ function CurrenciesTab({ currencies, exchangeRates }: { currencies: any[]; excha
 
 // ── API Keys Tab ───────────────────────────────────────────────────────────
 
-function ApiKeysTab({ initialKeys }: { initialKeys: ApiKeySafe[] }) {
+function ApiKeysTab({ initialKeys, currentTier = "free" }: { initialKeys: ApiKeySafe[]; currentTier?: string }) {
+  // Free tier: show upgrade prompt instead of API keys
+  if (currentTier === "free") {
+    return (
+      <div style={{ maxWidth: 480, margin: "40px auto" }}>
+        <UpgradePrompt
+          feature="apiAccess"
+          message="API and SDK access is available on Builder ($19/month). Upgrade to generate API keys and integrate Kounta into your application."
+          currentTier={currentTier}
+          requiredTier="builder"
+        />
+      </div>
+    );
+  }
+
   const [keys, setKeys] = useState<ApiKeySafe[]>(initialKeys);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newKeyName, setNewKeyName] = useState("");
@@ -1070,14 +1086,41 @@ const PLAN_TIERS = [
   },
 ];
 
-function BillingTab({ billing }: { billing: BillingStatus }) {
+function UsageBar({ label, used, limit }: { label: string; used: number; limit: number | null }) {
+  if (limit === null) {
+    return (
+      <div style={{ marginBottom: 16 }}>
+        <div className="flex items-baseline justify-between" style={{ marginBottom: 6 }}>
+          <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>{label}</span>
+          <span className="font-mono" style={{ fontSize: 13, color: "var(--text-tertiary)", fontVariantNumeric: "tabular-nums" }}>
+            {used.toLocaleString()} (unlimited)
+          </span>
+        </div>
+      </div>
+    );
+  }
+  const pct = limit > 0 ? Math.min((used / limit) * 100, 100) : 0;
+  const barColor = pct >= 90 ? "var(--negative)" : pct >= 70 ? "#D97706" : "var(--positive)";
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div className="flex items-baseline justify-between" style={{ marginBottom: 6 }}>
+        <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>{label}</span>
+        <span className="font-mono" style={{ fontSize: 13, color: pct >= 90 ? "var(--negative)" : "var(--text-tertiary)", fontVariantNumeric: "tabular-nums" }}>
+          {used.toLocaleString()} / {limit.toLocaleString()}
+        </span>
+      </div>
+      <div style={{ width: "100%", height: 6, borderRadius: 3, backgroundColor: "var(--border)", overflow: "hidden" }}>
+        <div style={{ width: pct + "%", height: "100%", borderRadius: 3, backgroundColor: barColor, transition: "width 600ms ease" }} />
+      </div>
+    </div>
+  );
+}
+
+function BillingTab({ billing, tierUsage }: { billing: BillingStatus; tierUsage: TierUsage }) {
   const [isPending, startTransition] = useTransition();
   const [redirecting, setRedirecting] = useState(false);
 
-  const isFree = billing.plan === "free";
-  const limit = billing.usage.limit ?? Infinity;
-  const pct = limit === Infinity ? 0 : Math.min((billing.usage.count / limit) * 100, 100);
-  const barColor = pct >= 100 ? "var(--negative)" : pct >= 80 ? "#D97706" : "var(--accent)";
+  const isFree = tierUsage.tier === "free";
 
   const handleUpgrade = () => {
     setRedirecting(true);
@@ -1112,56 +1155,56 @@ function BillingTab({ billing }: { billing: BillingStatus }) {
     switch (plan) { case "builder": return "$19/mo"; case "pro": return "$49/mo"; case "platform": return "$149/mo"; default: return "$0/mo"; }
   };
 
+  const tierDescriptions: Record<string, string> = {
+    free: "100 transactions, 5 invoices, 3 customers per month.",
+    builder: "1,000 transactions/month. Unlimited invoices and customers.",
+    pro: "10,000 transactions/month. Revenue recognition and consolidated view.",
+    platform: "Unlimited everything. Programmatic provisioning and white-label.",
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <div className="grid grid-cols-2" style={{ gap: 16 }}>
-        {/* Current Plan */}
-        <div className="card">
-          <div className="section-label" style={{ marginBottom: 12 }}>Current Plan</div>
-          <div className="flex items-center gap-3" style={{ marginBottom: 12 }}>
-            <span className="font-mono" style={{ fontSize: 28, fontWeight: 600, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>
-              {planLabel(billing.plan)}
-            </span>
-            <span className={"badge " + (isFree ? "badge-blue" : "badge-green")}>{planPrice(billing.plan)}</span>
-          </div>
-          <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6 }}>
-            {isFree ? "500 transactions per month." : "Unlimited transactions. All features unlocked."}
+      {/* Plan card */}
+      <div className="card">
+        <div className="section-label" style={{ marginBottom: 12 }}>Current Plan</div>
+        <div className="flex items-center gap-3" style={{ marginBottom: 12 }}>
+          <span className="font-mono" style={{ fontSize: 28, fontWeight: 600, color: "var(--text-primary)", letterSpacing: "-0.02em" }}>
+            {planLabel(tierUsage.tier)}
+          </span>
+          <span className={"badge " + (isFree ? "badge-blue" : "badge-green")}>{planPrice(tierUsage.tier)}</span>
+        </div>
+        <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6 }}>
+          {tierDescriptions[tierUsage.tier] || tierDescriptions.free}
+        </p>
+        {!isFree && billing.periodEnd && (
+          <p style={{ fontSize: 12, color: "var(--text-tertiary)", marginTop: 8 }}>
+            Current period: {fmtDate(billing.periodStart)} {"\u2014"} {fmtDate(billing.periodEnd)}
           </p>
-        </div>
-
-        {/* Usage */}
-        <div className="card">
-          <div className="section-label" style={{ marginBottom: 12 }}>Monthly Usage</div>
-          <div className="flex items-baseline gap-2" style={{ marginBottom: 12 }}>
-            <span className="font-mono" style={{ fontSize: 28, fontWeight: 600, color: pct >= 100 ? "var(--negative)" : "var(--text-primary)", letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }}>
-              {billing.usage.count.toLocaleString()}
-            </span>
-            <span style={{ fontSize: 13, color: "var(--text-tertiary)" }}>
-              {billing.usage.limit != null ? `/ ${billing.usage.limit.toLocaleString()} transactions` : "transactions (unlimited)"}
-            </span>
-          </div>
-          {billing.usage.limit != null && (
-            <div style={{ width: "100%", height: 6, borderRadius: 3, backgroundColor: "var(--border)", overflow: "hidden", marginBottom: 12 }}>
-              <div style={{ width: pct + "%", height: "100%", borderRadius: 3, backgroundColor: barColor, transition: "width 600ms ease" }} />
-            </div>
-          )}
-          <div style={{ fontSize: 12, color: "var(--text-tertiary)" }}>Resets on {fmtDate(billing.nextResetDate)}</div>
-        </div>
+        )}
       </div>
 
-      {/* Pending notice */}
-      {billing.pendingTransactions > 0 && (
-        <div style={{ borderRadius: 8, padding: "16px 20px", backgroundColor: "var(--surface-2)", border: "1px solid #D97706" }}>
-          <div className="flex items-center gap-3">
-            <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="#D97706" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="10" cy="10" r="8" /><path d="M10 6.5v4" /><circle cx="10" cy="13.5" r="0.5" fill="#D97706" />
-            </svg>
-            <span style={{ fontSize: 13, fontWeight: 500, color: "#D97706" }}>
-              {billing.pendingTransactions} transaction{billing.pendingTransactions !== 1 ? "s" : ""} queued
-            </span>
-          </div>
+      {/* Usage card */}
+      <div className="card">
+        <div className="section-label" style={{ marginBottom: 4 }}>Usage this billing period</div>
+        <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 20 }}>
+          {fmtDate(tierUsage.period.start)} {"\u2014"} {fmtDate(tierUsage.period.end)}
         </div>
-      )}
+
+        <UsageBar label="Transactions" used={tierUsage.transactions.used} limit={tierUsage.transactions.limit} />
+        <UsageBar label="Invoices" used={tierUsage.invoices.used} limit={tierUsage.invoices.limit} />
+        <UsageBar label="Customers" used={tierUsage.customers.used} limit={tierUsage.customers.limit} />
+        <UsageBar label="Ledgers" used={tierUsage.ledgerCount} limit={isFree ? 1 : tierUsage.tier === "builder" ? 3 : tierUsage.tier === "pro" ? 10 : null} />
+        <UsageBar label="Fixed Assets" used={tierUsage.fixedAssets.used} limit={tierUsage.fixedAssets.limit} />
+
+        {isFree && (
+          <p style={{ fontSize: 12, color: "var(--text-tertiary)", marginTop: 8, lineHeight: 1.6 }}>
+            Free includes 100 transactions/month. Builder includes 1,000.{" "}
+            <span style={{ color: "var(--text-secondary)", cursor: "pointer" }} onClick={() => document.getElementById("plan-tiers")?.scrollIntoView({ behavior: "smooth" })}>
+              Compare plans &darr;
+            </span>
+          </p>
+        )}
+      </div>
 
       {/* Action card */}
       <div className="card">
@@ -1169,7 +1212,7 @@ function BillingTab({ billing }: { billing: BillingStatus }) {
           <div>
             <div className="section-label" style={{ marginBottom: 12 }}>Upgrade</div>
             <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6, marginBottom: 20 }}>
-              Get unlimited transactions, instant posting, and bank feed integration.
+              Get more transactions, unlimited invoices, PDF export, and bank feed integration.
             </p>
             <button className="btn-primary" onClick={handleUpgrade} disabled={isPending || redirecting}>
               {redirecting ? "Redirecting to Stripe..." : "Upgrade to Builder \u2014 $19/month"}
@@ -1178,14 +1221,9 @@ function BillingTab({ billing }: { billing: BillingStatus }) {
         ) : (
           <div>
             <div className="section-label" style={{ marginBottom: 12 }}>Manage Subscription</div>
-            <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6, marginBottom: 8 }}>
+            <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.6, marginBottom: 20 }}>
               Update payment method, view invoices, or cancel your subscription.
             </p>
-            {billing.periodEnd && (
-              <p style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 20 }}>
-                Current period: {fmtDate(billing.periodStart)} {"\u2014"} {fmtDate(billing.periodEnd)}
-              </p>
-            )}
             <button className="btn-secondary" onClick={handleManage} disabled={isPending || redirecting}>
               {redirecting ? "Redirecting to Stripe..." : "Manage Subscription"}
             </button>
@@ -1194,11 +1232,11 @@ function BillingTab({ billing }: { billing: BillingStatus }) {
       </div>
 
       {/* Plan tiers */}
-      <div>
+      <div id="plan-tiers">
         <div className="section-label" style={{ marginBottom: 16 }}>Plans</div>
         <div className="grid grid-cols-4" style={{ gap: 12 }}>
           {PLAN_TIERS.map((tier) => {
-            const isCurrent = billing.plan === tier.plan;
+            const isCurrent = tierUsage.tier === tier.plan;
             const isRecommended = tier.recommended && isFree;
             return (
               <div

@@ -6,13 +6,14 @@ import {
   fetchJurisdictionSettings,
   fetchJurisdictions,
   fetchCustomers,
+  fetchBillingStatus,
 } from "@/lib/actions";
 import { InvoicesView } from "./invoices-view";
 
 export const dynamic = "force-dynamic";
 
 export default async function InvoicesPage() {
-  const [invoices, summary, aging, accounts, jurisdictionSettings, jurisdictions, customers] = await Promise.allSettled([
+  const [invoices, summary, aging, accounts, jurisdictionSettings, jurisdictions, customers, billingResult] = await Promise.allSettled([
     fetchInvoices(),
     fetchInvoiceSummary(),
     fetchARAging(),
@@ -20,6 +21,7 @@ export default async function InvoicesPage() {
     fetchJurisdictionSettings(),
     fetchJurisdictions(),
     fetchCustomers(),
+    fetchBillingStatus(),
   ]);
 
   // Resolve tax config from jurisdiction
@@ -28,6 +30,8 @@ export default async function InvoicesPage() {
   const jMatch = jList.find((j) => j.code === jCode);
   const taxLabel = jMatch?.vatName ?? "Tax";
   const taxRate = jMatch?.vatRate != null ? jMatch.vatRate / 100 : 0;
+
+  const currentTier = billingResult.status === "fulfilled" ? billingResult.value.plan : "free";
 
   return (
     <InvoicesView
@@ -51,6 +55,7 @@ export default async function InvoicesPage() {
       customers={customers.status === "fulfilled" ? customers.value : []}
       taxLabel={taxLabel}
       taxRate={taxRate}
+      currentTier={currentTier}
     />
   );
 }

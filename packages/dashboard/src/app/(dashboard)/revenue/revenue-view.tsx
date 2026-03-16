@@ -67,15 +67,24 @@ export function RevenueView({ initialMetrics, initialMrrHistory, initialSchedule
     }
     setExpandedId(id);
     startTransition(async () => {
-      const detail = await fetchRevenueSchedule(id);
-      if (detail) setExpandedEntries(detail.entries);
+      try {
+        const detail = await fetchRevenueSchedule(id);
+        if (detail) setExpandedEntries(detail.entries);
+      } catch {
+        // API error — collapse
+        setExpandedId(null);
+      }
     });
   };
 
   const handleAction = (id: string, action: "pause" | "cancel" | "resume") => {
     startTransition(async () => {
-      await updateRevenueScheduleAction(id, action);
-      refresh();
+      try {
+        await updateRevenueScheduleAction(id, action);
+        refresh();
+      } catch {
+        // API error
+      }
     });
   };
 

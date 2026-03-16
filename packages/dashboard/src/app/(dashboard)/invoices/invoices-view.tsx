@@ -191,20 +191,28 @@ export function InvoicesView({ initialInvoices, initialSummary, initialAging, ac
 
   const refresh = () => {
     startTransition(async () => {
-      const [inv, sum] = await Promise.all([
-        fetchInvoices(activeTab === "all" ? undefined : activeTab),
-        fetchInvoiceSummary(),
-      ]);
-      setInvoices(inv);
-      setSummary(sum);
+      try {
+        const [inv, sum] = await Promise.all([
+          fetchInvoices(activeTab === "all" ? undefined : activeTab),
+          fetchInvoiceSummary(),
+        ]);
+        setInvoices(inv);
+        setSummary(sum);
+      } catch {
+        // API error — keep current data
+      }
     });
   };
 
   const handleTabChange = (tab: StatusTab) => {
     setActiveTab(tab);
     startTransition(async () => {
-      const inv = await fetchInvoices(tab === "all" ? undefined : tab);
-      setInvoices(inv);
+      try {
+        const inv = await fetchInvoices(tab === "all" ? undefined : tab);
+        setInvoices(inv);
+      } catch {
+        // API error — keep current tab
+      }
     });
   };
 

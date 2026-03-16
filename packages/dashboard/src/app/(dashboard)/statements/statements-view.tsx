@@ -58,12 +58,16 @@ export function StatementsView({
     const s = start ?? startDate;
     const e = end ?? endDate;
     startTransition(async () => {
-      const [pnl, bs, cf] = await Promise.all([
-        fetchIncomeStatement(s, e),
-        fetchBalanceSheet(e),
-        fetchCashFlow(s, e),
-      ]);
-      setStatements({ pnl, balance_sheet: bs, cash_flow: cf });
+      try {
+        const [pnl, bs, cf] = await Promise.all([
+          fetchIncomeStatement(s, e),
+          fetchBalanceSheet(e),
+          fetchCashFlow(s, e),
+        ]);
+        setStatements({ pnl, balance_sheet: bs, cash_flow: cf });
+      } catch {
+        // API error (e.g. key mismatch after ledger switch) — keep current data
+      }
     });
   };
 

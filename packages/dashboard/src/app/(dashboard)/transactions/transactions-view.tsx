@@ -36,9 +36,13 @@ export function TransactionsView({ initialData, accountMap, closedThrough }: Pro
   const loadNext = () => {
     if (!data.nextCursor) return;
     startTransition(async () => {
-      const result = await fetchTransactions(data.nextCursor ?? undefined, 50);
-      setCursors([...cursors, ""]);
-      setData(result);
+      try {
+        const result = await fetchTransactions(data.nextCursor ?? undefined, 50);
+        setCursors([...cursors, ""]);
+        setData(result);
+      } catch {
+        // API error — keep current data
+      }
     });
   };
 

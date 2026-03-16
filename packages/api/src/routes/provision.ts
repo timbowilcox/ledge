@@ -146,6 +146,80 @@ provisionRoutes.post("/provision", adminAuth, async (c) => {
   });
 });
 
+/** POST /v1/admin/switch-ledger — Issue a new dashboard API key for a different ledger */
+provisionRoutes.post("/switch-ledger", adminAuth, async (c) => {
+  const engine = c.get("engine");
+  const body = await c.req.json();
+
+  const { userId, ledgerId } = body;
+
+  if (!userId || !ledgerId) {
+    return c.json(
+      {
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "userId and ledgerId are required",
+          details: [
+            { field: "userId", suggestion: "The user ID requesting the switch" },
+            { field: "ledgerId", suggestion: "The target ledger ID to switch to" },
+          ],
+          requestId: c.get("requestId"),
+        },
+      },
+      400
+    );
+  }
+
+  // Verify the user owns the target ledger
+  const ledgersResult = await engine.findLedgersByOwner(userId);
+  if (!ledgersResult.ok) return errorResponse(c, ledgersResult.error);
+
+  const targetLedger = ledgersResult.value.find((l) => l.id === ledgerId);
+  if (!targetLedger) {
+    return c.json(
+      {
+        error: {
+          code: "FORBIDDEN",
+          message: "User does not own this ledger",
+          details: [{ field: "ledgerId", suggestion: "Provide a ledger ID owned by this user" }],
+          requestId: c.get("requestId"),
+        },
+      },
+      403
+    );
+  }
+
+  // Revoke old dashboard keys for this ledger, then issue a fresh one
+  const existingKeys = await engine.listApiKeys(ledgerId);
+  if (existingKeys.ok) {
+    for (const key of existingKeys.value) {
+      if (key.name.startsWith("dashboard-") && key.status === "active") {
+        await engine.revokeApiKey(key.id);
+      }
+    }
+  }
+
+  const keyResult = await engine.createApiKey({
+    userId,
+    ledgerId,
+    name: "dashboard-switch",
+  });
+  if (!keyResult.ok) return errorResponse(c, keyResult.error);
+
+  return success(c, {
+    apiKey: {
+      id: keyResult.value.apiKey.id,
+      userId: keyResult.value.apiKey.userId,
+      ledgerId: keyResult.value.apiKey.ledgerId,
+      prefix: keyResult.value.apiKey.prefix,
+      name: keyResult.value.apiKey.name,
+      rawKey: keyResult.value.rawKey,
+      status: keyResult.value.apiKey.status,
+      createdAt: keyResult.value.apiKey.createdAt,
+    },
+  });
+});
+
 /** PATCH /v1/admin/update-name — Update a user's display name */
 provisionRoutes.patch("/update-name", adminAuth, async (c) => {
   const engine = c.get("engine");

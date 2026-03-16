@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { formatDate } from "@/lib/format";
-import { createApiKey, revokeApiKey, fetchApiKeys, createCheckoutSession, createPortalSession, fetchEmailPreferences, updateEmailPreferences, fetchRecurringEntries, deleteRecurringEntryAction, pauseRecurringEntryAction, resumeRecurringEntryAction, updateLedgerAction, reopenPeriodAction, fetchStripeStatus, disconnectStripe, syncStripe, getStripeAuthorizeUrl, updateUserNameAction, fetchOAuthConnections, revokeOAuthConnection, updateJurisdictionAction } from "@/lib/actions";
+import { createApiKey, revokeApiKey, fetchApiKeys, createCheckoutSession, createPortalSession, fetchEmailPreferences, updateEmailPreferences, fetchRecurringEntries, deleteRecurringEntryAction, pauseRecurringEntryAction, resumeRecurringEntryAction, updateLedgerAction, reopenPeriodAction, fetchStripeStatus, disconnectStripe, syncStripe, getStripeAuthorizeUrl, updateUserNameAction, fetchOAuthConnections, revokeOAuthConnection, updateJurisdictionAction, deleteLedgerAction } from "@/lib/actions";
 import type { StripeConnectStatus, OAuthConnection } from "@/lib/actions";
 import type { EmailPreferences, ClosedPeriodSummary, JurisdictionOption, JurisdictionSettings } from "@/lib/actions";
 import { CopyButton } from "@/components/copy-button";
@@ -19,6 +19,7 @@ type SettingsTab = "general" | "accounts" | "currencies" | "api-keys" | "billing
 
 interface Props {
   ledger: { name: string; currency: string; accountingBasis: string; templateId: string | null; createdAt: string };
+  ledgerId?: string;
   billing: BillingStatus;
   tierUsage: TierUsage;
   initialKeys: ApiKeySafe[];
@@ -30,6 +31,7 @@ interface Props {
   accounts: AccountWithBalance[];
   jurisdictions: JurisdictionOption[];
   jurisdictionSettings: JurisdictionSettings;
+  totalLedgerCount?: number;
 }
 
 // ── Template display names ──────────────────────────────────────────────────
@@ -77,7 +79,7 @@ const TABS: { key: SettingsTab; label: string }[] = [
 
 // ── Main component ─────────────────────────────────────────────────────────
 
-export function SettingsView({ ledger, billing, tierUsage, initialKeys, currencies, exchangeRates, fiscalYearStart, closedThrough, closedPeriods, accounts, jurisdictions, jurisdictionSettings }: Props) {
+export function SettingsView({ ledger, ledgerId, billing, tierUsage, initialKeys, currencies, exchangeRates, fiscalYearStart, closedThrough, closedPeriods, accounts, jurisdictions, jurisdictionSettings, totalLedgerCount = 1 }: Props) {
   const searchParams = useSearchParams();
   const initialTab = (searchParams.get("tab") as SettingsTab) || "general";
   const [activeTab, setActiveTab] = useState<SettingsTab>(TABS.some(t => t.key === initialTab) ? initialTab : "general");
@@ -129,7 +131,7 @@ export function SettingsView({ ledger, billing, tierUsage, initialKeys, currenci
       </div>
 
       {/* Tab content */}
-      {activeTab === "general" && <GeneralTab ledger={ledger} fiscalYearStart={fiscalYearStart} closedThrough={closedThrough} closedPeriods={closedPeriods} jurisdictions={jurisdictions} jurisdictionSettings={jurisdictionSettings} />}
+      {activeTab === "general" && <GeneralTab ledger={ledger} ledgerId={ledgerId} fiscalYearStart={fiscalYearStart} closedThrough={closedThrough} closedPeriods={closedPeriods} jurisdictions={jurisdictions} jurisdictionSettings={jurisdictionSettings} totalLedgerCount={totalLedgerCount} />}
       {activeTab === "accounts" && <AccountsView accounts={accounts} />}
       {activeTab === "currencies" && <CurrenciesTab currencies={currencies} exchangeRates={exchangeRates} />}
       {activeTab === "api-keys" && <ApiKeysTab initialKeys={initialKeys} currentTier={tierUsage.tier} />}
@@ -145,7 +147,7 @@ export function SettingsView({ ledger, billing, tierUsage, initialKeys, currenci
 
 const MONTH_NAMES = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-function GeneralTab({ ledger, fiscalYearStart, closedThrough, closedPeriods, jurisdictions, jurisdictionSettings }: { ledger: Props["ledger"]; fiscalYearStart: number; closedThrough: string | null; closedPeriods: ClosedPeriodSummary[]; jurisdictions: JurisdictionOption[]; jurisdictionSettings: JurisdictionSettings }) {
+function GeneralTab({ ledger, ledgerId, fiscalYearStart, closedThrough, closedPeriods, jurisdictions, jurisdictionSettings, totalLedgerCount = 1 }: { ledger: Props["ledger"]; ledgerId?: string; fiscalYearStart: number; closedThrough: string | null; closedPeriods: ClosedPeriodSummary[]; jurisdictions: JurisdictionOption[]; jurisdictionSettings: JurisdictionSettings; totalLedgerCount?: number }) {
   const { data: session, update } = useSession();
   const router = useRouter();
   const [fyStart, setFyStart] = useState(fiscalYearStart);
@@ -621,6 +623,162 @@ function GeneralTab({ ledger, fiscalYearStart, closedThrough, closedPeriods, jur
           </div>
         )}
       </div>
+
+      {/* Danger Zone */}
+      <DangerZone ledgerName={ledger.name} ledgerId={ledgerId} isOnlyLedger={totalLedgerCount <= 1} />
+    </div>
+  );
+}
+
+// ── Danger Zone ───────────────────────────────────────────────────────────
+
+function DangerZone({ ledgerName, ledgerId, isOnlyLedger }: { ledgerName: string; ledgerId?: string; isOnlyLedger: boolean }) {
+  const router = useRouter();
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmName, setConfirmName] = useState("");
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  const handleDelete = () => {
+    if (!ledgerId || confirmName !== ledgerName) return;
+    setError(null);
+    startTransition(async () => {
+      const result = await deleteLedgerAction(ledgerId);
+      if (!result.ok) {
+        setError(result.error ?? "Failed to delete ledger");
+        return;
+      }
+      // Navigate to overview — will load the next active ledger
+      window.location.href = "/";
+    });
+  };
+
+  return (
+    <div
+      style={{
+        marginTop: 32,
+        padding: 20,
+        borderRadius: 10,
+        border: "1px solid rgba(239,68,68,0.25)",
+        backgroundColor: "rgba(239,68,68,0.04)",
+      }}
+    >
+      <h3 style={{ fontSize: 14, fontWeight: 600, color: "#ef4444", margin: "0 0 8px" }}>
+        Danger Zone
+      </h3>
+      <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "0 0 16px", lineHeight: 1.5 }}>
+        Permanently delete this ledger and all its data including transactions,
+        invoices, fixed assets, and bank connections. This cannot be undone.
+      </p>
+      {isOnlyLedger ? (
+        <p style={{ fontSize: 12, color: "var(--text-tertiary)", fontStyle: "italic" }}>
+          This is your only ledger and cannot be deleted.
+        </p>
+      ) : (
+        <>
+          <button
+            onClick={() => setShowConfirm(true)}
+            style={{
+              padding: "8px 16px",
+              borderRadius: 8,
+              backgroundColor: "transparent",
+              color: "#ef4444",
+              fontSize: 13,
+              fontWeight: 500,
+              border: "1px solid rgba(239,68,68,0.3)",
+              cursor: "pointer",
+              transition: "all 150ms ease",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "rgba(239,68,68,0.1)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+          >
+            Delete ledger
+          </button>
+
+          {/* Confirmation dialog */}
+          {showConfirm && (
+            <>
+              <div
+                onClick={() => { setShowConfirm(false); setConfirmName(""); setError(null); }}
+                style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", zIndex: 200 }}
+              />
+              <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 201, width: 440 }}>
+                <div style={{ backgroundColor: "var(--surface-2)", borderRadius: 12, border: "1px solid var(--border)", padding: 24 }}>
+                  <h3 style={{ fontSize: 16, fontWeight: 600, color: "#ef4444", margin: "0 0 8px" }}>
+                    Delete ledger permanently
+                  </h3>
+                  <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "0 0 16px", lineHeight: 1.5 }}>
+                    This will permanently delete <strong style={{ color: "var(--text-primary)" }}>{ledgerName}</strong> and
+                    all associated data. Type the ledger name to confirm.
+                  </p>
+
+                  {error && (
+                    <div style={{ padding: "8px 12px", backgroundColor: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 6, marginBottom: 12, fontSize: 13, color: "#ef4444" }}>
+                      {error}
+                    </div>
+                  )}
+
+                  <input
+                    value={confirmName}
+                    onChange={(e) => setConfirmName(e.target.value)}
+                    placeholder={ledgerName}
+                    autoFocus
+                    style={{
+                      width: "100%",
+                      height: 36,
+                      padding: "0 10px",
+                      backgroundColor: "var(--surface-2)",
+                      border: "1px solid var(--border)",
+                      borderRadius: 6,
+                      color: "var(--text-primary)",
+                      fontSize: 13,
+                      boxSizing: "border-box",
+                      marginBottom: 16,
+                    }}
+                  />
+
+                  <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                    <button
+                      onClick={() => { setShowConfirm(false); setConfirmName(""); setError(null); }}
+                      disabled={isPending}
+                      style={{
+                        padding: "8px 16px",
+                        borderRadius: 8,
+                        backgroundColor: "transparent",
+                        color: "var(--text-tertiary)",
+                        fontSize: 13,
+                        fontWeight: 500,
+                        border: "none",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      disabled={isPending || confirmName !== ledgerName}
+                      style={{
+                        padding: "8px 20px",
+                        borderRadius: 8,
+                        backgroundColor: confirmName === ledgerName ? "#ef4444" : "var(--surface-1)",
+                        color: confirmName === ledgerName ? "#fff" : "var(--text-disabled)",
+                        fontSize: 13,
+                        fontWeight: 500,
+                        border: "none",
+                        cursor: isPending || confirmName !== ledgerName ? "not-allowed" : "pointer",
+                        opacity: isPending ? 0.7 : 1,
+                        transition: "all 150ms ease",
+                      }}
+                    >
+                      {isPending ? "Deleting\u2026" : "Delete permanently"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </>
+      )}
     </div>
   );
 }

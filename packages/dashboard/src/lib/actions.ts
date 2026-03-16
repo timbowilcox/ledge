@@ -807,18 +807,44 @@ export async function fetchUserLedgers(): Promise<LedgerSummary[]> {
 }
 
 export async function switchLedgerAction(ledgerId: string): Promise<boolean> {
+  const session = await auth();
+  if (!session?.userId) return false;
+
   // Validate the user owns this ledger
   const ledgers = await fetchUserLedgers();
   const target = ledgers.find((l) => l.id === ledgerId);
   if (!target) return false;
 
-  // We need to re-provision with the new ledger.
-  // The provision endpoint returns a key scoped to the first ledger,
-  // but we can call a dedicated switch endpoint or update the session.
-  // For now, store the desired ledger in a cookie that overrides session.
+  const apiUrl = process.env["KOUNTA_API_URL"] ?? "http://localhost:3001";
+  const adminSecret = process.env["KOUNTA_ADMIN_SECRET"];
+  if (!adminSecret) return false;
+
+  // Get a new API key scoped to the target ledger
+  const res = await fetch(`${apiUrl}/v1/admin/switch-ledger`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${adminSecret}`,
+    },
+    body: JSON.stringify({ userId: session.userId, ledgerId }),
+    cache: "no-store",
+  });
+
+  if (!res.ok) return false;
+  const json = await res.json();
+  const rawKey = json.data?.apiKey?.rawKey;
+  if (!rawKey) return false;
+
+  // Store both the ledger ID and the new API key in cookies
   const { cookies } = await import("next/headers");
   const cookieStore = await cookies();
   cookieStore.set("kounta_active_ledger", ledgerId, {
+    path: "/",
+    httpOnly: true,
+    sameSite: "lax",
+    maxAge: 60 * 60 * 24 * 365,
+  });
+  cookieStore.set("kounta_active_api_key", rawKey, {
     path: "/",
     httpOnly: true,
     sameSite: "lax",
@@ -870,13 +896,13 @@ export async function createLedgerAction(input: {
   const json = await res.json();
   const ledger = json.data;
 
-  // Set jurisdiction if specified
+  // Set jurisdiction if specified (use admin secret since we don't have a key for this ledger yet)
   if (input.jurisdiction) {
     await fetch(`${apiUrl}/v1/ledgers/${ledger.id}/jurisdiction`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${session.apiKey}`,
+        Authorization: `Bearer ${adminSecret}`,
       },
       body: JSON.stringify({ jurisdiction: input.jurisdiction }),
       cache: "no-store",
@@ -915,13 +941,41 @@ export async function createLedgerAction(input: {
 }
 
 export async function getActiveLedgerId(): Promise<string> {
-  const { cookies } = await import("next/headers");
-  const cookieStore = await cookies();
-  const override = cookieStore.get("kounta_active_ledger")?.value;
-  if (override) return override;
-
   const session = await auth();
   return session?.ledgerId ?? "";
+}
+
+export async function deleteLedgerAction(ledgerId: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.userId) return { ok: false, error: "No authenticated session" };
+
+  const apiUrl = process.env["KOUNTA_API_URL"] ?? "http://localhost:3001";
+  const adminSecret = process.env["KOUNTA_ADMIN_SECRET"];
+  if (!adminSecret) return { ok: false, error: "Server configuration error" };
+
+  const res = await fetch(`${apiUrl}/v1/ledgers/${ledgerId}`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${adminSecret}`,
+    },
+    body: JSON.stringify({ userId: session.userId }),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    return { ok: false, error: json?.error?.message ?? "Failed to delete ledger" };
+  }
+
+  // Switch to the first remaining ledger
+  const remaining = await fetchUserLedgers();
+  const next = remaining.find((l) => l.id !== ledgerId);
+  if (next) {
+    await switchLedgerAction(next.id);
+  }
+
+  return { ok: true };
 }
 
 export async function updateLedgerAction(updates: { name?: string; fiscalYearStart?: number }): Promise<boolean> {

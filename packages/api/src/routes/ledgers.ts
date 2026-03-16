@@ -148,6 +148,50 @@ ledgerRoutes.patch("/:ledgerId", apiKeyAuth, async (c) => {
   return success(c, result.value);
 });
 
+/** DELETE /v1/ledgers/:ledgerId — Soft-delete a ledger (admin auth required) */
+ledgerRoutes.delete("/:ledgerId", adminAuth, async (c) => {
+  const engine = c.get("engine");
+  const db = engine.getDb();
+  const ledgerId = c.req.param("ledgerId");
+  const body = await c.req.json().catch(() => ({})) as { userId?: string };
+
+  const userId = body.userId ?? c.get("apiKeyInfo")?.userId;
+  if (!userId) {
+    return c.json({ error: { code: "VALIDATION_ERROR", message: "userId is required", details: [], requestId: c.get("requestId") } }, 400);
+  }
+
+  // Verify the user owns this ledger
+  const ledgerResult = await engine.getLedger(ledgerId);
+  if (!ledgerResult.ok) {
+    return errorResponse(c, ledgerResult.error);
+  }
+  if ((ledgerResult.value as any).ownerId !== userId) {
+    return c.json({ error: { code: "FORBIDDEN", message: "User does not own this ledger", details: [], requestId: c.get("requestId") } }, 403);
+  }
+
+  // Cannot delete the user's only remaining ledger
+  const ledgersResult = await engine.findLedgersByOwner(userId);
+  if (ledgersResult.ok && ledgersResult.value.length <= 1) {
+    return c.json({ error: { code: "VALIDATION_ERROR", message: "Cannot delete your only ledger", details: [{ field: "ledgerId", suggestion: "You must have at least one ledger." }], requestId: c.get("requestId") } }, 400);
+  }
+
+  // Soft-delete: set status to 'deleted'
+  const now = new Date().toISOString();
+  await db.run("UPDATE ledgers SET status = 'deleted', updated_at = ? WHERE id = ?", [now, ledgerId]);
+
+  // Revoke all API keys for this ledger
+  const keysResult = await engine.listApiKeys(ledgerId);
+  if (keysResult.ok) {
+    for (const key of keysResult.value) {
+      if (key.status === "active") {
+        await engine.revokeApiKey(key.id);
+      }
+    }
+  }
+
+  return success(c, { id: ledgerId, status: "deleted" });
+});
+
 /** GET /v1/ledgers/:ledgerId/jurisdiction — Get jurisdiction settings */
 ledgerRoutes.get("/:ledgerId/jurisdiction", apiKeyAuth, async (c) => {
   const db = c.get("engine").getDb();
@@ -167,7 +211,7 @@ ledgerRoutes.get("/:ledgerId/jurisdiction", apiKeyAuth, async (c) => {
 });
 
 /** PATCH /v1/ledgers/:ledgerId/jurisdiction — Update jurisdiction settings */
-ledgerRoutes.patch("/:ledgerId/jurisdiction", apiKeyAuth, async (c) => {
+ledgerRoutes.patch("/:ledgerId/jurisdiction", adminAuth, async (c) => {
   const db = c.get("engine").getDb();
   const ledgerId = c.req.param("ledgerId");
   const body = await c.req.json() as {

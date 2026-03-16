@@ -85,6 +85,21 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       session.userId = (t.userId as string) ?? "";
       session.needsTemplate = (t.needsTemplate as boolean) ?? false;
       session.needsOnboarding = (t.needsOnboarding as boolean) ?? false;
+
+      // Override with cookie values when user has switched ledgers.
+      // This ensures every function that calls auth() gets the correct
+      // API key scoped to the active ledger — not the original provisioned one.
+      try {
+        const { cookies } = await import("next/headers");
+        const cookieStore = await cookies();
+        const apiKeyOverride = cookieStore.get("kounta_active_api_key")?.value;
+        const ledgerOverride = cookieStore.get("kounta_active_ledger")?.value;
+        if (apiKeyOverride) session.apiKey = apiKeyOverride;
+        if (ledgerOverride) session.ledgerId = ledgerOverride;
+      } catch {
+        // cookies() not available in some contexts (e.g. middleware) — use JWT values
+      }
+
       return session;
     },
   },

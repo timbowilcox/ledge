@@ -1,5 +1,5 @@
 import { getSessionClient } from "@/lib/kounta";
-import { fetchBillingStatus, fetchCurrentUsage, fetchApiKeys, fetchClosedPeriods, fetchJurisdictions, fetchJurisdictionSettings } from "@/lib/actions";
+import { fetchBillingStatus, fetchCurrentUsage, fetchApiKeys, fetchClosedPeriods, fetchJurisdictions, fetchJurisdictionSettings, fetchUserLedgers } from "@/lib/actions";
 import type { ClosedPeriodSummary, JurisdictionOption, JurisdictionSettings } from "@/lib/actions";
 import { SettingsView } from "./settings-view";
 import type { ApiKeySafe, AccountWithBalance } from "@kounta/sdk";
@@ -21,10 +21,10 @@ export default async function SettingsPage() {
   }
 
   const [ledger, billing, tierUsage, apiKeys, currenciesRaw, exchangeRatesRaw, accounts] = await Promise.all([
-    client.ledgers.get(ledgerId),
+    client.ledgers.get(ledgerId).catch(() => ({ name: "Ledger", currency: "USD", accountingBasis: "accrual", templateId: null, createdAt: new Date().toISOString() })),
     fetchBillingStatus(),
     fetchCurrentUsage(),
-    fetchApiKeys(),
+    fetchApiKeys().catch(() => [] as ApiKeySafe[]),
     client.currencies.list(ledgerId).catch(() => []),
     client.currencies.listRates(ledgerId).catch(() => ({ data: [], nextCursor: null })),
     client.accounts.list(ledgerId).catch(() => [] as AccountWithBalance[]),
@@ -41,6 +41,7 @@ export default async function SettingsPage() {
   let closedPeriods: ClosedPeriodSummary[] = [];
   let jurisdictions: JurisdictionOption[] = [];
   let jurisdictionSettings: JurisdictionSettings = { jurisdiction: "AU", taxId: null, taxBasis: "accrual" };
+  let totalLedgerCount = 1;
   try {
     fiscalYearStart = (ledger as any).fiscalYearStart ?? 1;
     closedThrough = (ledger as any).closedThrough ?? null;
@@ -54,10 +55,15 @@ export default async function SettingsPage() {
       fetchJurisdictionSettings(),
     ]);
   } catch {}
+  try {
+    const allLedgers = await fetchUserLedgers();
+    totalLedgerCount = allLedgers.length;
+  } catch {}
 
   return (
     <SettingsView
       ledger={ledger}
+      ledgerId={ledgerId}
       billing={billing}
       tierUsage={tierUsage}
       initialKeys={[...apiKeys] as ApiKeySafe[]}
@@ -69,6 +75,7 @@ export default async function SettingsPage() {
       accounts={accounts as AccountWithBalance[]}
       jurisdictions={jurisdictions}
       jurisdictionSettings={jurisdictionSettings}
+      totalLedgerCount={totalLedgerCount}
     />
   );
 }

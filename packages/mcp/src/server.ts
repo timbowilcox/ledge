@@ -45,7 +45,7 @@ export function createMcpServer(
 
   // Tools
   registerSetupTools(server, engine, systemUserId);
-  registerTransactionTools(server, engine);
+  registerTransactionTools(server, engine, systemUserId);
   registerAccountTools(server, engine);
   registerStatementTools(server, engine);
   registerImportTools(server, engine);

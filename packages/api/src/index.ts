@@ -244,6 +244,7 @@ const applyPostgresMigrations = async (db: PostgresDatabase) => {
       ["017_revenue_notifications.sql", "SELECT 1 FROM pg_enum WHERE enumlabel = 'monthly_recognition_summary' AND enumtypid = (SELECT oid FROM pg_type WHERE typname = 'notification_type')"],
       ["018_oauth.sql", "SELECT 1 FROM information_schema.tables WHERE table_name = 'oauth_clients'"],
       ["019_fixed_assets.sql", "SELECT 1 FROM information_schema.tables WHERE table_name = 'fixed_assets'"],
+      ["020_capitalisation_notification.sql", "SELECT 1 FROM pg_enum WHERE enumlabel = 'capitalisation_check' AND enumtypid = (SELECT oid FROM pg_type WHERE typname = 'notification_type')"],
     ];
 
     for (const [migName, probeQuery] of probes) {
@@ -285,6 +286,7 @@ const applyPostgresMigrations = async (db: PostgresDatabase) => {
     "017_revenue_notifications.sql",
     "018_oauth.sql",
     "019_fixed_assets.sql",
+    "020_capitalisation_notification.sql",
   ];
 
   // ── 4. Apply each unapplied migration in order ──
@@ -321,6 +323,20 @@ const applyPostgresMigrations = async (db: PostgresDatabase) => {
           await db.exec("ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'schedule_completion'");
           await db.exec("ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'large_deferred_balance'");
           await db.exec("ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'receipt_prompt'");
+        } catch { /* already exists */ }
+        await db.run(
+          "INSERT INTO _migrations (name) VALUES ($1) ON CONFLICT (name) DO NOTHING",
+          [migName],
+        );
+        console.log(`Applied PostgreSQL migration: ${migName}`);
+        applied++;
+        continue;
+      }
+
+      // Special case: 020 uses ALTER TYPE ADD VALUE (can't run in transaction)
+      if (migName === "020_capitalisation_notification.sql") {
+        try {
+          await db.exec("ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'capitalisation_check'");
         } catch { /* already exists */ }
         await db.run(
           "INSERT INTO _migrations (name) VALUES ($1) ON CONFLICT (name) DO NOTHING",
@@ -391,6 +407,7 @@ const applySqliteMigrations = async (db: SqliteDatabase) => {
     "017_revenue_notifications.sqlite.sql",
     "018_oauth.sqlite.sql",
     "019_fixed_assets.sqlite.sql",
+    "020_capitalisation_notification.sqlite.sql",
   ];
 
   for (const file of migrationFiles) {

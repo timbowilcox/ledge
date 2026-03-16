@@ -5,11 +5,13 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { LedgerEngine } from "@kounta/core";
+import { getJurisdictionConfig } from "@kounta/core";
 import { handleResult } from "../lib/helpers.js";
 
 export function registerTransactionTools(
   server: McpServer,
   engine: LedgerEngine,
+  systemUserId: string,
 ): void {
   // -----------------------------------------------------------------------
   // post_transaction
@@ -47,6 +49,61 @@ export function registerTransactionTools(
         sourceType: "mcp",
         metadata,
       });
+
+      // Capitalisation check — best-effort notification for large expenses
+      if (result.ok) {
+        try {
+          const tx = result.value;
+
+          // Skip depreciation entries
+          const isDepreciation = tx.idempotencyKey?.startsWith("depreciation-") || tx.memo?.startsWith("Depreciation:");
+
+          // Skip transactions linked to recurring entries
+          const db = engine.getDb();
+          const recurringLink = await db.get<{ id: string }>(
+            "SELECT id FROM recurring_entry_log WHERE transaction_id = ? LIMIT 1",
+            [tx.id],
+          );
+          const isRecurring = !!recurringLink;
+
+          if (!isDepreciation && !isRecurring) {
+            const EXCLUDE_KEYWORDS = /\b(rent|insurance|subscription|lease|payroll|salary|wages|tax|utilities)\b/i;
+
+            const ledgerRow = await db.get<{ jurisdiction: string }>(
+              "SELECT jurisdiction FROM ledgers WHERE id = ?",
+              [ledgerId],
+            );
+            const jurisdiction = ledgerRow?.jurisdiction ?? "AU";
+            const jConfig = getJurisdictionConfig(jurisdiction);
+            const threshold = jConfig.capitalisationThreshold;
+
+            if (threshold > 0) {
+              const expenseDebits = tx.lines.filter((l) => l.direction === "debit" && l.amount >= threshold);
+              for (const line of expenseDebits) {
+                const acctResult = await engine.getAccount(line.accountId);
+                if (!acctResult.ok || acctResult.value.type !== "expense") continue;
+                if (EXCLUDE_KEYWORDS.test(acctResult.value.name)) continue;
+
+                const amountDisplay = `$${(line.amount / 100).toFixed(2)}`;
+                const thresholdDisplay = `$${(threshold / 100).toFixed(2)}`;
+                await engine.createNotification({
+                  ledgerId,
+                  userId: systemUserId,
+                  type: "capitalisation_check",
+                  severity: "warning",
+                  title: "Large expense — should this be capitalised?",
+                  body: `${amountDisplay} posted to ${acctResult.value.name}. Amounts over ${thresholdDisplay} may need to be recorded as fixed assets. Use check_capitalisation to verify.`,
+                  data: { transactionId: tx.id, accountId: line.accountId, amount: line.amount, threshold },
+                  actionType: "navigate",
+                  actionData: { url: "/fixed-assets" },
+                });
+                break; // One notification per transaction
+              }
+            }
+          }
+        } catch { /* Capitalisation check is best-effort */ }
+      }
+
       return handleResult(result);
     },
   );

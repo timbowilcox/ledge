@@ -197,9 +197,9 @@ export function InvoicesView({ initialInvoices, initialSummary, initialAging, ac
     });
   };
 
-  const handleSend = (id: string) => {
+  const handleSend = (id: string, sendEmail: boolean = false) => {
     startTransition(async () => {
-      const result = await sendInvoiceAction(id);
+      const result = await sendInvoiceAction(id, sendEmail);
       if (result) {
         setDetailInvoice(result);
         refresh();
@@ -429,7 +429,7 @@ export function InvoicesView({ initialInvoices, initialSummary, initialAging, ac
           invoice={detailInvoice}
           isPending={isPending}
           onClose={() => setDetailInvoice(null)}
-          onSend={() => handleSend(detailInvoice.id)}
+          onSend={(sendEmail: boolean) => handleSend(detailInvoice.id, sendEmail)}
           onVoid={() => handleVoid(detailInvoice.id)}
           onDelete={() => handleDelete(detailInvoice.id)}
           onEdit={() => { setEditInvoice(detailInvoice); setDetailInvoice(null); }}
@@ -566,7 +566,7 @@ function CreateInvoiceModal({
   const isValid = customerName.trim().length > 0 && lineItems.length > 0 &&
     lineItems.every((li) => li.description.trim() && parseFloat(li.quantity) > 0 && parseFloat(li.unitPriceDollars) > 0);
 
-  const handleSubmit = (andSend: boolean) => {
+  const handleSubmit = (mode: "draft" | "approve" | "approve-email") => {
     setError(null);
     startTransition(async () => {
       const input = {
@@ -596,8 +596,8 @@ function CreateInvoiceModal({
         return;
       }
 
-      if (andSend && result) {
-        const sent = await sendInvoiceAction(result.id);
+      if (mode === "approve" || mode === "approve-email") {
+        const sent = await sendInvoiceAction(result.id, mode === "approve-email");
         onCreated(sent ?? result);
       } else {
         onCreated(result);
@@ -782,16 +782,24 @@ function CreateInvoiceModal({
         <div className="flex justify-end" style={{ gap: 8 }}>
           <button className="btn-secondary" onClick={onClose}>Cancel</button>
           {isEdit ? (
-            <button className="btn-primary" disabled={!isValid || isPending} onClick={() => handleSubmit(false)}>
+            <button className="btn-primary" disabled={!isValid || isPending} onClick={() => handleSubmit("draft")}>
               {isPending ? "Saving..." : "Update"}
             </button>
           ) : (
             <>
-              <button className="btn-secondary" disabled={!isValid || isPending} onClick={() => handleSubmit(false)}>
+              <button className="btn-secondary" disabled={!isValid || isPending} onClick={() => handleSubmit("draft")}>
                 {isPending ? "Saving..." : "Save as draft"}
               </button>
-              <button className="btn-primary" disabled={!isValid || isPending} onClick={() => handleSubmit(true)}>
-                {isPending ? "Saving..." : "Save & send"}
+              <button className="btn-secondary" disabled={!isValid || isPending} onClick={() => handleSubmit("approve")}>
+                {isPending ? "Approving..." : "Approve"}
+              </button>
+              <button
+                className="btn-primary"
+                disabled={!isValid || isPending || !customerEmail.trim()}
+                onClick={() => handleSubmit("approve-email")}
+                title={!customerEmail.trim() ? "Enter customer email to send" : undefined}
+              >
+                {isPending ? "Sending..." : "Approve & email"}
               </button>
             </>
           )}
@@ -820,7 +828,7 @@ function InvoiceDetailDrawer({
   invoice: InvoiceListItem;
   isPending: boolean;
   onClose: () => void;
-  onSend: () => void;
+  onSend: (sendEmail: boolean) => void;
   onVoid: () => void;
   onDelete: () => void;
   onEdit: () => void;
@@ -888,7 +896,10 @@ function InvoiceDetailDrawer({
             {isDraft && (
               <>
                 <button className="btn-secondary" onClick={onEdit} disabled={isPending}>Edit</button>
-                <button className="btn-primary" onClick={onSend} disabled={isPending}>Send</button>
+                <button className="btn-secondary" onClick={() => onSend(false)} disabled={isPending}>Approve</button>
+                {invoice.customerEmail && (
+                  <button className="btn-primary" onClick={() => onSend(true)} disabled={isPending}>Approve &amp; email</button>
+                )}
                 <button
                   onClick={onDelete}
                   disabled={isPending}

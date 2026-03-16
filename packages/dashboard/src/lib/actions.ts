@@ -1262,8 +1262,8 @@ export async function updateInvoiceAction(id: string, input: {
   return json.data;
 }
 
-export async function sendInvoiceAction(id: string): Promise<InvoiceListItem | null> {
-  const res = await invoiceFetch(`/${id}/send`, "POST");
+export async function sendInvoiceAction(id: string, sendEmail: boolean = false): Promise<InvoiceListItem | null> {
+  const res = await invoiceFetch(`/${id}/send`, "POST", { send_email: sendEmail });
   if (!res.ok) return null;
   const json = await res.json();
   return json.data;

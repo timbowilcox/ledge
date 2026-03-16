@@ -25,7 +25,7 @@ export default async function InvoicesPage() {
   const jList = jurisdictions.status === "fulfilled" ? jurisdictions.value : [];
   const jMatch = jList.find((j) => j.code === jCode);
   const taxLabel = jMatch?.vatName ?? "Tax";
-  const taxRate = jMatch?.vatRate ?? 0;
+  const taxRate = jMatch?.vatRate != null ? jMatch.vatRate / 100 : 0;
 
   return (
     <InvoicesView

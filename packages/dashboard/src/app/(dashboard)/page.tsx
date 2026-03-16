@@ -157,13 +157,11 @@ export default async function OverviewPage() {
         <p style={{ fontSize: 14, color: "var(--text-tertiary)", fontWeight: 400 }}>
           {new Date().toLocaleDateString("en-US", { weekday: "long", day: "numeric", month: "long" })}
         </p>
-        <p style={{ fontSize: 14, color: "var(--text-tertiary)" }}>
-          {recentTransactions.length === 0 && !hasData ? (
-            <>No accounts connected &middot; <Link href="/bank-feeds" style={{ color: "var(--text-secondary)" }}>Connect your bank to get started &rarr;</Link></>
-          ) : (
-            <>{accountsList.length} account{accountsList.length !== 1 ? "s" : ""} &middot; {ledger.currency} &middot; {ledger.accountingBasis}</>
-          )}
-        </p>
+        {recentTransactions.length === 0 && !hasData && (
+          <p style={{ fontSize: 14, color: "var(--text-tertiary)" }}>
+            No accounts connected &middot; <Link href="/bank-feeds" style={{ color: "var(--text-secondary)" }}>Connect your bank to get started &rarr;</Link>
+          </p>
+        )}
       </div>
 
       {/* Progress checklist — shown for new users */}
@@ -344,8 +342,8 @@ export default async function OverviewPage() {
             <tr>
               <th className="table-header" style={{ position: "sticky", top: 0, zIndex: 1 }}>Date</th>
               <th className="table-header" style={{ position: "sticky", top: 0, zIndex: 1 }}>Description</th>
-              <th className="table-header text-right" style={{ position: "sticky", top: 0, zIndex: 1 }}>Amount</th>
-              <th className="table-header text-right" style={{ position: "sticky", top: 0, zIndex: 1 }}>Status</th>
+              <th className="table-header" style={{ position: "sticky", top: 0, zIndex: 1, textAlign: "right" }}>Amount</th>
+              <th className="table-header" style={{ position: "sticky", top: 0, zIndex: 1, textAlign: "right" }}>Status</th>
             </tr>
           </thead>
           <tbody>

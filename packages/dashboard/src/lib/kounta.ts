@@ -38,11 +38,24 @@ export function getLedgerId(): string {
  * Per-request SDK client using the session's API key.
  * Creates a new Kounta instance for each request so each user
  * gets their own scoped client.
+ *
+ * Respects the `kounta_active_ledger` cookie for ledger switching.
  */
 export async function getSessionClient(): Promise<{ client: Kounta; ledgerId: string }> {
   const session = await auth();
   if (!session?.apiKey || !session.ledgerId) {
     throw new Error("No authenticated session - sign in required");
+  }
+
+  // Check for ledger override cookie
+  let ledgerId = session.ledgerId;
+  try {
+    const { cookies } = await import("next/headers");
+    const cookieStore = await cookies();
+    const override = cookieStore.get("kounta_active_ledger")?.value;
+    if (override) ledgerId = override;
+  } catch {
+    // cookies() may not be available in all contexts
   }
 
   const client = new Kounta({
@@ -51,5 +64,5 @@ export async function getSessionClient(): Promise<{ client: Kounta; ledgerId: st
     adminSecret: process.env.KOUNTA_ADMIN_SECRET ?? undefined,
   });
 
-  return { client, ledgerId: session.ledgerId };
+  return { client, ledgerId };
 }

@@ -77,6 +77,46 @@ ledgerRoutes.post("/", adminAuth, async (c) => {
   return created(c, result.value);
 });
 
+/** GET /v1/ledgers — List all ledgers owned by the authenticated user */
+ledgerRoutes.get("/", apiKeyAuth, async (c) => {
+  const engine = c.get("engine");
+  const apiKeyInfo = c.get("apiKeyInfo");
+  if (!apiKeyInfo?.userId) {
+    return c.json({ error: { code: "UNAUTHORIZED", message: "No user context", details: [], requestId: c.get("requestId") } }, 401);
+  }
+
+  // Use direct DB query to include jurisdiction column
+  const db = engine.getDb();
+  const rows = await db.all<{
+    id: string;
+    name: string;
+    currency: string;
+    template_id: string | null;
+    jurisdiction: string;
+    fiscal_year_start: number;
+    accounting_basis: string;
+    status: string;
+    created_at: string;
+  }>(
+    "SELECT id, name, currency, template_id, jurisdiction, fiscal_year_start, accounting_basis, status, created_at FROM ledgers WHERE owner_id = ? AND status = 'active' ORDER BY created_at ASC",
+    [apiKeyInfo.userId],
+  );
+
+  const ledgers = rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    currency: r.currency,
+    templateId: r.template_id,
+    jurisdiction: r.jurisdiction ?? "AU",
+    fiscalYearStart: r.fiscal_year_start,
+    accountingBasis: r.accounting_basis,
+    status: r.status,
+    createdAt: r.created_at,
+  }));
+
+  return success(c, ledgers);
+});
+
 /** GET /v1/ledgers/:ledgerId — Get a ledger (API key auth required) */
 ledgerRoutes.get("/:ledgerId", apiKeyAuth, async (c) => {
   const engine = c.get("engine");

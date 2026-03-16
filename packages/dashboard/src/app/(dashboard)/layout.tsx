@@ -5,6 +5,7 @@ import { PostTransactionProvider } from "@/components/post-transaction-provider"
 import { PostTransactionModal } from "@/components/post-transaction-modal";
 import { NavigationProgress } from "@/components/navigation-progress";
 import { NameCaptureModal } from "@/components/name-capture-modal";
+import { DashboardHeader } from "@/components/dashboard-header";
 
 export default function DashboardLayout({
   children,
@@ -28,6 +29,7 @@ export default function DashboardLayout({
               zIndex: 1,
             }}
           >
+            <DashboardHeader />
             {children}
           </main>
           <CommandBar />

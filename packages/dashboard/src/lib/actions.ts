@@ -777,7 +777,152 @@ export async function reopenPeriodAction(periodEnd: string): Promise<ClosedPerio
   return json.data;
 }
 
-// --- Ledger Update ------------------------------------------------------------
+// --- Ledger Management --------------------------------------------------------
+
+export interface LedgerSummary {
+  id: string;
+  name: string;
+  currency: string;
+  templateId: string | null;
+  jurisdiction: string;
+  fiscalYearStart: number;
+  accountingBasis: string;
+  status: string;
+  createdAt: string;
+}
+
+export async function fetchUserLedgers(): Promise<LedgerSummary[]> {
+  const session = await auth();
+  if (!session?.apiKey) return [];
+
+  const apiUrl = process.env["KOUNTA_API_URL"] ?? "http://localhost:3001";
+  const res = await fetch(`${apiUrl}/v1/ledgers`, {
+    headers: { Authorization: `Bearer ${session.apiKey}` },
+    cache: "no-store",
+  });
+
+  if (!res.ok) return [];
+  const json = await res.json();
+  return json.data ?? [];
+}
+
+export async function switchLedgerAction(ledgerId: string): Promise<boolean> {
+  // Validate the user owns this ledger
+  const ledgers = await fetchUserLedgers();
+  const target = ledgers.find((l) => l.id === ledgerId);
+  if (!target) return false;
+
+  // We need to re-provision with the new ledger.
+  // The provision endpoint returns a key scoped to the first ledger,
+  // but we can call a dedicated switch endpoint or update the session.
+  // For now, store the desired ledger in a cookie that overrides session.
+  const { cookies } = await import("next/headers");
+  const cookieStore = await cookies();
+  cookieStore.set("kounta_active_ledger", ledgerId, {
+    path: "/",
+    httpOnly: true,
+    sameSite: "lax",
+    maxAge: 60 * 60 * 24 * 365,
+  });
+
+  return true;
+}
+
+export async function createLedgerAction(input: {
+  name: string;
+  currency?: string;
+  jurisdiction?: string;
+  templateSlug?: string;
+}): Promise<ActionResult<LedgerSummary>> {
+  const session = await auth();
+  if (!session?.apiKey || !session?.userId) {
+    return { ok: false, error: { type: "tier_feature", message: "No authenticated session", upgradeUrl: "/settings?tab=billing" } };
+  }
+
+  const apiUrl = process.env["KOUNTA_API_URL"] ?? "http://localhost:3001";
+  const adminSecret = process.env["KOUNTA_ADMIN_SECRET"];
+  if (!adminSecret) {
+    return { ok: false, error: { type: "tier_feature", message: "Server configuration error", upgradeUrl: "/settings?tab=billing" } };
+  }
+
+  // Create ledger via admin endpoint
+  const res = await fetch(`${apiUrl}/v1/ledgers`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${adminSecret}`,
+    },
+    body: JSON.stringify({
+      name: input.name,
+      currency: input.currency ?? "USD",
+      ownerId: session.userId,
+      accountingBasis: "accrual",
+    }),
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const tierErr = await parseTierError(res);
+    if (tierErr) return { ok: false, error: tierErr };
+    return { ok: false, error: { type: "tier_limit", message: "Failed to create ledger", upgradeUrl: "/settings?tab=billing" } };
+  }
+
+  const json = await res.json();
+  const ledger = json.data;
+
+  // Set jurisdiction if specified
+  if (input.jurisdiction) {
+    await fetch(`${apiUrl}/v1/ledgers/${ledger.id}/jurisdiction`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.apiKey}`,
+      },
+      body: JSON.stringify({ jurisdiction: input.jurisdiction }),
+      cache: "no-store",
+    });
+  }
+
+  // Apply template if specified
+  if (input.templateSlug) {
+    await fetch(`${apiUrl}/v1/ledgers/${ledger.id}/templates/${input.templateSlug}/apply`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${adminSecret}`,
+      },
+      cache: "no-store",
+    });
+  }
+
+  // Switch to the new ledger
+  await switchLedgerAction(ledger.id);
+
+  return {
+    ok: true,
+    data: {
+      id: ledger.id,
+      name: ledger.name,
+      currency: ledger.currency ?? input.currency ?? "USD",
+      templateId: ledger.templateId ?? null,
+      jurisdiction: input.jurisdiction ?? "AU",
+      fiscalYearStart: ledger.fiscalYearStart ?? 1,
+      accountingBasis: ledger.accountingBasis ?? "accrual",
+      status: "active",
+      createdAt: ledger.createdAt ?? new Date().toISOString(),
+    },
+  };
+}
+
+export async function getActiveLedgerId(): Promise<string> {
+  const { cookies } = await import("next/headers");
+  const cookieStore = await cookies();
+  const override = cookieStore.get("kounta_active_ledger")?.value;
+  if (override) return override;
+
+  const session = await auth();
+  return session?.ledgerId ?? "";
+}
 
 export async function updateLedgerAction(updates: { name?: string; fiscalYearStart?: number }): Promise<boolean> {
   const { client, ledgerId } = await getSessionClient();

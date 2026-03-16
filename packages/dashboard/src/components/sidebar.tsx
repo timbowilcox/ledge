@@ -95,52 +95,6 @@ export function Sidebar() {
         </ul>
       </nav>
 
-      {/* Tier badge */}
-      {tier && (
-        <div style={{ paddingLeft: "0.75rem", paddingRight: "0.75rem", marginBottom: "0.5rem" }}>
-          {tier === "free" ? (
-            <Link
-              href="/settings?tab=billing"
-              className="flex items-center justify-between"
-              style={{
-                padding: "0.375rem 0.75rem",
-                borderRadius: "var(--radius-md)",
-                fontSize: "0.75rem",
-                color: "var(--text-tertiary)",
-                textDecoration: "none",
-              }}
-            >
-              <span>Free plan</span>
-              <span style={{ color: "var(--accent)", fontWeight: 500 }}>Upgrade &rarr;</span>
-            </Link>
-          ) : (
-            <div
-              className="flex items-center gap-2"
-              style={{
-                padding: "0.375rem 0.75rem",
-                borderRadius: "var(--radius-md)",
-                fontSize: "0.75rem",
-              }}
-            >
-              <span
-                style={{
-                  display: "inline-block",
-                  padding: "1px 8px",
-                  borderRadius: 9999,
-                  fontSize: "0.6875rem",
-                  fontWeight: 600,
-                  color: TIER_BADGE_STYLES[tier]?.color ?? "var(--text-secondary)",
-                  backgroundColor: TIER_BADGE_STYLES[tier]?.bg ?? "var(--surface-1)",
-                  textTransform: "capitalize",
-                }}
-              >
-                {tier}
-              </span>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Assistant link */}
       <div style={{ paddingLeft: "0.75rem", paddingRight: "0.75rem", marginBottom: "0.5rem", borderTop: "1px solid var(--border)", paddingTop: "0.5rem" }}>
         <Link
@@ -184,13 +138,13 @@ export function Sidebar() {
           borderTop: "1px solid var(--border)",
         }}
       >
-        {session?.user && <UserProfileMenu session={session} />}
+        {session?.user && <UserProfileMenu session={session} tier={tier} />}
       </div>
     </aside>
   );
 }
 
-function UserProfileMenu({ session }: { session: NonNullable<ReturnType<typeof useSession>["data"]> }) {
+function UserProfileMenu({ session, tier }: { session: NonNullable<ReturnType<typeof useSession>["data"]>; tier: string | null }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -290,6 +244,43 @@ function UserProfileMenu({ session }: { session: NonNullable<ReturnType<typeof u
           <div className="truncate" style={{ fontSize: "0.8125rem", fontWeight: 500, color: "var(--text-secondary)" }}>
             {session.user?.name ?? "Kounta User"}
           </div>
+          {tier && (
+            <div style={{ marginTop: 2 }}>
+              {tier === "free" ? (
+                <Link
+                  href="/settings?tab=billing"
+                  onClick={(e) => e.stopPropagation()}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    fontSize: "0.6875rem",
+                    color: "var(--text-tertiary)",
+                    textDecoration: "none",
+                  }}
+                >
+                  Free plan
+                  <span style={{ color: "var(--accent)", fontWeight: 500 }}>Upgrade &rarr;</span>
+                </Link>
+              ) : (
+                <span
+                  style={{
+                    display: "inline-block",
+                    padding: "0 6px",
+                    borderRadius: 9999,
+                    fontSize: "0.625rem",
+                    fontWeight: 600,
+                    color: TIER_BADGE_STYLES[tier]?.color ?? "var(--text-secondary)",
+                    backgroundColor: TIER_BADGE_STYLES[tier]?.bg ?? "var(--surface-1)",
+                    textTransform: "capitalize",
+                    lineHeight: "1.25rem",
+                  }}
+                >
+                  {tier}
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </button>
     </div>

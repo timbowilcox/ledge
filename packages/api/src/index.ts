@@ -133,9 +133,9 @@ const main = async () => {
       console.error("Revenue recognition scheduler error:", err);
     }
 
-    // Process depreciation entries hourly — posts any pending entries whose
-    // period_date has passed. Safe to run repeatedly; already-posted entries
-    // are skipped.
+    // Depreciation is idempotent (UNIQUE constraint on asset_id + period_date).
+    // Safe to run on every startup + hourly interval. Railway restarts won't
+    // cause missed or duplicate entries.
     try {
       const ledgers = await engine.getDb().all<{ id: string }>("SELECT id FROM ledgers");
       for (const ledger of ledgers) {
@@ -149,7 +149,32 @@ const main = async () => {
     }
   };
 
-  // Run once at startup (after a short delay to let the server warm up)
+  // Depreciation startup run — catch any entries missed during downtime.
+  // Depreciation is idempotent (UNIQUE constraint on asset_id + period_date).
+  // Safe to run on every startup + hourly interval. Railway restarts won't
+  // cause missed or duplicate entries.
+  setTimeout(async () => {
+    try {
+      const ledgers = await engine.getDb().all<{ id: string }>(
+        "SELECT id FROM ledgers WHERE id IN (SELECT DISTINCT ledger_id FROM fixed_assets WHERE status = 'active')",
+      );
+      let totalPosted = 0;
+      for (const ledger of ledgers) {
+        const depResult = await runDepreciation(engine.getDb(), engine, ledger.id);
+        totalPosted += depResult.posted;
+        if (depResult.posted > 0) {
+          console.log(`Startup depreciation: posted ${depResult.posted} entries for ledger ${ledger.id} ($${(depResult.totalAmount / 100).toFixed(2)})`);
+        }
+      }
+      if (totalPosted > 0) {
+        console.log(`Startup depreciation: ${totalPosted} total entries posted across ${ledgers.length} ledger(s)`);
+      }
+    } catch (err) {
+      console.error("Startup depreciation run error:", err);
+    }
+  }, 5_000);
+
+  // Run scheduler once at startup (after a short delay to let the server warm up)
   setTimeout(runEmailScheduler, 10_000);
 
   // Then every hour

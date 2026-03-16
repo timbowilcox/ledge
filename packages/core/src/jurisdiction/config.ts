@@ -74,6 +74,20 @@ export const JURISDICTION_CONFIGS: Readonly<Record<Jurisdiction, JurisdictionCon
       'plant-and-equipment': 15,
       'software': 5,
     },
+    // ⚠️ LEGISLATION-DEPENDENT VALUES
+    // These thresholds are set by federal budget measures and change frequently.
+    // The $20,000 instant asset write-off for small businesses was most recently
+    // extended through 30 June 2025.
+    //
+    // Review annually after each federal budget (typically May) and update
+    // thresholds for the new financial year.
+    //
+    // Source: ato.gov.au/businesses-and-organisations/income-deductions-and-
+    // concessions/depreciation-and-capital-expenses-and-allowances/simpler-
+    // depreciation-for-small-business
+    //
+    // TODO: Consider making thresholds editable via dashboard settings rather
+    // than code-only.
     instantWriteOffThreshold: 2_000_000,
     smallBusinessTurnoverThreshold: 1_000_000_000,
   },
@@ -100,6 +114,10 @@ export const JURISDICTION_CONFIGS: Readonly<Record<Jurisdiction, JurisdictionCon
       'plant-and-equipment': 7,
       'software': 3,
     },
+    // ⚠️ LEGISLATION-DEPENDENT VALUES
+    // Section 179 limit and bonus depreciation rate change annually per IRS
+    // guidance. Bonus depreciation phases down: 80% (2023), 60% (2024),
+    // 40% (2025), 20% (2026). Review annually.
     bonusDepreciationRate: 80,
   },
 
@@ -298,7 +316,9 @@ export const getInstantWriteOffThreshold = (
 ): number | null => {
   const config = getJurisdictionConfig(jurisdiction);
 
-  // AU: Instant Asset Write-Off — threshold has changed over time
+  // AU: Instant Asset Write-Off — threshold has changed over time.
+  // ⚠️ LEGISLATION-DEPENDENT VALUES — review annually after federal budget.
+  // The $20,000 threshold was extended through 30 June 2025.
   if (jurisdiction.toUpperCase() === 'AU') {
     if (financialYearStart >= 2023) {
       return 2_000_000;

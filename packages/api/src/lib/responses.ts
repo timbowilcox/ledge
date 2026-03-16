@@ -39,6 +39,8 @@ const httpStatusForCode: Record<string, number> = {
   [ErrorCode.CURRENCY_MISMATCH]: 400,
   [ErrorCode.FIXED_ASSET_NOT_FOUND]: 404,
   [ErrorCode.FIXED_ASSET_INVALID_STATE]: 400,
+  [ErrorCode.INVOICE_NOT_FOUND]: 404,
+  [ErrorCode.INVOICE_INVALID_STATE]: 400,
   [ErrorCode.INTERNAL_ERROR]: 500,
 };
 

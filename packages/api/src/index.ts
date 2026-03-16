@@ -19,7 +19,7 @@ import type { Database } from "@kounta/core";
 import { SqliteDatabase, PostgresDatabase, LedgerEngine, LocalFileStorage } from "@kounta/core";
 import type { AttachmentStorage } from "@kounta/core";
 import { createApp } from "./app.js";
-import { checkAndSendDigests, checkAndSendMonthlyClose, checkOnboardingSequence, processRecurringEntries, processAllPendingRecognition, runDepreciation } from "@kounta/core";
+import { checkAndSendDigests, checkAndSendMonthlyClose, checkOnboardingSequence, processRecurringEntries, processAllPendingRecognition, runDepreciation, checkOverdueInvoices } from "@kounta/core";
 
 const SYSTEM_USER_ID = "00000000-0000-0000-0000-000000000001";
 
@@ -147,6 +147,19 @@ const main = async () => {
     } catch (err) {
       console.error("Depreciation scheduler error:", err);
     }
+
+    // Check for overdue invoices — mark sent invoices past due date as overdue
+    try {
+      const ledgers = await engine.getDb().all<{ id: string }>("SELECT id FROM ledgers");
+      for (const ledger of ledgers) {
+        const overdueCount = await checkOverdueInvoices(engine.getDb(), ledger.id);
+        if (overdueCount > 0) {
+          console.log(`Overdue invoices: marked ${overdueCount} invoice(s) overdue for ledger ${ledger.id}`);
+        }
+      }
+    } catch (err) {
+      console.error("Overdue invoices scheduler error:", err);
+    }
   };
 
   // Depreciation startup run — catch any entries missed during downtime.
@@ -270,6 +283,7 @@ const applyPostgresMigrations = async (db: PostgresDatabase) => {
       ["018_oauth.sql", "SELECT 1 FROM information_schema.tables WHERE table_name = 'oauth_clients'"],
       ["019_fixed_assets.sql", "SELECT 1 FROM information_schema.tables WHERE table_name = 'fixed_assets'"],
       ["020_capitalisation_notification.sql", "SELECT 1 FROM pg_enum WHERE enumlabel = 'capitalisation_check' AND enumtypid = (SELECT oid FROM pg_type WHERE typname = 'notification_type')"],
+      ["021_invoicing.sql", "SELECT 1 FROM information_schema.tables WHERE table_name = 'invoices'"],
     ];
 
     for (const [migName, probeQuery] of probes) {
@@ -312,6 +326,7 @@ const applyPostgresMigrations = async (db: PostgresDatabase) => {
     "018_oauth.sql",
     "019_fixed_assets.sql",
     "020_capitalisation_notification.sql",
+    "021_invoicing.sql",
   ];
 
   // ── 4. Apply each unapplied migration in order ──
@@ -433,6 +448,7 @@ const applySqliteMigrations = async (db: SqliteDatabase) => {
     "018_oauth.sqlite.sql",
     "019_fixed_assets.sqlite.sql",
     "020_capitalisation_notification.sqlite.sql",
+    "021_invoicing.sqlite.sql",
   ];
 
   for (const file of migrationFiles) {

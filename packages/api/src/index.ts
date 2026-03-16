@@ -289,6 +289,7 @@ const applyPostgresMigrations = async (db: PostgresDatabase) => {
       ["019_fixed_assets.sql", "SELECT 1 FROM information_schema.tables WHERE table_name = 'fixed_assets'"],
       ["020_capitalisation_notification.sql", "SELECT 1 FROM pg_enum WHERE enumlabel = 'capitalisation_check' AND enumtypid = (SELECT oid FROM pg_type WHERE typname = 'notification_type')"],
       ["021_invoicing.sql", "SELECT 1 FROM information_schema.tables WHERE table_name = 'invoices'"],
+      ["022_invoice_payment_match_notification.sql", "SELECT 1 FROM pg_enum WHERE enumlabel = 'invoice_payment_match' AND enumtypid = (SELECT oid FROM pg_type WHERE typname = 'notification_type')"],
     ];
 
     for (const [migName, probeQuery] of probes) {
@@ -332,6 +333,7 @@ const applyPostgresMigrations = async (db: PostgresDatabase) => {
     "019_fixed_assets.sql",
     "020_capitalisation_notification.sql",
     "021_invoicing.sql",
+    "022_invoice_payment_match_notification.sql",
   ];
 
   // ── 4. Apply each unapplied migration in order ──
@@ -382,6 +384,20 @@ const applyPostgresMigrations = async (db: PostgresDatabase) => {
       if (migName === "020_capitalisation_notification.sql") {
         try {
           await db.exec("ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'capitalisation_check'");
+        } catch { /* already exists */ }
+        await db.run(
+          "INSERT INTO _migrations (name) VALUES ($1) ON CONFLICT (name) DO NOTHING",
+          [migName],
+        );
+        console.log(`Applied PostgreSQL migration: ${migName}`);
+        applied++;
+        continue;
+      }
+
+      // Special case: 022 uses ALTER TYPE ADD VALUE (can't run in transaction)
+      if (migName === "022_invoice_payment_match_notification.sql") {
+        try {
+          await db.exec("ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'invoice_payment_match'");
         } catch { /* already exists */ }
         await db.run(
           "INSERT INTO _migrations (name) VALUES ($1) ON CONFLICT (name) DO NOTHING",
@@ -454,6 +470,7 @@ const applySqliteMigrations = async (db: SqliteDatabase) => {
     "019_fixed_assets.sqlite.sql",
     "020_capitalisation_notification.sqlite.sql",
     "021_invoicing.sqlite.sql",
+    "022_invoice_payment_match_notification.sqlite.sql",
   ];
 
   for (const file of migrationFiles) {

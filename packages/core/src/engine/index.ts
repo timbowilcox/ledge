@@ -109,6 +109,7 @@ import type {
   ListClassificationRulesOptions,
   MerchantAlias,
 } from "../classification/types.js";
+import { matchBankDepositToInvoices } from "../invoicing/engine.js";
 import { generateId, nowUtc } from "./id.js";
 import type {
   RecurringEntry,
@@ -2527,6 +2528,58 @@ export class LedgerEngine {
 
       // Run classification on newly synced transactions
       await this.classifyPendingBankTransactions(connRow.ledger_id);
+
+      // Best-effort: check if any credit/deposit transactions match outstanding invoices
+      try {
+        const pendingCredits = await this.db.all<BankTransactionRow>(
+          "SELECT * FROM bank_transactions WHERE bank_account_id = ? AND status = 'pending' AND amount > 0 ORDER BY date",
+          [bankAccountId],
+        );
+        for (const credit of pendingCredits) {
+          const matches = await matchBankDepositToInvoices(
+            this.db,
+            connRow.ledger_id,
+            Number(credit.amount),
+            credit.description ?? "",
+            credit.date,
+          );
+          if (matches.length > 0 && matches[0] !== undefined) {
+            const best = matches[0];
+            // Create notification for the best match
+            try {
+              // Find any user on this ledger for the notification
+              const userRow = await this.db.get<{ user_id: string }>(
+                "SELECT user_id FROM api_keys WHERE ledger_id = ? LIMIT 1",
+                [connRow.ledger_id],
+              );
+              if (userRow) {
+                await this.createNotification({
+                  ledgerId: connRow.ledger_id,
+                  userId: userRow.user_id,
+                  type: "invoice_payment_match",
+                  severity: best.confidence >= 0.8 ? "info" : "warning",
+                  title: `Possible payment for ${best.invoiceNumber}`,
+                  body: `Bank deposit of $${(Number(credit.amount) / 100).toFixed(2)} may be payment for invoice ${best.invoiceNumber} (${best.customerName}). Amount due: $${(best.invoiceAmountDue / 100).toFixed(2)}. Confidence: ${Math.round(best.confidence * 100)}%.`,
+                  data: {
+                    invoiceId: best.invoiceId,
+                    invoiceNumber: best.invoiceNumber,
+                    customerName: best.customerName,
+                    invoiceTotal: best.invoiceTotal,
+                    invoiceAmountDue: best.invoiceAmountDue,
+                    bankTransactionId: credit.id,
+                    bankTransactionAmount: Number(credit.amount),
+                    bankTransactionDate: credit.date,
+                    bankTransactionMemo: credit.description ?? "",
+                    confidence: best.confidence,
+                  },
+                });
+              }
+            } catch { /* notification creation is best-effort */ }
+          }
+        }
+      } catch (invoiceMatchErr) {
+        console.error("Invoice payment matching error (non-blocking):", invoiceMatchErr);
+      }
 
       // Update bank account and connection sync timestamps
       await this.db.run(

@@ -111,9 +111,9 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           token.needsOnboarding = result.needsOnboarding;
         } catch (err) {
           console.error("[auth] Provision failed:", err);
-          // If provision fails, mark as needing onboarding so the user
-          // doesn't land on a broken dashboard with no API key
-          token.needsOnboarding = true;
+          // Don't set needsOnboarding here — we can't distinguish new vs
+          // existing users when provision fails. The retry logic above
+          // will fix the token on subsequent requests.
         }
       }
       return token;

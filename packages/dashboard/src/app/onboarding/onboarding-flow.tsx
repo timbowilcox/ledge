@@ -184,11 +184,7 @@ export function OnboardingFlow() {
       {/* Header */}
       <header className="onboarding-header">
         <div className="onboarding-logo">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <rect width="24" height="24" rx="6" fill="var(--accent)" />
-            <path d="M7 8h10M7 12h7M7 16h4" stroke="var(--background)" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
-          <span>Kounta</span>
+          <img src="/logo.svg" alt="Kounta" style={{ height: "1.32rem" }} />
         </div>
         <div className="onboarding-progress">
           {[0, 1, 2, 3].map((i) => (

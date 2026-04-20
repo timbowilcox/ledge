@@ -3524,7 +3524,7 @@ export class LedgerEngine {
         severity: "info",
         title: rendered.title,
         body: rendered.body,
-        data: summaryData as unknown as Record<string, unknown>,
+        data: summaryData,
       });
       if (result.ok) created.push(result.value);
     }
@@ -3540,7 +3540,7 @@ export class LedgerEngine {
         severity: rendered.severity,
         title: rendered.title,
         body: rendered.body,
-        data: cashData as unknown as Record<string, unknown>,
+        data: cashData,
       });
       if (result.ok) created.push(result.value);
     }
@@ -3556,7 +3556,7 @@ export class LedgerEngine {
         severity: rendered.severity,
         title: rendered.title,
         body: rendered.body,
-        data: { anomalies } as unknown as Record<string, unknown>,
+        data: { anomalies },
       });
       if (result.ok) created.push(result.value);
     }
@@ -3572,7 +3572,7 @@ export class LedgerEngine {
         severity: rendered.severity,
         title: rendered.title,
         body: rendered.body,
-        data: unclassified as unknown as Record<string, unknown>,
+        data: unclassified,
       });
       if (result.ok) created.push(result.value);
     }
@@ -3588,7 +3588,7 @@ export class LedgerEngine {
         severity: "info",
         title: rendered.title,
         body: rendered.body,
-        data: deferredData as unknown as Record<string, unknown>,
+        data: deferredData,
       });
       if (result.ok) created.push(result.value);
     }

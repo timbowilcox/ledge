@@ -133,6 +133,23 @@ export interface InvoicePaymentMatchData {
 // Input types
 // ---------------------------------------------------------------------------
 
+/**
+ * Discriminated data payload for a notification. The union of every shape an
+ * analyzer can produce, plus a fallback for ad-hoc notification payloads
+ * (receipt prompts, capitalisation advisories, etc.). All variants are
+ * JSON-serializable plain objects.
+ */
+export type NotificationData =
+  | MonthlySummaryData
+  | CashPositionData
+  | { readonly anomalies: readonly AnomalyData[] }
+  | MonthlyRecognitionSummaryData
+  | ScheduleCompletionData
+  | LargeDeferredBalanceData
+  | UnclassifiedData
+  | InvoicePaymentMatchData
+  | { readonly [key: string]: unknown };
+
 export interface CreateNotificationInput {
   readonly ledgerId: string;
   readonly userId: string;
@@ -140,7 +157,7 @@ export interface CreateNotificationInput {
   readonly severity: NotificationSeverity;
   readonly title: string;
   readonly body: string;
-  readonly data: Record<string, unknown>;
+  readonly data: NotificationData;
   readonly actionType?: string;
   readonly actionData?: Record<string, unknown>;
 }

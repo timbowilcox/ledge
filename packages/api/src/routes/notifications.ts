@@ -9,6 +9,7 @@ import { Hono } from "hono";
 import type { Env } from "../lib/context.js";
 import { apiKeyAuth } from "../middleware/auth.js";
 import { errorResponse, success, paginated } from "../lib/responses.js";
+import { parseBoundedInt } from "../lib/validate.js";
 import type { NotificationStatus, NotificationType } from "@kounta/core";
 
 export const notificationRoutes = new Hono<Env>();
@@ -26,7 +27,7 @@ notificationRoutes.get("/", async (c) => {
 
   const status = c.req.query("status") as NotificationStatus | undefined;
   const type = c.req.query("type") as NotificationType | undefined;
-  const limit = c.req.query("limit") ? parseInt(c.req.query("limit")!, 10) : undefined;
+  const limit = parseBoundedInt(c.req.query("limit"), { min: 1, max: 200, defaultValue: 50 });
   const cursor = c.req.query("cursor");
 
   const result = await engine.listNotifications(ledgerId, apiKeyInfo.userId, {

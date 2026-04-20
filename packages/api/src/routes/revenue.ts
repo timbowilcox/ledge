@@ -9,6 +9,7 @@ import { Hono } from "hono";
 import type { Env } from "../lib/context.js";
 import { apiKeyAuth } from "../middleware/auth.js";
 import { success, created, errorResponse, paginated } from "../lib/responses.js";
+import { parseBoundedInt } from "../lib/validate.js";
 import {
   createRevenueSchedule,
   getRevenueSchedule,
@@ -40,7 +41,7 @@ revenueRoutes.get("/schedules", async (c) => {
   const customerName = c.req.query("customerName");
   const stripeSubscriptionId = c.req.query("stripeSubscriptionId");
   const cursor = c.req.query("cursor");
-  const limit = c.req.query("limit") ? Number(c.req.query("limit")) : undefined;
+  const limit = parseBoundedInt(c.req.query("limit"), { min: 1, max: 200, defaultValue: 50 });
 
   const result = await listRevenueSchedules(db, apiKeyInfo.ledgerId, {
     status: status ?? undefined,
@@ -226,7 +227,7 @@ revenueRoutes.get("/mrr-history", async (c) => {
   const db = engine.getDb();
   const apiKeyInfo = c.get("apiKeyInfo")!;
 
-  const months = c.req.query("months") ? Number(c.req.query("months")) : 12;
+  const months = parseBoundedInt(c.req.query("months"), { min: 1, max: 60, defaultValue: 12 }) ?? 12;
   const history = await getMrrHistory(db, apiKeyInfo.ledgerId, months);
   return success(c, history);
 });

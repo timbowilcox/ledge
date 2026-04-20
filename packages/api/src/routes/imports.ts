@@ -6,6 +6,7 @@ import { Hono } from "hono";
 import type { Env } from "../lib/context.js";
 import { apiKeyAuth } from "../middleware/auth.js";
 import { errorResponse, created, success, paginated } from "../lib/responses.js";
+import { parseBoundedInt } from "../lib/validate.js";
 
 // ---------------------------------------------------------------------------
 // Ledger-scoped routes: /v1/ledgers/:ledgerId/imports
@@ -40,8 +41,7 @@ importRoutes.get("/", async (c) => {
   const engine = c.get("engine");
   const ledgerId = c.req.param("ledgerId");
   const cursor = c.req.query("cursor");
-  const limitStr = c.req.query("limit");
-  const limit = limitStr ? parseInt(limitStr, 10) : undefined;
+  const limit = parseBoundedInt(c.req.query("limit"), { min: 1, max: 200, defaultValue: 50 });
 
   const result = await engine.listImportBatches(ledgerId!, { cursor, limit });
   if (!result.ok) {

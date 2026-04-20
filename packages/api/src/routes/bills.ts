@@ -9,6 +9,7 @@ import { Hono } from "hono";
 import type { Env } from "../lib/context.js";
 import { apiKeyAuth } from "../middleware/auth.js";
 import { success, created, errorResponse, paginated } from "../lib/responses.js";
+import { parseBoundedInt } from "../lib/validate.js";
 import type { CreateBillInput, UpdateBillInput, RecordBillPaymentInput } from "@kounta/core";
 import { tierLimitCheck, tierUsageIncrement } from "../middleware/tier-enforcement.js";
 
@@ -29,7 +30,7 @@ billRoutes.get("/", async (c) => {
   const fromDate = c.req.query("from_date");
   const toDate = c.req.query("to_date");
   const cursor = c.req.query("cursor");
-  const limit = c.req.query("limit") ? Number(c.req.query("limit")) : undefined;
+  const limit = parseBoundedInt(c.req.query("limit"), { min: 1, max: 200, defaultValue: 50 });
 
   const result = await engine.listBills(apiKeyInfo.ledgerId, {
     status: status ?? undefined,

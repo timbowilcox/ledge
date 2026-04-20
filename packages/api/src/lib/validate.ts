@@ -69,6 +69,23 @@ export const validateBody = async <T extends z.ZodTypeAny>(
 };
 
 /**
+ * Parse a numeric query parameter with bounds.
+ *
+ * Returns `defaultValue` for undefined, empty, or non-numeric input.
+ * Clamps the parsed integer to [min, max] to prevent DoS via huge values
+ * (e.g. `?limit=999999999`).
+ */
+export const parseBoundedInt = (
+  value: string | undefined,
+  opts: { min: number; max: number; defaultValue?: number },
+): number | undefined => {
+  if (value === undefined || value === "") return opts.defaultValue;
+  const n = parseInt(value, 10);
+  if (Number.isNaN(n)) return opts.defaultValue;
+  return Math.min(Math.max(n, opts.min), opts.max);
+};
+
+/**
  * Validate query parameters against a Zod schema.
  *
  * Returns the parsed data on success, or a Response on failure.

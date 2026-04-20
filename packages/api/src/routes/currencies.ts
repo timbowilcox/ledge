@@ -9,6 +9,7 @@ import { Hono } from "hono";
 import type { Env } from "../lib/context.js";
 import { apiKeyAuth } from "../middleware/auth.js";
 import { errorResponse, success, created, paginated } from "../lib/responses.js";
+import { parseBoundedInt } from "../lib/validate.js";
 import type { ExchangeRateSource } from "@kounta/core";
 
 export const currencyRoutes = new Hono<Env>();
@@ -70,7 +71,7 @@ currencyRoutes.get("/exchange-rates", async (c) => {
 
   const fromCurrency = c.req.query("fromCurrency");
   const toCurrency = c.req.query("toCurrency");
-  const limit = c.req.query("limit") ? parseInt(c.req.query("limit")!, 10) : undefined;
+  const limit = parseBoundedInt(c.req.query("limit"), { min: 1, max: 200, defaultValue: 50 });
   const cursor = c.req.query("cursor");
 
   const result = await engine.listExchangeRates(ledgerId, {
@@ -134,7 +135,8 @@ currencyRoutes.get("/exchange-rates/convert", async (c) => {
 
   const fromCurrency = c.req.query("fromCurrency");
   const toCurrency = c.req.query("toCurrency");
-  const amount = c.req.query("amount") ? parseInt(c.req.query("amount")!, 10) : undefined;
+  // Amount is in smallest currency unit (cents). Cap at $1B to prevent overflow.
+  const amount = parseBoundedInt(c.req.query("amount"), { min: 1, max: 100_000_000_000 });
   const date = c.req.query("date");
 
   if (!fromCurrency || !toCurrency || !amount) {

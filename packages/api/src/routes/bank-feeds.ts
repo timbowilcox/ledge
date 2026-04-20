@@ -9,6 +9,7 @@ import type { Context } from "hono";
 import type { Env } from "../lib/context.js";
 import { apiKeyAuth } from "../middleware/auth.js";
 import { errorResponse, created, success } from "../lib/responses.js";
+import { parseBoundedInt } from "../lib/validate.js";
 import {
   createError,
   ErrorCode,
@@ -301,8 +302,7 @@ bankFeedRoutes.get("/transactions", async (c) => {
   const status = c.req.query("status") as "pending" | "matched" | "posted" | "ignored" | undefined;
   const isPersonalStr = c.req.query("isPersonal");
   const isPersonal = isPersonalStr === "true" ? true : isPersonalStr === "false" ? false : undefined;
-  const limitStr = c.req.query("limit");
-  const limit = limitStr ? parseInt(limitStr, 10) : undefined;
+  const limit = parseBoundedInt(c.req.query("limit"), { min: 1, max: 200, defaultValue: 50 });
 
   if (!bankAccountId && !ledgerId) {
     return errorResponse(

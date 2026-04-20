@@ -14,10 +14,10 @@
     "@anthropic-ai/sdk": "^0.78.0",
     "@kounta/core": "workspace:*",
     "@kounta/sdk": "workspace:*",
-    "next": "^15.2.0",
+    "geist": "^1.3.0",
+    "next": "^16.2.4",
     "next-auth": "5.0.0-beta.30",
     "react": "^19.0.0",
-    "geist": "^1.3.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {

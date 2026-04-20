@@ -64,7 +64,19 @@ export function fromSmallestUnit(amount: number, currencyCode: string): number {
  * Convert an amount from one currency to another using an exchange rate.
  * Rate is stored as an integer with RATE_PRECISION (1,000,000) precision.
  * Example: convertAmount(1000, 1_085_000) → 1085 (USD cents → EUR cents at 1.085)
+ *
+ * Uses BigInt for the multiplication so large amounts (above 2^53/RATE_PRECISION,
+ * about $9 quadrillion in cents) don't lose precision through float math.
+ * Half-up rounding to match accounting convention.
  */
 export function convertAmount(originalAmount: number, rate: number): number {
-  return Math.round(originalAmount * rate / RATE_PRECISION);
+  const RATE_PRECISION_BIG = BigInt(RATE_PRECISION);
+  const product = BigInt(originalAmount) * BigInt(rate);
+  // Half-up rounding: add half the divisor before integer division.
+  // For negative values, subtract half (so -0.5 rounds to -1, matching Math.round).
+  const half = RATE_PRECISION_BIG / 2n;
+  const rounded = product >= 0n
+    ? (product + half) / RATE_PRECISION_BIG
+    : (product - half) / RATE_PRECISION_BIG;
+  return Number(rounded);
 }

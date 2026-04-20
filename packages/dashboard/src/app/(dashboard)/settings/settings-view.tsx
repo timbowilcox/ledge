@@ -8,7 +8,7 @@ import { createApiKey, revokeApiKey, fetchApiKeys, createCheckoutSession, create
 import type { StripeConnectStatus, OAuthConnection } from "@/lib/actions";
 import type { EmailPreferences, ClosedPeriodSummary, JurisdictionOption, JurisdictionSettings } from "@/lib/actions";
 import { CopyButton } from "@/components/copy-button";
-import type { ApiKeySafe, AccountWithBalance } from "@kounta/sdk";
+import type { ApiKeySafe, AccountWithBalance, CurrencySetting, ExchangeRate } from "@kounta/sdk";
 import type { BillingStatus, TierUsage } from "@/lib/actions";
 import { AccountsView } from "@/app/(dashboard)/accounts/accounts-view";
 import { UpgradePrompt } from "@/components/upgrade-prompt";
@@ -23,8 +23,8 @@ interface Props {
   billing: BillingStatus;
   tierUsage: TierUsage;
   initialKeys: ApiKeySafe[];
-  currencies: any[];
-  exchangeRates: any[];
+  currencies: CurrencySetting[];
+  exchangeRates: ExchangeRate[];
   fiscalYearStart: number;
   closedThrough: string | null;
   closedPeriods: ClosedPeriodSummary[];
@@ -847,7 +847,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 
 // ── Currencies Tab ─────────────────────────────────────────────────────────
 
-function CurrenciesTab({ currencies, exchangeRates }: { currencies: any[]; exchangeRates: any[] }) {
+function CurrenciesTab({ currencies, exchangeRates }: { currencies: CurrencySetting[]; exchangeRates: ExchangeRate[] }) {
   const fmtRate = (rate: number) => (rate / 1_000_000).toFixed(6);
   const fmtDate = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
@@ -882,7 +882,7 @@ function CurrenciesTab({ currencies, exchangeRates }: { currencies: any[]; excha
               </tr>
             </thead>
             <tbody>
-              {currencies.map((c: any) => (
+              {currencies.map((c) => (
                 <tr key={c.id} className="table-row">
                   <td className="table-cell font-mono" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{c.currencyCode}</td>
                   <td className="table-cell" style={{ fontSize: 13 }}>{c.symbol}</td>
@@ -925,7 +925,7 @@ function CurrenciesTab({ currencies, exchangeRates }: { currencies: any[]; excha
               </tr>
             </thead>
             <tbody>
-              {exchangeRates.map((r: any) => (
+              {exchangeRates.map((r) => (
                 <tr key={r.id} className="table-row">
                   <td className="table-cell font-mono" style={{ fontSize: 13, fontWeight: 600 }}>{r.fromCurrency}</td>
                   <td className="table-cell font-mono" style={{ fontSize: 13, fontWeight: 600 }}>{r.toCurrency}</td>

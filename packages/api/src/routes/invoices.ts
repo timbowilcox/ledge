@@ -18,7 +18,7 @@ import {
   emailLayout,
 } from "@kounta/core";
 import type { CreateInvoiceInput, UpdateInvoiceInput, RecordPaymentInput, InvoicePDFConfig } from "@kounta/core";
-import { tierLimitCheck, tierUsageIncrement, tierFeatureGate } from "../middleware/tier-enforcement.js";
+import { tierLimitCheck, tierFeatureGate } from "../middleware/tier-enforcement.js";
 
 export const invoiceRoutes = new Hono<Env>();
 
@@ -95,7 +95,8 @@ invoiceRoutes.get("/aging", async (c) => {
 // POST / — create invoice
 // ---------------------------------------------------------------------------
 
-invoiceRoutes.post("/", tierLimitCheck("invoices"), tierUsageIncrement("invoices"), async (c) => {
+// tierLimitCheck now atomically increments; no separate tierUsageIncrement needed.
+invoiceRoutes.post("/", tierLimitCheck("invoices"), async (c) => {
   const engine = c.get("engine");
   const apiKeyInfo = c.get("apiKeyInfo")!;
   const body = await c.req.json() as Omit<CreateInvoiceInput, "ledgerId">;

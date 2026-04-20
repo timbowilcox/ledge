@@ -143,7 +143,7 @@ import { handleEvent as handleEventFn } from "../stripe/webhook.js";
 import { ensureStripeAccounts as ensureStripeAccountsFn } from "../stripe/accounts.js";
 import { backfillAll as backfillAllFn } from "../stripe/backfill.js";
 import type { StripeConnection, CreateStripeConnectionInput } from "../stripe/types.js";
-import { getUsageSummary as getUsageSummaryFn, checkLimit as checkLimitFn, incrementUsage as incrementUsageFn } from "../tiers/usage.js";
+import { getUsageSummary as getUsageSummaryFn, checkLimit as checkLimitFn, incrementUsage as incrementUsageFn, checkAndIncrementUsage as checkAndIncrementUsageFn } from "../tiers/usage.js";
 import { sendEmail as sendEmailFn } from "../email/sender.js";
 import {
   createBill as createBillFn,
@@ -2031,6 +2031,16 @@ export class LedgerEngine {
 
   async checkLimit(userId: string, ledgerId: string | undefined, resource: string) {
     return checkLimitFn(this.db, userId, ledgerId, resource);
+  }
+
+  /**
+   * Atomically check the tier limit and increment usage in one DB transaction.
+   * Use this in preference to checkLimit + incrementTierUsage to avoid the
+   * race window where concurrent requests can both pass the check before
+   * either increments. See tiers/usage.ts for details.
+   */
+  async checkAndIncrementUsage(userId: string, ledgerId: string | undefined, resource: string) {
+    return checkAndIncrementUsageFn(this.db, userId, ledgerId, resource);
   }
 
   async incrementTierUsage(userId: string, ledgerId: string | undefined, field: string) {

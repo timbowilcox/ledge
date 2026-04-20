@@ -47,34 +47,51 @@ transactionRoutes.post("/", async (c) => {
   const headerKey = c.req.header("Idempotency-Key");
   const idempotencyKey = body.idempotencyKey ?? headerKey;
 
-  // Tier-based usage limit check
+  // Tier-based usage limit check — atomic check + increment.
+  // Failures fail closed (500) rather than fail open: we can't risk granting
+  // unlimited posts when the tier system is unhealthy.
   let tierUsed = 0;
   let tierLimit: number | null = null;
-  try {
-    const apiKeyInfo = c.get("apiKeyInfo");
-    if (apiKeyInfo) {
-      const tierCheck = await engine.checkLimit(apiKeyInfo.userId, ledgerId!, "transactions");
-      tierUsed = tierCheck.used;
-      tierLimit = tierCheck.limit;
-      if (!tierCheck.allowed) {
-        c.header("X-Kounta-Usage", `${tierCheck.used}/${tierCheck.limit ?? "unlimited"}`);
-        return c.json(
-          {
-            error: {
-              code: "PLAN_LIMIT_EXCEEDED",
-              message: tierCheck.message,
-              details: [{ field: "transactions", actual: String(tierCheck.used), expected: String(tierCheck.limit) }],
-              limit: tierCheck.limit,
-              used: tierCheck.used,
-              upgrade_url: UPGRADE_URL,
-              requestId: c.get("requestId"),
-            },
+  let tierIncremented = false;
+  const apiKeyInfo = c.get("apiKeyInfo");
+  if (apiKeyInfo) {
+    let tierCheck;
+    try {
+      tierCheck = await engine.checkAndIncrementUsage(apiKeyInfo.userId, ledgerId!, "transactions");
+    } catch (err) {
+      console.error("[tier] checkAndIncrementUsage failed:", err);
+      return c.json(
+        {
+          error: {
+            code: "INTERNAL_ERROR",
+            message: "Could not verify plan limits. Please retry.",
+            requestId: c.get("requestId"),
           },
-          429,
-        );
-      }
+        },
+        500,
+      );
     }
-  } catch { /* fail open if tier check unavailable */ }
+    tierUsed = tierCheck.used;
+    tierLimit = tierCheck.limit;
+    if (!tierCheck.allowed) {
+      c.header("X-Kounta-Usage", `${tierCheck.used}/${tierCheck.limit ?? "unlimited"}`);
+      return c.json(
+        {
+          error: {
+            code: "PLAN_LIMIT_EXCEEDED",
+            message: tierCheck.message,
+            details: [{ field: "transactions", actual: String(tierCheck.used), expected: String(tierCheck.limit) }],
+            limit: tierCheck.limit,
+            used: tierCheck.used,
+            upgrade_url: UPGRADE_URL,
+            requestId: c.get("requestId"),
+          },
+        },
+        429,
+      );
+    }
+    tierIncremented = true;
+  }
 
   const statusOverride: "posted" | "pending" | undefined = undefined;
 
@@ -93,16 +110,21 @@ transactionRoutes.post("/", async (c) => {
   });
 
   if (!result.ok) {
+    // Roll back the atomic pre-increment so a failed post doesn't burn a quota slot.
+    if (tierIncremented && apiKeyInfo) {
+      try {
+        const db = engine.getDb();
+        await db.run(
+          "UPDATE usage_tracking SET transactions_count = MAX(transactions_count - 1, 0) WHERE user_id = ? AND ledger_id = ?",
+          [apiKeyInfo.userId, ledgerId!],
+        );
+      } catch (err) {
+        console.error("[tier] failed to roll back transactions_count after error:", err);
+      }
+    }
     return errorResponse(c, result.error);
   }
-
-  // Increment usage counter (best-effort)
-  try {
-    const apiKeyInfo = c.get("apiKeyInfo");
-    if (apiKeyInfo) {
-      await engine.incrementTierUsage(apiKeyInfo.userId, ledgerId!, "transactions_count");
-    }
-  } catch { /* ignore */ }
+  // Usage already incremented atomically by checkAndIncrementUsage above.
 
   // Receipt prompt — notify for expenses over $75 (7500 cents)
   try {

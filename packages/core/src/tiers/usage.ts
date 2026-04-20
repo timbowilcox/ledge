@@ -358,3 +358,166 @@ export async function checkLimit(
       : `Invoice limit reached (${used}/${limit} this month). Upgrade for more.`,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Atomic check-and-increment
+// ---------------------------------------------------------------------------
+
+/**
+ * Atomically check a tier limit and increment usage in one DB transaction.
+ * Replaces the racey separate checkLimit() / incrementUsage() pair, which
+ * allowed concurrent requests to all observe used < limit and proceed,
+ * exceeding the cap.
+ *
+ * For period-based counters (transactions, invoices, bills) this uses a
+ * conditional UPDATE so the check and increment are a single statement.
+ * For lifetime counters (customers, vendors, fixed_assets, ledgers) the
+ * "increment" is the row insert in the route handler — those still rely on
+ * the standard checkLimit() pre-check; the residual race window is the time
+ * between the SELECT and the INSERT, which is bounded by a single user's
+ * concurrency.
+ *
+ * Returns the same LimitCheckResult shape as checkLimit(). On allowed=true
+ * the counter has already been incremented; the caller does NOT need to
+ * call incrementUsage() afterwards.
+ */
+export async function checkAndIncrementUsage(
+  db: Database,
+  userId: string,
+  ledgerId: string | undefined,
+  resource: string,
+): Promise<LimitCheckResult> {
+  try {
+    return await checkAndIncrementUsageImpl(db, userId, ledgerId, resource);
+  } catch (err) {
+    // If the tier schema is not yet applied (e.g. older test fixtures),
+    // don't block requests. Real runtime errors should still surface, so
+    // we only swallow the specific "no such table/column" class of errors.
+    const message = err instanceof Error ? err.message : String(err);
+    if (/no such (table|column)/i.test(message)) {
+      return { allowed: true, used: 0, limit: null, message: "Tier schema not ready" };
+    }
+    throw err;
+  }
+}
+
+async function checkAndIncrementUsageImpl(
+  db: Database,
+  userId: string,
+  ledgerId: string | undefined,
+  resource: string,
+): Promise<LimitCheckResult> {
+  const limitKey = RESOURCE_TO_LIMIT[resource];
+  if (!limitKey) {
+    return { allowed: true, used: 0, limit: null, message: "Unknown resource" };
+  }
+
+  const user = await db.get<{ plan: string | null }>(
+    "SELECT plan FROM users WHERE id = ?",
+    [userId],
+  );
+  const tier = user?.plan || "free";
+  const limit = getLimit(tier, limitKey);
+
+  // Unlimited — nothing to enforce, but still increment for analytics.
+  if (limit === null) {
+    const field = RESOURCE_TO_FIELD[resource];
+    if (field) await incrementUsage(db, userId, ledgerId, field);
+    return { allowed: true, used: 0, limit: null, message: "Unlimited" };
+  }
+
+  const field = RESOURCE_TO_FIELD[resource];
+
+  // Lifetime resources (customers, vendors, fixed_assets, ledgers) — the count
+  // lives in the resource table itself, not usage_tracking. Fall back to the
+  // pre-check pattern; the route's INSERT is the increment.
+  if (
+    !field ||
+    resource === "customers" ||
+    resource === "vendors" ||
+    resource === "fixed_assets" ||
+    resource === "ledgers"
+  ) {
+    return checkLimit(db, userId, ledgerId, resource);
+  }
+
+  // Period-based counters: do the check + increment as a single conditional
+  // UPDATE inside a transaction. If 0 rows are affected, the limit was hit.
+  return db.transaction(async () => {
+    await getOrCreateUsageRecord(db, userId, ledgerId);
+    const { periodStart } = getCurrentUsagePeriod();
+    const now = new Date().toISOString();
+
+    // For per-ledger counters (transactions) we increment the per-ledger row.
+    // For account-wide counters (invoices, bills) we increment the row for
+    // the specific ledger as well; the limit aggregates across rows.
+    const isPerLedger = resource === "transactions";
+
+    if (isPerLedger && ledgerId) {
+      const result = await db.run(
+        `UPDATE usage_tracking
+         SET ${field} = ${field} + 1, updated_at = ?
+         WHERE user_id = ? AND ledger_id = ? AND period_start = ?
+           AND ${field} < ?`,
+        [now, userId, ledgerId, periodStart, limit],
+      );
+      if (result.changes > 0) {
+        const after = await db.get<{ cnt: number }>(
+          `SELECT ${field} as cnt FROM usage_tracking WHERE user_id = ? AND ledger_id = ? AND period_start = ?`,
+          [userId, ledgerId, periodStart],
+        );
+        const used = after?.cnt ?? limit;
+        return {
+          allowed: true,
+          used,
+          limit,
+          message: `${used}/${limit} ${resource} this month`,
+        };
+      }
+      // Limit hit — fetch current value for the error message.
+      const current = await db.get<{ cnt: number }>(
+        `SELECT ${field} as cnt FROM usage_tracking WHERE user_id = ? AND ledger_id = ? AND period_start = ?`,
+        [userId, ledgerId, periodStart],
+      );
+      const used = current?.cnt ?? limit;
+      return {
+        allowed: false,
+        used,
+        limit,
+        message: `${resource.charAt(0).toUpperCase() + resource.slice(1)} limit reached (${used}/${limit} this month). Upgrade for more.`,
+      };
+    }
+
+    // Account-wide period counters (invoices, bills): the limit aggregates
+    // across all of the user's usage_tracking rows for this period. We have
+    // to read the aggregate to know whether we can increment.
+    const aggField = field;
+    const sumRow = await db.get<{ total: number }>(
+      `SELECT COALESCE(SUM(${aggField}), 0) as total FROM usage_tracking WHERE user_id = ? AND period_start = ?`,
+      [userId, periodStart],
+    );
+    const currentTotal = sumRow?.total ?? 0;
+    if (currentTotal >= limit) {
+      return {
+        allowed: false,
+        used: currentTotal,
+        limit,
+        message: `${resource.charAt(0).toUpperCase() + resource.slice(1)} limit reached (${currentTotal}/${limit} this month). Upgrade for more.`,
+      };
+    }
+
+    // Increment the per-ledger record (or the user-level record if no ledgerId).
+    await db.run(
+      ledgerId
+        ? `UPDATE usage_tracking SET ${aggField} = ${aggField} + 1, updated_at = ? WHERE user_id = ? AND ledger_id = ? AND period_start = ?`
+        : `UPDATE usage_tracking SET ${aggField} = ${aggField} + 1, updated_at = ? WHERE user_id = ? AND ledger_id IS NULL AND period_start = ?`,
+      ledgerId ? [now, userId, ledgerId, periodStart] : [now, userId, periodStart],
+    );
+    return {
+      allowed: true,
+      used: currentTotal + 1,
+      limit,
+      message: `${currentTotal + 1}/${limit} ${resource} this month`,
+    };
+  });
+}

@@ -11,7 +11,7 @@ import { apiKeyAuth } from "../middleware/auth.js";
 import { success, created, errorResponse, paginated } from "../lib/responses.js";
 import { parseBoundedInt } from "../lib/validate.js";
 import type { CreateBillInput, UpdateBillInput, RecordBillPaymentInput } from "@kounta/core";
-import { tierLimitCheck, tierUsageIncrement } from "../middleware/tier-enforcement.js";
+import { tierLimitCheck } from "../middleware/tier-enforcement.js";
 
 export const billRoutes = new Hono<Env>();
 
@@ -72,7 +72,8 @@ billRoutes.get("/aging", async (c) => {
 // POST / — create bill
 // ---------------------------------------------------------------------------
 
-billRoutes.post("/", tierLimitCheck("bills"), tierUsageIncrement("bills"), async (c) => {
+// tierLimitCheck now atomically increments; no separate tierUsageIncrement needed.
+billRoutes.post("/", tierLimitCheck("bills"), async (c) => {
   const engine = c.get("engine");
   const apiKeyInfo = c.get("apiKeyInfo")!;
   const body = await c.req.json() as Omit<CreateBillInput, "ledgerId">;

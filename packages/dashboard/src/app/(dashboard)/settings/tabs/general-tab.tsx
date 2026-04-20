@@ -1,0 +1,677 @@
+"use client";
+
+// ---------------------------------------------------------------------------
+// Settings > General tab — ledger info, fiscal year, jurisdiction, danger zone.
+// ---------------------------------------------------------------------------
+
+import { useState, useRef, useTransition, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { formatDate } from "@/lib/format";
+import {
+  updateLedgerAction,
+  reopenPeriodAction,
+  updateUserNameAction,
+  updateJurisdictionAction,
+  deleteLedgerAction,
+} from "@/lib/actions";
+import type { ClosedPeriodSummary, JurisdictionOption, JurisdictionSettings } from "@/lib/actions";
+import { MONTH_NAMES, FiscalYearLocked, InfoRow } from "../_shared";
+
+const TEMPLATE_LABELS: Record<string, string> = {
+  saas: "SaaS", agency: "Agency", ecommerce: "Ecommerce", consulting: "Consulting",
+  creator: "Creator", marketplace: "Marketplace", property: "Property", nonprofit: "Nonprofit",
+};
+
+const getTemplateName = (templateId: string | null): string => {
+  if (!templateId) return "None";
+  return TEMPLATE_LABELS[templateId] ?? templateId;
+};
+
+
+interface LedgerInfo {
+  name: string;
+  currency: string;
+  accountingBasis: string;
+  templateId: string | null;
+  createdAt: string;
+}
+
+export function GeneralTab({ ledger, ledgerId, fiscalYearStart, closedThrough, closedPeriods, jurisdictions, jurisdictionSettings, totalLedgerCount = 1 }: { ledger: LedgerInfo; ledgerId?: string; fiscalYearStart: number; closedThrough: string | null; closedPeriods: ClosedPeriodSummary[]; jurisdictions: JurisdictionOption[]; jurisdictionSettings: JurisdictionSettings; totalLedgerCount?: number }) {
+  const { data: session, update } = useSession();
+  const router = useRouter();
+  const [fyStart, setFyStart] = useState(fiscalYearStart);
+  const [fySaving, setFySaving] = useState(false);
+  const [fySaved, setFySaved] = useState(false);
+  const [periods, setPeriods] = useState(closedPeriods);
+  const [reopening, setReopening] = useState<string | null>(null);
+
+  // Jurisdiction editing
+  const [jurisdiction, setJurisdiction] = useState(jurisdictionSettings.jurisdiction);
+  const [taxId, setTaxId] = useState(jurisdictionSettings.taxId ?? "");
+  const [taxBasis, setTaxBasis] = useState(jurisdictionSettings.taxBasis);
+  const [jurisdictionSaving, setJurisdictionSaving] = useState(false);
+  const [jurisdictionSaved, setJurisdictionSaved] = useState(false);
+
+  const jurisdictionDirty =
+    jurisdiction !== jurisdictionSettings.jurisdiction ||
+    taxId !== (jurisdictionSettings.taxId ?? "") ||
+    taxBasis !== jurisdictionSettings.taxBasis;
+
+  const TAX_ID_LABELS: Record<string, string> = {
+    AU: "ABN", US: "EIN", UK: "UTR", NZ: "IRD Number", CA: "BN", SG: "UEN",
+  };
+
+  const currentJurisdictionConfig = jurisdictions.find((j) => j.code === jurisdiction);
+  const taxIdLabel = TAX_ID_LABELS[jurisdiction] ?? currentJurisdictionConfig?.taxIdLabel ?? "Tax ID";
+
+  // Financial year label
+  const getFyLabel = (): string => {
+    const now = new Date();
+    const year = now.getFullYear();
+    if (fyStart === 1) return String(year);
+    const fyMonth = fyStart - 1; // 0-based
+    const fyStartDate = new Date(year, fyMonth, 1);
+    if (now >= fyStartDate) {
+      return `${year}-${String(year + 1).slice(2)}`;
+    }
+    return `${year - 1}-${String(year).slice(2)}`;
+  };
+
+  const handleJurisdictionSave = async () => {
+    setJurisdictionSaving(true);
+    const ok = await updateJurisdictionAction({
+      jurisdiction,
+      taxId: taxId.trim() || null,
+      taxBasis,
+    });
+    setJurisdictionSaving(false);
+    if (ok) {
+      setJurisdictionSaved(true);
+      setTimeout(() => setJurisdictionSaved(false), 2000);
+    }
+  };
+
+  // Display name editing
+  const [displayName, setDisplayName] = useState(session?.user?.name ?? "");
+  const [displayNameSaved, setDisplayNameSaved] = useState(false);
+  const [displayNameSaving, setDisplayNameSaving] = useState(false);
+  const displayNameOriginal = useRef(session?.user?.name ?? "");
+  const displayNameDirty = displayName !== displayNameOriginal.current;
+
+  useEffect(() => {
+    if (session?.user?.name) {
+      setDisplayName(session.user.name);
+      displayNameOriginal.current = session.user.name;
+    }
+  }, [session?.user?.name]);
+
+  const handleDisplayNameSave = async () => {
+    if (!displayName.trim()) return;
+    setDisplayNameSaving(true);
+    const ok = await updateUserNameAction(displayName.trim());
+    if (ok) {
+      await update({ name: displayName.trim() });
+      displayNameOriginal.current = displayName.trim();
+      setDisplayNameSaved(true);
+      setTimeout(() => setDisplayNameSaved(false), 2000);
+      // Refresh server components so sidebar/greeting show the new name
+      router.refresh();
+    }
+    setDisplayNameSaving(false);
+  };
+
+  // Ledger name editing
+  const [ledgerName, setLedgerName] = useState(ledger.name);
+  const [ledgerNameSaved, setLedgerNameSaved] = useState(false);
+  const [ledgerNameSaving, setLedgerNameSaving] = useState(false);
+  const [ledgerNameError, setLedgerNameError] = useState<string | null>(null);
+  const ledgerNameOriginal = useRef(ledger.name);
+  const ledgerNameDirty = ledgerName !== ledgerNameOriginal.current;
+
+  const handleLedgerNameSave = async () => {
+    if (!ledgerName.trim()) {
+      setLedgerNameError("Name cannot be empty");
+      return;
+    }
+    if (ledgerName.trim().length > 50) {
+      setLedgerNameError("Name must be 50 characters or less");
+      return;
+    }
+    setLedgerNameError(null);
+    setLedgerNameSaving(true);
+    const ok = await updateLedgerAction({ name: ledgerName.trim() });
+    if (ok) {
+      ledgerNameOriginal.current = ledgerName.trim();
+      setLedgerNameSaved(true);
+      setTimeout(() => setLedgerNameSaved(false), 2000);
+      // Refresh server components so the ledger switcher dropdown shows the new name
+      router.refresh();
+    }
+    setLedgerNameSaving(false);
+  };
+
+  const handleFyChange = async (month: number) => {
+    setFyStart(month);
+    setFySaving(true);
+    await updateLedgerAction({ fiscalYearStart: month });
+    setFySaving(false);
+    setFySaved(true);
+    setTimeout(() => setFySaved(false), 2000);
+  };
+
+  const handleReopen = async (periodEnd: string) => {
+    setReopening(periodEnd);
+    await reopenPeriodAction(periodEnd);
+    setPeriods((prev) => prev.map((p) => p.periodEnd === periodEnd ? { ...p, reopenedAt: new Date().toISOString(), reopenedBy: "user" } : p));
+    setReopening(null);
+  };
+
+  const activePeriods = periods.filter((p) => !p.reopenedAt);
+  const hasClosedPeriods = activePeriods.length > 0;
+  const fmtPeriodEnd = (d: string) => {
+    const dt = new Date(d + "T00:00:00");
+    return dt.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      {/* Account info */}
+      <div className="card">
+        <div className="section-label" style={{ marginBottom: 16 }}>Account</div>
+        {session?.user && (
+          <div>
+            <div className="flex items-center gap-3" style={{ marginBottom: 20 }}>
+              {session.user.image && (
+                <img
+                  src={session.user.image}
+                  alt=""
+                  style={{ width: 40, height: 40, borderRadius: "50%", border: "1px solid var(--border)" }}
+                />
+              )}
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)" }}>{session.user.name}</div>
+                <div style={{ fontSize: 12, color: "var(--text-tertiary)" }}>{session.user.email}</div>
+              </div>
+            </div>
+
+            {/* Display name editable field */}
+            <div>
+              <label style={{ display: "block", fontSize: 11, color: "var(--text-tertiary)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 500 }}>
+                Display Name
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="text"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && displayNameDirty) handleDisplayNameSave(); }}
+                  style={{
+                    flex: 1,
+                    maxWidth: 280,
+                    backgroundColor: "var(--surface-2)",
+                    border: "1px solid var(--border)",
+                    borderRadius: "var(--radius-md)",
+                    padding: "8px 12px",
+                    fontSize: 14,
+                    color: "var(--text-primary)",
+                    outline: "none",
+                    transition: "border-color 150ms ease",
+                  }}
+                  onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; }}
+                  onBlur={(e) => { e.currentTarget.style.borderColor = "var(--border)"; }}
+                />
+                {displayNameDirty && !displayNameSaved && (
+                  <button
+                    onClick={handleDisplayNameSave}
+                    disabled={displayNameSaving}
+                    className="btn-primary"
+                    style={{
+                      height: 32,
+                      padding: "0 16px",
+                      fontSize: 13,
+                      animation: "fadeIn 150ms ease",
+                    }}
+                  >
+                    {displayNameSaving ? "Saving..." : "Save"}
+                  </button>
+                )}
+                {displayNameSaved && (
+                  <span style={{ fontSize: 13, color: "var(--positive)", animation: "fade-in 150ms ease" }}>
+                    Saved ✓
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Ledger info */}
+      <div className="card">
+        <div className="section-label" style={{ marginBottom: 16 }}>Ledger</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+          {/* Editable ledger name */}
+          <div>
+            <label style={{ display: "block", fontSize: 11, color: "var(--text-tertiary)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 500 }}>
+              Name
+            </label>
+            <div className="flex items-center gap-3">
+              <input
+                type="text"
+                value={ledgerName}
+                onChange={(e) => {
+                  setLedgerName(e.target.value);
+                  if (e.target.value.trim()) setLedgerNameError(null);
+                }}
+                onKeyDown={(e) => { if (e.key === "Enter" && ledgerNameDirty) handleLedgerNameSave(); }}
+                maxLength={50}
+                style={{
+                  flex: 1,
+                  backgroundColor: "var(--surface-2)",
+                  border: `1px solid ${ledgerNameError ? "var(--negative)" : "var(--border)"}`,
+                  borderRadius: "var(--radius-md)",
+                  padding: "8px 12px",
+                  fontSize: 14,
+                  color: "var(--text-primary)",
+                  outline: "none",
+                  transition: "border-color 150ms ease",
+                }}
+                onFocus={(e) => { if (!ledgerNameError) e.currentTarget.style.borderColor = "var(--accent)"; }}
+                onBlur={(e) => { if (!ledgerNameError) e.currentTarget.style.borderColor = "var(--border)"; }}
+              />
+              {ledgerNameDirty && !ledgerNameSaved && (
+                <button
+                  onClick={handleLedgerNameSave}
+                  disabled={ledgerNameSaving}
+                  className="btn-primary"
+                  style={{
+                    height: 32,
+                    padding: "0 16px",
+                    fontSize: 13,
+                    animation: "fadeIn 150ms ease",
+                  }}
+                >
+                  {ledgerNameSaving ? "Saving..." : "Save"}
+                </button>
+              )}
+              {ledgerNameSaved && (
+                <span style={{ fontSize: 13, color: "var(--positive)", animation: "fade-in 150ms ease" }}>
+                  Saved ✓
+                </span>
+              )}
+            </div>
+            {ledgerNameError && (
+              <div style={{ fontSize: 11, color: "var(--negative)", marginTop: 4 }}>
+                {ledgerNameError}
+              </div>
+            )}
+          </div>
+          <InfoRow label="Template" value={getTemplateName(ledger.templateId)} />
+          <InfoRow label="Currency" value={ledger.currency} />
+          <InfoRow label="Accounting Basis" value={ledger.accountingBasis} />
+          <InfoRow label="Created" value={formatDate(ledger.createdAt)} />
+          <div>
+            <label style={{ display: "block", fontSize: 11, color: "var(--text-tertiary)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 500 }}>
+              Fiscal Year Start
+            </label>
+            {hasClosedPeriods ? (
+              /* Locked fiscal year — read-only display */
+              <div>
+                <FiscalYearLocked month={fyStart} />
+                <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginTop: 6 }}>
+                  Fiscal year is locked after periods are closed.
+                </div>
+              </div>
+            ) : (
+              /* Editable fiscal year dropdown */
+              <div>
+                <select
+                  className="input"
+                  value={fyStart}
+                  onChange={(e) => handleFyChange(Number(e.target.value))}
+                  style={{ fontSize: 13, width: "100%" }}
+                >
+                  {MONTH_NAMES.slice(1).map((name, i) => (
+                    <option key={i + 1} value={i + 1}>{name}</option>
+                  ))}
+                </select>
+                <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginTop: 6 }}>
+                  This can be changed until your first period is closed.
+                </div>
+                {(fySaving || fySaved) && (
+                  <div style={{ fontSize: 13, marginTop: 6, color: fySaved ? "var(--positive)" : "var(--text-tertiary)" }}>
+                    {fySaving ? "Saving..." : "Saved ✓"}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Jurisdiction & Tax */}
+      <div className="card">
+        <div className="section-label" style={{ marginBottom: 16 }}>Jurisdiction &amp; Tax</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+          {/* Jurisdiction */}
+          <div>
+            <label style={{ display: "block", fontSize: 11, color: "var(--text-tertiary)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 500 }}>
+              Jurisdiction
+            </label>
+            <select
+              className="input"
+              value={jurisdiction}
+              onChange={(e) => setJurisdiction(e.target.value)}
+              style={{ fontSize: 13, width: "100%" }}
+            >
+              {jurisdictions.map((j) => (
+                <option key={j.code} value={j.code}>{j.name}</option>
+              ))}
+              {jurisdictions.length === 0 && <option value={jurisdiction}>{jurisdiction}</option>}
+            </select>
+          </div>
+
+          {/* Tax ID */}
+          <div>
+            <label style={{ display: "block", fontSize: 11, color: "var(--text-tertiary)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 500 }}>
+              {taxIdLabel}
+            </label>
+            <input
+              type="text"
+              className="input"
+              value={taxId}
+              onChange={(e) => setTaxId(e.target.value)}
+              placeholder={`Enter ${taxIdLabel}...`}
+              style={{
+                fontSize: 13,
+                backgroundColor: "var(--surface-2)",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--radius-md)",
+                padding: "8px 12px",
+                color: "var(--text-primary)",
+                outline: "none",
+                width: "100%",
+              }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = "var(--border)"; }}
+            />
+          </div>
+
+          {/* Tax Basis */}
+          <div>
+            <label style={{ display: "block", fontSize: 11, color: "var(--text-tertiary)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 500 }}>
+              Tax Basis
+            </label>
+            <select
+              className="input"
+              value={taxBasis}
+              onChange={(e) => setTaxBasis(e.target.value)}
+              style={{ fontSize: 13, width: "100%" }}
+            >
+              <option value="accrual">Accrual</option>
+              <option value="cash">Cash</option>
+            </select>
+          </div>
+
+          {/* Financial Year (read-only derived) */}
+          <div>
+            <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 500 }}>
+              Current Financial Year
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)" }}>
+              FY{getFyLabel()}
+            </div>
+            {currentJurisdictionConfig && (
+              <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginTop: 4 }}>
+                {currentJurisdictionConfig.taxAuthority} &middot; {currentJurisdictionConfig.vatName} {currentJurisdictionConfig.vatRate}%
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Save button */}
+        <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 12 }}>
+          {jurisdictionDirty && !jurisdictionSaved && (
+            <button
+              onClick={handleJurisdictionSave}
+              disabled={jurisdictionSaving}
+              className="btn-primary"
+              style={{
+                height: 32,
+                padding: "0 16px",
+                fontSize: 13,
+                animation: "fadeIn 150ms ease",
+              }}
+            >
+              {jurisdictionSaving ? "Saving..." : "Save"}
+            </button>
+          )}
+          {jurisdictionSaved && (
+            <span style={{ fontSize: 13, color: "var(--positive)", animation: "fade-in 150ms ease" }}>
+              Saved ✓
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Period Close */}
+      <div className="card">
+        <div className="section-label" style={{ marginBottom: 4 }}>Period Close</div>
+        <p style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 16 }}>
+          {closedThrough
+            ? `Books are closed through ${fmtPeriodEnd(closedThrough)}. No transactions can be posted on or before that date.`
+            : <>No closed periods yet. Close periods from the <a href="/statements" style={{ color: "var(--accent)", textDecoration: "none" }}>Statements page →</a></>}
+        </p>
+
+        {activePeriods.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {activePeriods
+              .sort((a, b) => b.periodEnd.localeCompare(a.periodEnd))
+              .map((p) => (
+                <div
+                  key={p.id}
+                  className="flex items-center justify-between"
+                  style={{
+                    padding: "10px 16px",
+                    borderRadius: 8,
+                    backgroundColor: "var(--surface-2)",
+                    border: "1px solid var(--border)",
+                  }}
+                >
+                  <div className="flex items-center gap-3">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="7" width="10" height="7" rx="1.5" />
+                      <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" />
+                    </svg>
+                    <div>
+                      <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)" }}>
+                        Through {fmtPeriodEnd(p.periodEnd)}
+                      </span>
+                      <span style={{ fontSize: 12, color: "var(--text-tertiary)", marginLeft: 12 }}>
+                        Closed {formatDate(p.closedAt)}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleReopen(p.periodEnd)}
+                    disabled={reopening === p.periodEnd}
+                    style={{
+                      padding: "4px 12px",
+                      borderRadius: 6,
+                      fontSize: 12,
+                      fontWeight: 500,
+                      backgroundColor: "transparent",
+                      color: "#D97706",
+                      border: "1px solid rgba(217,119,6,0.2)",
+                      cursor: reopening === p.periodEnd ? "wait" : "pointer",
+                      opacity: reopening === p.periodEnd ? 0.6 : 1,
+                    }}
+                  >
+                    {reopening === p.periodEnd ? "Reopening..." : "Reopen"}
+                  </button>
+                </div>
+              ))}
+          </div>
+        )}
+      </div>
+
+      {/* Danger Zone */}
+      <DangerZone ledgerName={ledger.name} ledgerId={ledgerId} isOnlyLedger={totalLedgerCount <= 1} />
+    </div>
+  );
+}
+
+// ── Danger Zone ───────────────────────────────────────────────────────────
+
+function DangerZone({ ledgerName, ledgerId, isOnlyLedger }: { ledgerName: string; ledgerId?: string; isOnlyLedger: boolean }) {
+  const router = useRouter();
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmName, setConfirmName] = useState("");
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  const handleDelete = () => {
+    if (!ledgerId || confirmName !== ledgerName) return;
+    setError(null);
+    startTransition(async () => {
+      const result = await deleteLedgerAction(ledgerId);
+      if (!result.ok) {
+        setError(result.error ?? "Failed to delete ledger");
+        return;
+      }
+      // Navigate to overview — will load the next active ledger
+      window.location.href = "/";
+    });
+  };
+
+  return (
+    <div
+      style={{
+        marginTop: 32,
+        padding: 20,
+        borderRadius: 10,
+        border: "1px solid rgba(239,68,68,0.25)",
+        backgroundColor: "rgba(239,68,68,0.04)",
+      }}
+    >
+      <h3 style={{ fontSize: 14, fontWeight: 600, color: "#ef4444", margin: "0 0 8px" }}>
+        Danger Zone
+      </h3>
+      <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "0 0 16px", lineHeight: 1.5 }}>
+        Permanently delete this ledger and all its data including transactions,
+        invoices, fixed assets, and bank connections. This cannot be undone.
+      </p>
+      {isOnlyLedger ? (
+        <p style={{ fontSize: 12, color: "var(--text-tertiary)", fontStyle: "italic" }}>
+          This is your only ledger and cannot be deleted.
+        </p>
+      ) : (
+        <>
+          <button
+            onClick={() => setShowConfirm(true)}
+            style={{
+              padding: "8px 16px",
+              borderRadius: 8,
+              backgroundColor: "transparent",
+              color: "#ef4444",
+              fontSize: 13,
+              fontWeight: 500,
+              border: "1px solid rgba(239,68,68,0.3)",
+              cursor: "pointer",
+              transition: "all 150ms ease",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "rgba(239,68,68,0.1)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+          >
+            Delete ledger
+          </button>
+
+          {/* Confirmation dialog */}
+          {showConfirm && (
+            <>
+              <div
+                onClick={() => { setShowConfirm(false); setConfirmName(""); setError(null); }}
+                style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", zIndex: 200 }}
+              />
+              <div style={{ position: "fixed", top: "50%", left: "50%", transform: "translate(-50%,-50%)", zIndex: 201, width: 440 }}>
+                <div style={{ backgroundColor: "var(--surface-2)", borderRadius: 12, border: "1px solid var(--border)", padding: 24 }}>
+                  <h3 style={{ fontSize: 16, fontWeight: 600, color: "#ef4444", margin: "0 0 8px" }}>
+                    Delete ledger permanently
+                  </h3>
+                  <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "0 0 16px", lineHeight: 1.5 }}>
+                    This will permanently delete <strong style={{ color: "var(--text-primary)" }}>{ledgerName}</strong> and
+                    all associated data. Type the ledger name to confirm.
+                  </p>
+
+                  {error && (
+                    <div style={{ padding: "8px 12px", backgroundColor: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 6, marginBottom: 12, fontSize: 13, color: "#ef4444" }}>
+                      {error}
+                    </div>
+                  )}
+
+                  <input
+                    value={confirmName}
+                    onChange={(e) => setConfirmName(e.target.value)}
+                    placeholder={ledgerName}
+                    autoFocus
+                    style={{
+                      width: "100%",
+                      height: 36,
+                      padding: "0 10px",
+                      backgroundColor: "var(--surface-2)",
+                      border: "1px solid var(--border)",
+                      borderRadius: 6,
+                      color: "var(--text-primary)",
+                      fontSize: 13,
+                      boxSizing: "border-box",
+                      marginBottom: 16,
+                    }}
+                  />
+
+                  <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                    <button
+                      onClick={() => { setShowConfirm(false); setConfirmName(""); setError(null); }}
+                      disabled={isPending}
+                      style={{
+                        padding: "8px 16px",
+                        borderRadius: 8,
+                        backgroundColor: "transparent",
+                        color: "var(--text-tertiary)",
+                        fontSize: 13,
+                        fontWeight: 500,
+                        border: "none",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      disabled={isPending || confirmName !== ledgerName}
+                      style={{
+                        padding: "8px 20px",
+                        borderRadius: 8,
+                        backgroundColor: confirmName === ledgerName ? "#ef4444" : "var(--surface-1)",
+                        color: confirmName === ledgerName ? "#fff" : "var(--text-disabled)",
+                        fontSize: 13,
+                        fontWeight: 500,
+                        border: "none",
+                        cursor: isPending || confirmName !== ledgerName ? "not-allowed" : "pointer",
+                        opacity: isPending ? 0.7 : 1,
+                        transition: "all 150ms ease",
+                      }}
+                    >
+                      {isPending ? "Deleting\u2026" : "Delete permanently"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+

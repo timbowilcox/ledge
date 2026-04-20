@@ -1,0 +1,227 @@
+"use client";
+
+// ---------------------------------------------------------------------------
+// Settings > Connections tab — Stripe + OAuth connection management.
+// ---------------------------------------------------------------------------
+
+import { useState, useEffect, useTransition } from "react";
+import { formatDate } from "@/lib/format";
+import {
+  fetchStripeStatus,
+  disconnectStripe,
+  syncStripe,
+  getStripeAuthorizeUrl,
+  fetchOAuthConnections,
+  revokeOAuthConnection,
+} from "@/lib/actions";
+import type { StripeConnectStatus, OAuthConnection } from "@/lib/actions";
+
+export function ConnectionsTab() {
+  const [connection, setConnection] = useState<StripeConnectStatus | null | undefined>(undefined);
+  const [loading, setLoading] = useState(true);
+  const [isPending, startTransition] = useTransition();
+
+  useState(() => {
+    fetchStripeStatus().then((s) => {
+      setConnection(s);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  });
+
+  const handleDisconnect = () => {
+    if (!confirm("Are you sure you want to disconnect your Stripe account? This will stop syncing new transactions.")) return;
+    startTransition(async () => {
+      const ok = await disconnectStripe();
+      if (ok) setConnection(null);
+    });
+  };
+
+  const handleSync = () => {
+    startTransition(async () => {
+      await syncStripe();
+      const updated = await fetchStripeStatus();
+      setConnection(updated);
+    });
+  };
+
+  const handleConnect = () => {
+    startTransition(async () => {
+      const url = await getStripeAuthorizeUrl();
+      if (url) {
+        window.location.href = url;
+      }
+    });
+  };
+
+  return (
+    <div>
+      <div style={{ marginBottom: 24 }}>
+        <h2 style={{ fontSize: 16, fontWeight: 600, color: "var(--text-primary)", marginBottom: 4 }}>Connections</h2>
+        <p style={{ fontSize: 13, color: "var(--text-tertiary)" }}>Connect external services to automatically import transactions.</p>
+      </div>
+
+      {/* Stripe Connect */}
+      <div className="card" style={{ padding: 20 }}>
+        <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
+          <div className="flex items-center" style={{ gap: 12 }}>
+            <div style={{
+              width: 40, height: 40, borderRadius: 8,
+              background: "#635BFF", display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M9.2 7.2c0-.7.6-1 1.5-1 1.4 0 3.1.4 4.5 1.2V3.6C13.7 3 12.2 2.6 10.7 2.6c-3.5 0-5.8 1.8-5.8 4.9 0 4.8 6.6 4 6.6 6.1 0 .8-.7 1.1-1.7 1.1-1.5 0-3.4-.6-4.9-1.4v3.8c1.7.7 3.3 1 4.9 1 3.6 0 6-1.8 6-4.9 0-5.2-6.6-4.2-6.6-6z" fill="white"/>
+              </svg>
+            </div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>Stripe</div>
+              <div style={{ fontSize: 12, color: "var(--text-tertiary)" }}>Import charges, refunds, and payouts</div>
+            </div>
+          </div>
+          {connection && (
+            <span className="badge badge-green">Connected</span>
+          )}
+        </div>
+
+        {loading ? (
+          <div style={{ fontSize: 13, color: "var(--text-tertiary)" }}>Loading...</div>
+        ) : connection ? (
+          <div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
+              <div>
+                <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 2 }}>Account ID</div>
+                <div style={{ fontSize: 13, color: "var(--text-primary)", fontFamily: "monospace" }}>{connection.stripeAccountId}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 2 }}>Last Synced</div>
+                <div style={{ fontSize: 13, color: "var(--text-primary)" }}>
+                  {connection.lastSyncedAt ? formatDate(connection.lastSyncedAt) : "Never"}
+                </div>
+              </div>
+            </div>
+            <div className="flex" style={{ gap: 8 }}>
+              <button
+                className="btn-primary"
+                style={{ fontSize: 12, height: 32, padding: "0 12px" }}
+                onClick={handleSync}
+                disabled={isPending}
+              >
+                {isPending ? "Syncing..." : "Sync Now"}
+              </button>
+              <button
+                className="btn-ghost"
+                style={{ fontSize: 12, height: 32, padding: "0 12px", color: "var(--negative)" }}
+                onClick={handleDisconnect}
+                disabled={isPending}
+              >
+                Disconnect
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <p style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 12 }}>
+              Connect your Stripe account to automatically import charges, refunds, and payouts as journal entries.
+            </p>
+            <button
+              className="btn-primary"
+              style={{ fontSize: 12, height: 32, padding: "0 12px" }}
+              onClick={handleConnect}
+              disabled={isPending}
+            >
+              {isPending ? "Connecting..." : "Connect Stripe"}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* OAuth Connected Applications */}
+      <OAuthConnectionsSection />
+    </div>
+  );
+}
+
+function OAuthConnectionsSection() {
+  const [connections, setConnections] = useState<OAuthConnection[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    fetchOAuthConnections().then((c) => {
+      setConnections(c);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
+
+  const handleRevoke = (clientId: string, clientName: string) => {
+    if (!confirm(`Revoke access for ${clientName}? This will disconnect the application immediately.`)) return;
+    startTransition(async () => {
+      const ok = await revokeOAuthConnection(clientId);
+      if (ok) {
+        setConnections((prev) => prev.filter((c) => c.client_id !== clientId));
+      }
+    });
+  };
+
+  return (
+    <div style={{ marginTop: 20 }}>
+      <div className="card" style={{ padding: 20 }}>
+        <div className="flex items-center" style={{ gap: 12, marginBottom: 16 }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: 8,
+            background: "var(--surface-2)", display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--text-tertiary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="9" width="14" height="8" rx="2" />
+              <path d="M7 9V6a3 3 0 0 1 6 0v3" />
+            </svg>
+          </div>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>Connected Applications</div>
+            <div style={{ fontSize: 12, color: "var(--text-tertiary)" }}>Third-party apps authorized via OAuth</div>
+          </div>
+        </div>
+
+        {loading ? (
+          <div style={{ fontSize: 13, color: "var(--text-tertiary)" }}>Loading...</div>
+        ) : connections.length === 0 ? (
+          <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>
+            No third-party applications are connected. When you authorize an application to access your ledger, it will appear here.
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {connections.map((conn) => (
+              <div
+                key={conn.client_id}
+                className="flex items-center justify-between"
+                style={{
+                  padding: 12,
+                  borderRadius: 8,
+                  border: "1px solid var(--border)",
+                  backgroundColor: "var(--surface-1)",
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)", marginBottom: 2 }}>
+                    {conn.client_name}
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--text-tertiary)" }}>
+                    {conn.scopes.join(", ")} · Connected {formatDate(conn.connected_at)}
+                  </div>
+                </div>
+                <button
+                  className="btn-ghost"
+                  style={{ fontSize: 12, height: 28, padding: "0 10px", color: "var(--negative)" }}
+                  onClick={() => handleRevoke(conn.client_id, conn.client_name)}
+                  disabled={isPending}
+                >
+                  Revoke
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+

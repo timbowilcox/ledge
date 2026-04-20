@@ -4,10 +4,16 @@
 // ---------------------------------------------------------------------------
 
 import initSqlJs, { type SqlJsDatabase } from "sql.js";
+import { AsyncLocalStorage } from "node:async_hooks";
 import type { Database, RunResult } from "./database.js";
 
 export class SqliteDatabase implements Database {
   private constructor(private db: SqlJsDatabase) {}
+
+  // Per-async-context transaction depth. Using AsyncLocalStorage instead of an
+  // instance variable means concurrent operations on the same DB don't corrupt
+  // each other's depth counter. (Mirrors the pattern in PostgresDatabase.)
+  private depthStorage = new AsyncLocalStorage<{ depth: number }>();
 
   /**
    * Create a new in-memory SQLite database (for tests) or from a file path.
@@ -60,39 +66,38 @@ export class SqliteDatabase implements Database {
     this.db.exec(sql);
   }
 
-  private transactionDepth = 0;
-
   async transaction<T>(fn: () => Promise<T>): Promise<T> {
-    if (this.transactionDepth > 0) {
-      // Nested transaction - use SAVEPOINT
-      const savepoint = `sp_${this.transactionDepth}`;
+    const ctx = this.depthStorage.getStore();
+
+    if (ctx) {
+      // Nested transaction within the same async context — use SAVEPOINT.
+      ctx.depth++;
+      const savepoint = `sp_${ctx.depth}`;
       await this.run(`SAVEPOINT ${savepoint}`);
-      this.transactionDepth++;
       try {
         const result = await fn();
         await this.run(`RELEASE SAVEPOINT ${savepoint}`);
-        this.transactionDepth--;
         return result;
       } catch (e) {
         await this.run(`ROLLBACK TO SAVEPOINT ${savepoint}`);
-        this.transactionDepth--;
         throw e;
+      } finally {
+        ctx.depth--;
       }
     }
 
-    // Top-level transaction
-    await this.run("BEGIN IMMEDIATE");
-    this.transactionDepth++;
-    try {
-      const result = await fn();
-      await this.run("COMMIT");
-      this.transactionDepth--;
-      return result;
-    } catch (e) {
-      await this.run("ROLLBACK");
-      this.transactionDepth--;
-      throw e;
-    }
+    // Top-level transaction — establish a new async-local depth context.
+    return this.depthStorage.run({ depth: 1 }, async () => {
+      await this.run("BEGIN IMMEDIATE");
+      try {
+        const result = await fn();
+        await this.run("COMMIT");
+        return result;
+      } catch (e) {
+        await this.run("ROLLBACK");
+        throw e;
+      }
+    });
   }
 
   async close(): Promise<void> {
